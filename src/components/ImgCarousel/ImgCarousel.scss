@@ -1,0 +1,11 @@
+.carousel-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100vh; // Define altura total da tela (ajuste conforme necessário)
+}
+
+.carousel-container .carousel {
+  max-width: 800px;
+}

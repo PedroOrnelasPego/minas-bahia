@@ -22,7 +22,7 @@ const images = [teste1, teste2, teste3, teste4, teste5];
 const ImgCarousel = () => {
   return (
     <div className="text-center" style={{ maxWidth: "90%", margin: "auto", padding: "20px" }}>
-      <h1 className="">Eventos</h1>
+      <h1 className="">Nossa Historia</h1>
       <Carousel
         responsive={responsive}
         infinite={true}

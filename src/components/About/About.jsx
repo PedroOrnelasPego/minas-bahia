@@ -1,14 +1,16 @@
 import { Container } from "react-bootstrap";
-import minas from "../../assets/projetos/minas.png"; // Substitua pelo caminho correto da logo
+import minas from "../../assets/projetos/minas.png"; // Substitua pelo caminho correto da imagem
+import "./About.scss"; // Importe a folha de estilo customizada
 
 const About = () => {
   return (
     <Container className="mt-3">
-      <div className="p-5 text-center">
-        <h1>Bem-vindos ao ICMBC</h1>
-        <div className="d-flex align-items-center gap-5">
-          <div>
-            <p style={{ textAlign: "justify" }}>
+      <div className="p-4">
+        <h1 className="text-center mb-4">Bem-vindos ao ICMBC</h1>
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-24">
+          {/* Área do texto */}
+          <div className="flex-grow-1">
+            <p className="mb-3" style={{ textAlign: "justify" }}>
               O Instituto de Patrimônio Cultural, Esporte, Lazer e Educação
               Minas Bahia de Capoeira ou Instituto Cultural Minas Bahia de
               Capoeira – ICMBC, sendo este último, o nome fantasia pelo qual é
@@ -30,8 +32,13 @@ const About = () => {
               Patrimônio Cultural Brasileiro / MG.
             </p>
           </div>
-          <div>
-            <img src={minas} width={300} alt="" />
+          {/* Área da imagem */}
+          <div className="mt-4 mt-md-0">
+            <img
+              src={minas}
+              alt="Logo do ICMBC"
+              className="img-fluid about-image"
+            />
           </div>
         </div>
       </div>

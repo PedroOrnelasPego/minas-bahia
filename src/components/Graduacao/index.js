@@ -1,3 +1,3 @@
-import Graduacao from "./Graduacao";
+import Projetos from "./Projetos";
 
-export default Graduacao;
+export default Projetos;

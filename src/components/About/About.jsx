@@ -1,11 +1,11 @@
 import { Container } from "react-bootstrap";
-import logo from "../../assets/logo/logo-icmbc.png"; // Substitua pelo caminho correto da logo
+import minas from "../../assets/projetos/minas.png"; // Substitua pelo caminho correto da logo
 
 const About = () => {
   return (
     <Container className="mt-3">
       <div className="p-5 text-center">
-        <h1>Bem-vindos ao Minas Bahia de Capoeira</h1>
+        <h1>Bem-vindos ao ICMBC</h1>
         <div className="d-flex align-items-center gap-5">
           <div>
             <p style={{ textAlign: "justify" }}>
@@ -31,7 +31,7 @@ const About = () => {
             </p>
           </div>
           <div>
-            <img src={logo} width={200} alt="" />
+            <img src={minas} width={300} alt="" />
           </div>
         </div>
       </div>

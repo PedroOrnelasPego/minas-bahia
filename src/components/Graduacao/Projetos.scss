@@ -1,0 +1,26 @@
+.container-cards {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 40px;
+
+  .card-projeto {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 260px;
+    height: 345px;
+    border: none;
+    box-shadow: #00000021 1px 2px 11px 2px;
+
+    .card-body {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  .img-projeto {
+    max-width: 240px;
+    max-width: 180px;
+  }
+}

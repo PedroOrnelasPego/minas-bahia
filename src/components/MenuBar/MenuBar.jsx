@@ -11,7 +11,7 @@ const MenuBar = () => {
         {/* Div central para o título e os links */}
         <div className="flex-grow-1 text-center">
           {/* Título e subtítulo centralizados */}
-          <h2 className="mb-0 fw-bold">Minas Bahia</h2>
+          <h2 className="mb-0 fw-bold">Instituto Cultutal Minas Bahia de Capoeira</h2>
           <p className="mb-2 text-muted">Mestre Costela</p>
 
           {/* Links da navbar centralizados abaixo do texto */}
@@ -20,19 +20,19 @@ const MenuBar = () => {
               Início
             </Nav.Link>
             <Nav.Link href="#graduacao" className="fw-bold mx-2">
-              Graduação
+              Capoeira
             </Nav.Link>
             <Nav.Link href="#mestre-costela" className="fw-bold mx-2">
               Mestre Costela
             </Nav.Link>
             <Nav.Link href="#onde-estamos" className="fw-bold mx-2">
-              Onde Estamos
+              Eventos
             </Nav.Link>
             <Nav.Link href="#evento-uai" className="fw-bold mx-2">
-              Evento UAI Minas Bahia
+              UAI Minas Bahia
             </Nav.Link>
             <Nav.Link href="#contato" className="fw-bold mx-2">
-              Contato
+              Trajetórias ancestrais
             </Nav.Link>
           </Nav>
         </div>

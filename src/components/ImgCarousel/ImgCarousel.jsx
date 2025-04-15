@@ -3,11 +3,10 @@ import "react-multi-carousel/lib/styles.css";
 import "./ImgCarousel.scss";
 
 // Importação correta das imagens
-import teste1 from "../../assets/carousel/teste.jpg";
-import teste2 from "../../assets/carousel/teste.jpg";
-import teste3 from "../../assets/carousel/teste.jpg";
-import teste4 from "../../assets/carousel/teste.jpg";
-import teste5 from "../../assets/carousel/teste.jpg";
+import teste1 from "../../assets/parceiros/alanson.png";
+import teste2 from "../../assets/parceiros/implantar.png";
+import teste3 from "../../assets/parceiros/rede.png";
+import { Card } from "react-bootstrap";
 
 const responsive = {
   superLargeDesktop: { breakpoint: { max: 4000, min: 1024 }, items: 4 },
@@ -17,12 +16,15 @@ const responsive = {
 };
 
 // Array agora usa as imagens importadas corretamente
-const images = [teste1, teste2, teste3, teste4, teste5];
+const images = [teste1, teste2, teste3, teste1, teste2, teste3];
 
 const ImgCarousel = () => {
   return (
-    <div className="text-center" style={{ maxWidth: "90%", margin: "auto", padding: "20px" }}>
-      <h1 className="">Nossa Historia</h1>
+    <div
+      className="text-center"
+      style={{ maxWidth: "90%", margin: "auto", padding: "20px" }}
+    >
+      <h1 className="">Parceiros</h1>
       <Carousel
         responsive={responsive}
         infinite={true}
@@ -35,16 +37,17 @@ const ImgCarousel = () => {
       >
         {images.map((src, index) => (
           <div key={index} style={{ padding: "10px" }}>
+            <Card className="card-carousel">
             <img
               src={src}
               alt={`Slide ${index}`}
               style={{
                 width: "100%",
                 height: "auto",
-                borderRadius: "10px",
-                boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+               
               }}
             />
+            </Card>
           </div>
         ))}
       </Carousel>

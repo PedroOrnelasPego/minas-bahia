@@ -5,8 +5,11 @@ import MenuBar from "./components/MenuBar";
 import TheFooter from "./components/TheFooter";
 
 import Home from "./pages/Home";
-import MinasBahia from "./pages/MinasBahia/MinasBahia";
+import MinasBahia from "./pages/MinasBahia";
 import Mestre from "./pages/Mestre";
+import UAI from "./pages/UAI";
+import Eventos from "./pages/Eventos";
+import Trajetorias from "./pages/Trajetorias";
 
 function App() {
   return (
@@ -17,6 +20,9 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/minas-bahia-capoeira" element={<MinasBahia />} />
           <Route path="/mestre-costela" element={<Mestre />} />
+          <Route path="/eventos" element={<Eventos />} />
+          <Route path="/uai-minas-bahia" element={<UAI />} />
+          <Route path="/trajetorias-ancestrais" element={<Trajetorias />} />
         </Routes>
       </Container>
       <TheFooter />

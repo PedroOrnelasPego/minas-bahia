@@ -9,18 +9,30 @@
     align-items: center;
     justify-content: center;
     width: 260px;
-    height: 345px;
+    height: 305px;
     border: none;
     box-shadow: #00000021 1px 2px 11px 2px;
+    transition: transform 0.3s ease; // transição suave para o efeito hover
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-5px); // efeito de flutuação
+    }
 
     .card-body {
       display: flex;
       align-items: center;
+      justify-content: center;
     }
   }
 
   .img-projeto {
-    max-width: 240px;
     max-width: 180px;
   }
+}
+
+// Classe para links que envolvem os cards – remove decorações padrão
+.card-link {
+  text-decoration: none;
+  color: inherit;
 }

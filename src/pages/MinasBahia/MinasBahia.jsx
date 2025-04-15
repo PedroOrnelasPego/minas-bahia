@@ -64,7 +64,7 @@ const MinasBahia = () => {
           trabalhos e as atividades do grupo/coletivo Capoeira Minas Bahia.
         </p>
       </div>
-      <div className="mt-20">
+      <div className="mt-22">
         <div className="mb-6">
           <h1 className="text-center">Sistema de Graduação</h1>
         </div>
@@ -88,6 +88,10 @@ const MinasBahia = () => {
             alt=""
           />
         </div>
+      </div>
+      <div className="mt-22">
+      <h1 className="text-center mb-4">Troca de Corda</h1>{" "}
+
       </div>
     </Container>
   );

@@ -13,6 +13,7 @@ import Trajetorias from "./pages/Trajetorias";
 import EventAlbum from "./components/EventAlbum";
 import MenuEvento from "./components/MenuEvento";
 import WhatsAppButton from "./components/WhatsAppButton";
+import Login from "./pages/Login";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/eventos/:eventLink" element={<EventAlbum />} />
           <Route path="/uai-minas-bahia" element={<UAI />} />
           <Route path="/trajetorias-ancestrais" element={<Trajetorias />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
       </Container>
       <MenuEvento />

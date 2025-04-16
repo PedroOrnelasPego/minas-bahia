@@ -54,6 +54,9 @@ const MenuBar = () => {
             >
               Trajetórias Ancestrais
             </Nav.Link>
+            <Nav.Link as={NavLink} to="/login" className="fw-bold mx-2">
+              Login
+            </Nav.Link>
           </Nav>
         </div>
       </Container>

@@ -45,14 +45,14 @@ const MenuBar = () => {
               to="/uai-minas-bahia"
               className="fw-bold mx-2"
             >
-              UAI Minas Bahia
+              UAI! Minas Bahia
             </Nav.Link>
             <Nav.Link
               as={NavLink}
               to="/trajetorias-ancestrais"
               className="fw-bold mx-2"
             >
-              Trajetórias ancestrais
+              Trajetórias Ancestrais
             </Nav.Link>
           </Nav>
         </div>

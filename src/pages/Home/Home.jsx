@@ -1,6 +1,7 @@
 import ImgCarousel from "../../components/ImgCarousel/ImgCarousel";
 import Graduacao from "../../components/Graduacao";
 import About from "../../components/About";
+
 const Home = () => {
   return (
     <div>

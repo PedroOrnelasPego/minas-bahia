@@ -13,7 +13,7 @@ const TheFooter = () => {
             </p>
             <h6>Horários de Treinos</h6>
             <p>
-              <strong>Quarta e Sexta-feira</strong> <br />
+              <strong>Terça e Quinta-feira</strong> <br />
               19h às 20h - Crianças de 6 à 12 anos. <br />
               20h às 21:30h - Adolescentes e adultos.
             </p>

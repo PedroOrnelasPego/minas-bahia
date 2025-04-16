@@ -10,6 +10,9 @@ import Mestre from "./pages/Mestre";
 import UAI from "./pages/UAI";
 import Eventos from "./pages/Eventos";
 import Trajetorias from "./pages/Trajetorias";
+import EventAlbum from "./components/EventAlbum";
+import MenuEvento from "./components/MenuEvento";
+import WhatsAppButton from "./components/WhatsAppButton";
 
 function App() {
   return (
@@ -21,11 +24,14 @@ function App() {
           <Route path="/minas-bahia-capoeira" element={<MinasBahia />} />
           <Route path="/mestre-costela" element={<Mestre />} />
           <Route path="/eventos" element={<Eventos />} />
+          <Route path="/eventos/:eventLink" element={<EventAlbum />} />
           <Route path="/uai-minas-bahia" element={<UAI />} />
           <Route path="/trajetorias-ancestrais" element={<Trajetorias />} />
         </Routes>
       </Container>
+      <MenuEvento />
       <TheFooter />
+      <WhatsAppButton />
     </>
   );
 }

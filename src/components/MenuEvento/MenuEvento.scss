@@ -1,0 +1,28 @@
+// src/pages/Eventos/MenuEvento.scss
+.floating-menu {
+  position: fixed;
+  bottom: 200px;
+  left: 44px;
+  width: 200px;
+  z-index: 1000;
+}
+
+/* Estilos para cada card de evento */
+.menu-evento-card {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 640px) {
+  .floating-menu {
+    width: 90%;
+    left: 5%;
+    right: 5%;
+    bottom: 10px;
+  }
+}

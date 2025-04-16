@@ -4,6 +4,8 @@ import selo from "../../assets/logo/minas.png";
 import alunoAdulto from "../../assets/graduacao/aluno-adulto.png";
 import alunoInfantil from "../../assets/graduacao/aluno-infantil.png";
 import alunoMirin from "../../assets/graduacao/aluno-mirin.png";
+import Album from "../../components/Album/Album";
+import data from "./data"; // Importando o array de fotos local
 
 const MinasBahia = () => {
   return (
@@ -64,8 +66,8 @@ const MinasBahia = () => {
           trabalhos e as atividades do grupo/coletivo Capoeira Minas Bahia.
         </p>
       </div>
-      <div className="mt-22">
-        <div className="mb-6">
+      <div className="mt-48 ">
+        <div className="mb-10">
           <h1 className="text-center">Sistema de Graduação</h1>
         </div>
         <div className="flex gap-5 flex-wrap justify-center">
@@ -89,9 +91,9 @@ const MinasBahia = () => {
           />
         </div>
       </div>
-      <div className="mt-22">
-      <h1 className="text-center mb-4">Troca de Corda</h1>{" "}
-
+      <div className="mt-46">
+        <h1 className="text-center mb-4">Troca de Corda</h1>
+        <Album photos={data} />
       </div>
     </Container>
   );

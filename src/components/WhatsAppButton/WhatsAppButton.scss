@@ -1,0 +1,55 @@
+.whatsapp {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 9999;
+}
+
+.whatsapp:hover {
+  transform: scale(1.1);
+}
+
+.whatsapp img {
+  width: 75px;
+}
+
+.balloon {
+  position: absolute;
+  bottom: calc(20% + 10px);
+  right: calc(100% + 10px); /* Ajuste para o lado esquerdo */
+  background-color: #ffc107;
+  color: #000000;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  white-space: nowrap; /* Evita que a mensagem quebre em várias linhas */
+}
+
+@media only screen and (max-width: 670px) {
+  .whatsapp {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+  }
+
+  .whatsapp:hover {
+    transform: scale(1.1);
+  }
+
+  .whatsapp img {
+    width: 60px;
+  }
+
+  .balloon {
+    position: absolute;
+    bottom: calc(20% + 1px);
+    right: calc(100% + 10px); /* Ajuste para o lado esquerdo */
+    background-color: #ffc107;
+    color: #000000;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    white-space: nowrap; /* Evita que a mensagem quebre em várias linhas */
+  }
+}

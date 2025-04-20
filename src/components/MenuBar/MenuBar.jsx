@@ -54,6 +54,9 @@ const MenuBar = () => {
             >
               Trajetórias Ancestrais
             </Nav.Link>
+            <Nav.Link as={NavLink} to="/area-graduado" className="fw-bold mx-2">
+              Área do Graduado
+            </Nav.Link>
           </Nav>
         </div>
       </Container>

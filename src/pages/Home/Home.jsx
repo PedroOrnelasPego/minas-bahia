@@ -1,6 +1,6 @@
-import ImgCarousel from "../../components/ImgCarousel/ImgCarousel";
-import Graduacao from "../../components/Graduacao";
-import About from "../../components/About";
+import Parceiros from "./Parceiros";
+import Eventos from "./Eventos";
+import About from "./About";
 
 const Home = () => {
   return (
@@ -10,10 +10,10 @@ const Home = () => {
           <About />
         </div>
         <div className="my-5">
-          <ImgCarousel />
+          <Parceiros />
         </div>
         <div className="graduacao">
-          <Graduacao></Graduacao>
+          <Eventos></Eventos>
         </div>
       </>
     </div>

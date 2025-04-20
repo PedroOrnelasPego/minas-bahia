@@ -1,15 +1,15 @@
-import dez from "../../assets/trajetorias/10.jpg";
-import vinte from "../../assets/trajetorias/20.jpg";
-import trinta from "../../assets/trajetorias/30.jpg";
-import quarenta from "../../assets/trajetorias/40.jpg";
-import cinquenta from "../../assets/trajetorias/50.jpg";
+import babilakBah from "../../assets/trajetorias/babilakBah.jpg";
+import jaiminho from "../../assets/trajetorias/jaiminho.jpg";
+import evandroPassos from "../../assets/trajetorias/evandroPassos.jpg";
+import mestreNenel from "../../assets/trajetorias/mestreNenel.jpg";
+import marcioMartins from "../../assets/trajetorias/marcioMartins.jpg";
 
 const trajetoriasAncestraisCards = [
-  { event: "Babilak Bah", background: dez, link: "uai23" },
-  { event: "Mestre Jaiminho", background: vinte, link: "uai21" },
-  { event: "Evandro Passos", background: trinta, link: "uai19" },
-  { event: "Mestre Nenel", background: quarenta, link: "uai17" },
-  { event: "Mestre Márcio Martins", background: cinquenta, link: "uai15" },
+  { event: "Babilak Bah", background: babilakBah, link: "uai23" },
+  { event: "Mestre Jaiminho", background: jaiminho, link: "uai21" },
+  { event: "Evandro Passos", background: evandroPassos, link: "uai19" },
+  { event: "Mestre Nenel", background: mestreNenel, link: "uai17" },
+  { event: "Mestre Márcio Martins", background: marcioMartins, link: "uai15" },
 ];
 
 export default trajetoriasAncestraisCards;

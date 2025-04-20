@@ -1,5 +1,5 @@
 import { Container } from "react-bootstrap";
-import minas from "../../assets/projetos/minas.png"; // Substitua pelo caminho correto da imagem
+import minas from "../../../assets/projetos/icmbc.png"; // Substitua pelo caminho correto da imagem
 import "./About.scss"; // Importe a folha de estilo customizada
 
 const About = () => {

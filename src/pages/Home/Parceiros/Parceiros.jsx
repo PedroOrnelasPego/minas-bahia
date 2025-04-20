@@ -1,11 +1,11 @@
 import Carousel from "react-multi-carousel";
 import "react-multi-carousel/lib/styles.css";
-import "./ImgCarousel.scss";
+import "./Parceiros.scss";
 
 // Importação correta das imagens
-import teste1 from "../../assets/parceiros/alanson.png";
-import teste2 from "../../assets/parceiros/implantar.png";
-import teste3 from "../../assets/parceiros/rede.png";
+import teste1 from "../../../assets/parceiros/alanson.png";
+import teste2 from "../../../assets/parceiros/implantar.png";
+import teste3 from "../../../assets/parceiros/rede.png";
 import { Card } from "react-bootstrap";
 
 const responsive = {
@@ -18,7 +18,7 @@ const responsive = {
 // Array agora usa as imagens importadas corretamente
 const images = [teste1, teste2, teste3, teste1, teste2, teste3];
 
-const ImgCarousel = () => {
+const Parceiros = () => {
   return (
     <div
       className="text-center"
@@ -55,4 +55,4 @@ const ImgCarousel = () => {
   );
 };
 
-export default ImgCarousel;
+export default Parceiros;

@@ -1,7 +1,7 @@
 import { Container } from "react-bootstrap";
 
-import carteirinha from "../../assets/img/carteirinha.jpg";
-import mestre from "../../assets/img/mestre.png";
+import carteirinha from "../../assets/mestre/carteirinha.jpg";
+import mestre from "../../assets/mestre/mestre.png";
 
 const Mestre = () => {
   return (

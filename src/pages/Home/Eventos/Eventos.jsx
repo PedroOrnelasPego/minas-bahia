@@ -1,17 +1,17 @@
 import { Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import "./Projetos.scss";
-import trajetoria from "../../assets/projetos/trajetorias.png";
-import uai from "../../assets/projetos/uai.jpg";
-import logo from "../../assets/projetos/logo-icmbc.png";
+import "./Eventos.scss";
+import trajetoria from "../../../assets/projetos/trajetorias.png";
+import uai from "../../../assets/projetos/uai.jpg";
+import logo from "../../../assets/projetos/logoMbc.png";
 
-const Projetos = () => {
+const Eventos = () => {
   return (
     <div
       className="text-center"
       style={{ maxWidth: "90%", margin: "auto", padding: "20px" }}
     >
-      <h1>Projetos</h1>
+      <h1>Eventos e Projetos</h1>
       <div style={{ textAlign: "justify", marginBottom: "48px" }}>
         Lorem, ipsum dolor sit amet consectetur adipisicing elit. Officia autem
         quos animi esse saepe, nesciunt, illum assumenda, sequi quis excepturi
@@ -22,7 +22,11 @@ const Projetos = () => {
         <Link to="/trajetorias-ancestrais" className="card-link">
           <Card className="card-projeto">
             <Card.Body className="card-body">
-              <img className="img-projeto" src={trajetoria} alt="Trajetórias Ancestrais" />
+              <img
+                className="img-projeto"
+                src={trajetoria}
+                alt="Trajetórias Ancestrais"
+              />
             </Card.Body>
             <Card.Title>Trajetórias Ancestrais</Card.Title>
           </Card>
@@ -38,7 +42,11 @@ const Projetos = () => {
         <Link to="/minas-bahia-capoeira" className="card-link">
           <Card className="card-projeto">
             <Card.Body className="card-body">
-              <img style={{ maxWidth: "160px" }} src={logo} alt="Capoeira Minas Bahia" />
+              <img
+                style={{ maxWidth: "160px" }}
+                src={logo}
+                alt="Capoeira Minas Bahia"
+              />
             </Card.Body>
             <Card.Title>Capoeira Minas Bahia</Card.Title>
           </Card>
@@ -64,4 +72,4 @@ const Projetos = () => {
   );
 };
 
-export default Projetos;
+export default Eventos;

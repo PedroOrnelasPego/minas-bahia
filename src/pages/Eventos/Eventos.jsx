@@ -1,6 +1,6 @@
 import { Card, Container } from "react-bootstrap";
 import "./Eventos.scss";
-import eventsData from "./data";
+import eventsData from "./eventsData";
 import { Link } from "react-router-dom";
 
 const Eventos = () => {

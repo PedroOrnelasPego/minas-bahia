@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../../../supabaseClient";
+import { supabase } from "../../../lib/supabaseClient";
 
 const Registro = ({ onVoltarParaLogin }) => {
   const [email, setEmail] = useState("");
@@ -54,7 +54,9 @@ const Registro = ({ onVoltarParaLogin }) => {
       <h2 className="text-2xl font-bold mb-4 text-center">Criar Conta</h2>
       <form onSubmit={handleSignUp} className="space-y-4">
         <div>
-          <label htmlFor="nome" className="block text-sm font-medium">Nome</label>
+          <label htmlFor="nome" className="block text-sm font-medium">
+            Nome
+          </label>
           <input
             id="nome"
             type="text"
@@ -67,7 +69,9 @@ const Registro = ({ onVoltarParaLogin }) => {
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium">E-mail</label>
+          <label htmlFor="email" className="block text-sm font-medium">
+            E-mail
+          </label>
           <input
             id="email"
             type="email"
@@ -80,7 +84,9 @@ const Registro = ({ onVoltarParaLogin }) => {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium">Senha</label>
+          <label htmlFor="password" className="block text-sm font-medium">
+            Senha
+          </label>
           <input
             id="password"
             type="password"
@@ -93,7 +99,9 @@ const Registro = ({ onVoltarParaLogin }) => {
         </div>
 
         {errorMessage && <p className="text-red-600 text-sm">{errorMessage}</p>}
-        {successMessage && <p className="text-green-600 text-sm">{successMessage}</p>}
+        {successMessage && (
+          <p className="text-green-600 text-sm">{successMessage}</p>
+        )}
 
         <div className="flex justify-between gap-2">
           <button

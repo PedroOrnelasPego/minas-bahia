@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Container, Row, Col, Modal, Button } from "react-bootstrap";
-import { supabase } from "../../../supabaseClient";
-import Registro from "../../components/Registro/Registro";
-import Login from "../../components/Login";
+import { supabase } from "../../lib/supabaseClient";
+import Registro from "./Registro";
+import Login from "./Login";
 
 const AreaGraduado = () => {
   const [session, setSession] = useState(null);

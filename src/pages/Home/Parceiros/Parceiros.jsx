@@ -2,7 +2,6 @@ import Carousel from "react-multi-carousel";
 import "react-multi-carousel/lib/styles.css";
 import "./Parceiros.scss";
 
-// Importação correta das imagens
 import teste1 from "../../../assets/parceiros/alanson.png";
 import teste2 from "../../../assets/parceiros/implantar.png";
 import teste3 from "../../../assets/parceiros/rede.png";
@@ -15,7 +14,6 @@ const responsive = {
   mobile: { breakpoint: { max: 464, min: 0 }, items: 1 },
 };
 
-// Array agora usa as imagens importadas corretamente
 const images = [teste1, teste2, teste3, teste1, teste2, teste3];
 
 const Parceiros = () => {
@@ -36,17 +34,13 @@ const Parceiros = () => {
         removeArrowOnDeviceType={["tablet", "mobile"]}
       >
         {images.map((src, index) => (
-          <div key={index} style={{ padding: "10px" }}>
+          <div key={index} className="carousel-item-wrapper">
             <Card className="card-carousel">
-            <img
-              src={src}
-              alt={`Slide ${index}`}
-              style={{
-                width: "100%",
-                height: "auto",
-               
-              }}
-            />
+              <img
+                src={src}
+                alt={`Slide ${index}`}
+                className="carousel-image"
+              />
             </Card>
           </div>
         ))}

@@ -13,10 +13,11 @@ const Eventos = () => {
     >
       <h1>Eventos e Projetos</h1>
       <div style={{ textAlign: "justify", marginBottom: "48px" }}>
-        Lorem, ipsum dolor sit amet consectetur adipisicing elit. Officia autem
-        quos animi esse saepe, nesciunt, illum assumenda, sequi quis excepturi
-        necessitatibus iste repellat natus? Doloribus architecto est molestias
-        veritatis illo.
+        Os eventos e projetos promovidos pelo ICMBC são parte fundamental do
+        nosso compromisso com a valorização da Capoeira e das expressões
+        afro-brasileiras. Através de vivências, apresentações, oficinas, rodas e
+        cursos, buscamos ampliar o acesso à cultura, à educação e ao
+        conhecimento.
       </div>
       <div className="container-cards">
         <Link to="/trajetorias-ancestrais" className="card-link">
@@ -51,7 +52,7 @@ const Eventos = () => {
             <Card.Title>Capoeira Minas Bahia</Card.Title>
           </Card>
         </Link>
-        <Link to="#troca-de-cordas" className="card-link">
+        {/* <Link to="#troca-de-cordas" className="card-link">
           <Card className="card-projeto">
             <Card.Body className="card-body">
               <img className="img-projeto" src={uai} alt="Troca de Cordas" />
@@ -66,7 +67,7 @@ const Eventos = () => {
             </Card.Body>
             <Card.Title>Exemplo</Card.Title>
           </Card>
-        </Link>
+        </Link> */}
       </div>
     </div>
   );

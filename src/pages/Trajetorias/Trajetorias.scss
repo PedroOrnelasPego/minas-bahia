@@ -1,5 +1,18 @@
+.trajetorias-wrapper {
+  max-width: 90%;
+  margin: auto;
+  padding: 20px 0;
+}
+
+.carousel-item-wrapper {
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+
 .cards-trajetorias {
-  background-image: url("../../assets/uai23/batizado.jpeg");
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -7,12 +20,12 @@
   width: 296px !important;
   height: 412px !important;
   border: none !important;
-  box-shadow: rgba(0, 0, 0, 0.1294117647) 1px 2px 11px 2px !important;
+  box-shadow: rgba(0, 0, 0, 0.13) 1px 2px 11px 2px !important;
   transition: transform 0.3s ease !important;
   cursor: pointer !important;
 
   &:hover {
-    transform: translateY(-5px); // efeito de flutuação
+    transform: translateY(-5px);
   }
 
   .card-trajetorias-title {

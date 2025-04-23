@@ -20,7 +20,7 @@ export function AppRoutes() {
       <Route path="/eventos" element={<Eventos />} />
       <Route path="/eventos/:eventLink" element={<EventAlbum />} />
       <Route path="/uai-minas-bahia" element={<UAI />} />
-      <Route path="/trajetorias-ancestrais" element={<Trajetorias />} />
+      <Route path="/projetos" element={<Trajetorias />} />
 
       <Route path="/area-graduado" element={<AreaGraduado />} />
 

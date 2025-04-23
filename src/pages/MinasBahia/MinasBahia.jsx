@@ -1,9 +1,8 @@
 import { Container } from "react-bootstrap";
 import logo from "../../assets/logo/icmbc.png";
 import selo from "../../assets/logo/logoMbc.png";
-import alunoAdulto from "../../assets/graduacao/aluno-adulto.png";
 import alunoInfantil from "../../assets/graduacao/aluno-infantil.png";
-import alunoMirin from "../../assets/graduacao/aluno-mirin.png";
+import alunoAdulto from "../../assets/graduacao/aluno-adulto.png";
 import Album from "../../components/Album/Album";
 import data from "./data"; // Importando o array de fotos local
 
@@ -72,28 +71,22 @@ const MinasBahia = () => {
         </div>
         <div className="flex gap-5 flex-wrap justify-center">
           <img
-            className="w-lg"
-            style={{ boxShadow: " #0000004f -4px 1px 10px 0px" }}
-            src={alunoAdulto}
-            alt=""
-          />
-          <img
-            className="w-lg"
+            className="w-134"
             style={{ boxShadow: " #0000004f -4px 1px 10px 0px" }}
             src={alunoInfantil}
             alt=""
           />
           <img
-            className="w-lg"
+            className="w-134"
             style={{ boxShadow: " #0000004f -4px 1px 10px 0px" }}
-            src={alunoMirin}
+            src={alunoAdulto}
             alt=""
           />
         </div>
       </div>
       <div className="mt-46">
-        <h1 className="text-center mb-4">Troca de Corda</h1>
-        <Album photos={data} />
+        <h1 className="text-center mb-4">Graduados da Turma</h1>
+        {/* <Album photos={data} /> */}
       </div>
     </Container>
   );

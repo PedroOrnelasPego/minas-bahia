@@ -1,6 +1,6 @@
 // src/components/Login.jsx
 import { useState } from "react";
-import { supabase } from "../../../supabaseClient";
+import { supabase } from "../../../lib/supabaseClient";
 
 const Login = ({ onIrParaRegistro }) => {
   const [email, setEmail] = useState("");
@@ -13,7 +13,10 @@ const Login = ({ onIrParaRegistro }) => {
     setLoading(true);
     setErrorMessage("");
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     setLoading(false);
 
@@ -25,7 +28,9 @@ const Login = ({ onIrParaRegistro }) => {
       <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium">E-mail</label>
+          <label htmlFor="email" className="block text-sm font-medium">
+            E-mail
+          </label>
           <input
             id="email"
             type="email"
@@ -38,7 +43,9 @@ const Login = ({ onIrParaRegistro }) => {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium">Senha</label>
+          <label htmlFor="password" className="block text-sm font-medium">
+            Senha
+          </label>
           <input
             id="password"
             type="password"

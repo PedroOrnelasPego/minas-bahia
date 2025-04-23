@@ -49,10 +49,10 @@ const MenuBar = () => {
             </Nav.Link>
             <Nav.Link
               as={NavLink}
-              to="/trajetorias-ancestrais"
+              to="/projetos"
               className="fw-bold mx-2"
             >
-              Trajetórias Ancestrais
+              Projetos
             </Nav.Link>
             <Nav.Link as={NavLink} to="/area-graduado" className="fw-bold mx-2">
               Área do Graduado

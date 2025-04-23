@@ -88,10 +88,11 @@
 
 /* Alinha o botão "Fechar" à esquerda no mobile */
 .modal-footer-custom {
-  display: flex;
-  justify-content: flex-end;
+  display: flex !important;
+  justify-content: flex-end !important;
 
   @media (max-width: 767px) {
-    justify-content: flex-start;
+    display: flex !important;
+    justify-content: flex-start !important;
   }
 }

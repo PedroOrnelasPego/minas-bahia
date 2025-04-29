@@ -40,7 +40,7 @@ const MinasBahia = () => {
           com mais equidade.
         </p>
       </div>
-      <div className="flex justify-around">
+      <div className="flex justify-around flex-wrap">
         <img className="max-h-64" src={selo} alt="" />
         <img className="max-h-64" src={logo} alt="" />
       </div>
@@ -85,7 +85,7 @@ const MinasBahia = () => {
         </div>
       </div>
       <div className="mt-46">
-        <h1 className="text-center mb-4">Graduados da Turma</h1>
+        {/* <h1 className="text-center mb-4">Graduados da Turma</h1> */}
         {/* <Album photos={data} /> */}
       </div>
     </Container>

@@ -3,7 +3,7 @@ import jaiminho from "../../assets/trajetorias/jaiminho.jpg";
 import evandroPassos from "../../assets/trajetorias/evandroPassos.jpg";
 import mestreNenel from "../../assets/trajetorias/mestreNenel.jpg";
 import marcioMartins from "../../assets/trajetorias/marcioMartins.jpg";
-import mestreCostela from "../../assets/trajetorias/mestrecostela.png";
+import mestreCostela from "../../assets/trajetorias/mestreCostela.png";
 import batizado from "../../assets/trajetorias/batizado.jpg";
 import donaRita from "../../assets/trajetorias/donaRita.jpg";
 import mestraFatinha from "../../assets/trajetorias/mestraFatinha.jpg";

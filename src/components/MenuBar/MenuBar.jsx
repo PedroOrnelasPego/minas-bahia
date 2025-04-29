@@ -46,25 +46,60 @@ const MenuBar = () => {
             <p className="mb-2 text-muted">Mestre Costela</p>
 
             <Nav className="d-flex flex-wrap justify-content-center">
-              <Nav.Link as={NavLink} to="/" className="fw-bold mx-2" onClick={handleClose}>
+              <Nav.Link
+                as={NavLink}
+                to="/"
+                className="fw-bold mx-2"
+                onClick={handleClose}
+              >
                 Início
               </Nav.Link>
-              <Nav.Link as={NavLink} to="/minas-bahia-capoeira" className="fw-bold mx-2" onClick={handleClose}>
+              <Nav.Link
+                as={NavLink}
+                to="/minas-bahia-capoeira"
+                className="fw-bold mx-2"
+                onClick={handleClose}
+              >
                 Capoeira
               </Nav.Link>
-              <Nav.Link as={NavLink} to="/mestre-costela" className="fw-bold mx-2" onClick={handleClose}>
+              <Nav.Link
+                as={NavLink}
+                to="/mestre-costela"
+                className="fw-bold mx-2"
+                onClick={handleClose}
+              >
                 Mestre Costela
               </Nav.Link>
-              <Nav.Link as={NavLink} to="/eventos" className="fw-bold mx-2" onClick={handleClose}>
+              <Nav.Link
+                as={NavLink}
+                to="/eventos"
+                className="fw-bold mx-2"
+                onClick={handleClose}
+              >
                 Eventos
               </Nav.Link>
-              <Nav.Link as={NavLink} to="/uai-minas-bahia" className="fw-bold mx-2" onClick={handleClose}>
+              <Nav.Link
+                as={NavLink}
+                to="/uai-minas-bahia"
+                className="fw-bold mx-2"
+                onClick={handleClose}
+              >
                 UAI! Minas Bahia
               </Nav.Link>
-              <Nav.Link as={NavLink} to="/projetos" className="fw-bold mx-2" onClick={handleClose}>
+              <Nav.Link
+                as={NavLink}
+                to="/projetos"
+                className="fw-bold mx-2"
+                onClick={handleClose}
+              >
                 Projetos
               </Nav.Link>
-              <Nav.Link as={NavLink} to="/area-graduado" className="fw-bold mx-2" onClick={handleClose}>
+              <Nav.Link
+                as={NavLink}
+                to="/area-graduado"
+                className="fw-bold mx-2"
+                onClick={handleClose}
+              >
                 Área do Graduado
               </Nav.Link>
             </Nav>

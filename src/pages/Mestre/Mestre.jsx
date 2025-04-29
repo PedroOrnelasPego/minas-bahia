@@ -2,12 +2,13 @@ import { Container } from "react-bootstrap";
 
 import carteirinha from "../../assets/mestre/carteirinha.jpg";
 import mestre from "../../assets/mestre/mestre.png";
+import "./Mestre.scss";
 
 const Mestre = () => {
   return (
     <Container>
       <h1 className="text-center mb-4">Mestre Costela</h1>
-      <div>
+      <div className="flex-container-text">
         <p>
           Alanson Moreira Teixeira Gonçalves mais conhecido como Mestre Costela,
           é natural de Belo Horizonte - MG, nascido no dia 11/11/1978. Iniciou
@@ -30,7 +31,7 @@ const Mestre = () => {
           ano, mais ou menos).
         </p>
       </div>
-      <div className="flex justify-center items-center gap-2.5">
+      <div className="flex-container-carteirinha flex justify-center items-center gap-2.5">
         <p >
           No final de 2001, o Mestre Costela resolve abdicar de tudo e
           dedicar-se, de forma mais efetiva, à capoeira. Fundando no início de
@@ -44,7 +45,7 @@ const Mestre = () => {
         </p>
         <img src={carteirinha} alt="" />
       </div>
-      <div className="flex justify-center items-center gap-2.5">
+      <div className="flex-container-mestre flex justify-center items-center gap-2.5">
         <img src={mestre} alt="" />
         <p>
           Mestre Alanson Costela é Mestre em Educação pela PUC-Minas,

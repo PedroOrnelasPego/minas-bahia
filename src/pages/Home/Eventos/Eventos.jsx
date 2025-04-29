@@ -20,7 +20,7 @@ const Eventos = () => {
         conhecimento.
       </div>
       <div className="container-cards">
-        <Link to="/trajetorias-ancestrais" className="card-link">
+        <Link to="/projetos" className="card-link">
           <Card className="card-projeto">
             <Card.Body className="card-body">
               <img

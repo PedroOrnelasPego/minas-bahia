@@ -1,4 +1,4 @@
-import uai2023 from "../../assets/uai/uai23.jpeg";
+import uai2023 from "../../assets/uai/uai23.png";
 import uai2021 from "../../assets/uai/uai21.jpg";
 import uai2019 from "../../assets/uai/uai19.jpg";
 import uai2017 from "../../assets/uai/uai17.jpeg";

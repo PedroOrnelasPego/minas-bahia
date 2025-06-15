@@ -1,4 +1,3 @@
-
 import { Container } from "react-bootstrap";
 import { AppRoutes } from "./router/AppRoutes";
 import MenuBar from "./components/MenuBar";

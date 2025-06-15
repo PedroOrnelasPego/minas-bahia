@@ -1,13 +1,12 @@
+// src/pages/AreaGraduado.jsx
 import { useEffect, useState } from "react";
 import { Container, Row, Col, Modal, Button } from "react-bootstrap";
-import { supabase } from "../../lib/supabaseClient";
-import Registro from "./Registro";
-import Login from "./Login";
+import { useMsal } from "@azure/msal-react";
 
 const AreaGraduado = () => {
+  const { instance, accounts } = useMsal();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modoRegistro, setModoRegistro] = useState(false);
   const [userData, setUserData] = useState({ nome: "", email: "" });
   const [perfil, setPerfil] = useState({
     nome: "",
@@ -24,123 +23,53 @@ const AreaGraduado = () => {
   const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data?.session ?? null);
+    const account = accounts[0];
+    if (account) {
+      setSession(account);
+      setUserData({ nome: account.name, email: account.username });
       setLoading(false);
-    };
-    checkSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      setSession(currentSession);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        const nome = data.user.user_metadata?.nome || "Sem nome";
-        const email = data.user.email;
-        setUserData({ nome, email });
-      }
-    };
-
-    const fetchPerfil = async () => {
-      const { data } = await supabase
-        .from("perfis")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-      if (data) {
-        setPerfil(data);
-      }
-    };
-
-    if (session) {
-      fetchUser();
-      listarArquivos();
-      fetchPerfil();
     }
-  }, [session]);
+  }, [accounts]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setUserData({ nome: "", email: "" });
-    setArquivos([]);
-    setPreviewUrl("");
-    setShowPreview(false);
-    setPerfil({ nome: "", apelido: "", idade: "", sexo: "", endereco: "" });
+    await instance.logoutRedirect();
   };
 
   const listarArquivos = async () => {
-    if (!session) return;
-    const { data, error } = await supabase.storage
-      .from("certificados")
-      .list(session.user.id);
-    if (!error) setArquivos(data || []);
+    // Aqui você pode integrar com Azure Blob Storage futuramente
+    // Por enquanto, simula arquivos locais
+    setArquivos([{ name: "certificado1.pdf" }, { name: "certificado2.jpg" }]);
   };
 
   const handleUpload = async (event) => {
     const file = event.target.files[0];
     if (!file || !session) return;
 
-    const filePath = `${session.user.id}/${file.name}`;
     setUploading(true);
-
-    const { error } = await supabase.storage
-      .from("certificados")
-      .upload(filePath, file);
-
-    setUploading(false);
-    setShowUploadModal(false);
-
-    if (!error) await listarArquivos();
+    // Simulação de upload
+    setTimeout(() => {
+      setArquivos((prev) => [...prev, { name: file.name }]);
+      setUploading(false);
+      setShowUploadModal(false);
+    }, 1000);
   };
 
   const handleDelete = async (filename) => {
-    const path = `${session.user.id}/${filename}`;
-    const { error } = await supabase.storage
-      .from("certificados")
-      .remove([path]);
-    if (!error) await listarArquivos();
+    setArquivos((prev) => prev.filter((arq) => arq.name !== filename));
   };
 
   const handlePreview = async (filename) => {
-    const { data, error } = await supabase.storage
-      .from("certificados")
-      .createSignedUrl(`${session.user.id}/${filename}`, 60);
-    if (!error && data?.signedUrl) {
-      setPreviewUrl(data.signedUrl);
-      setShowPreview(true);
-    }
+    // Simula uma URL de preview local
+    setPreviewUrl(`/fake-previews/${filename}`);
+    setShowPreview(true);
   };
 
   const salvarPerfil = async () => {
-    const { error } = await supabase
-      .from("perfis")
-      .upsert({ id: session.user.id, ...perfil });
-
-    if (!error) {
-      await supabase.auth.updateUser({ data: { nome: perfil.nome } });
-      setUserData((prev) => ({ ...prev, nome: perfil.nome }));
-      setShowEditModal(false);
-    }
+    // Aqui você pode salvar no seu backend (ex: API ou Azure)
+    setShowEditModal(false);
   };
 
   if (loading) return <p>Carregando...</p>;
-
-  if (!session)
-    return modoRegistro ? (
-      <Registro onVoltarParaLogin={() => setModoRegistro(false)} />
-    ) : (
-      <Login onIrParaRegistro={() => setModoRegistro(true)} />
-    );
 
   return (
     <Container fluid className="min-h-screen p-4">
@@ -188,7 +117,10 @@ const AreaGraduado = () => {
           <div className="d-flex justify-content-center mb-3">
             <Button
               variant="secondary"
-              onClick={() => setShowUploadModal(true)}
+              onClick={() => {
+                listarArquivos();
+                setShowUploadModal(true);
+              }}
             >
               📎 Enviar Arquivo
             </Button>

@@ -9,7 +9,11 @@ import Eventos from "../pages/Eventos";
 import EventAlbum from "../components/EventAlbum";
 import Trajetorias from "../pages/Trajetorias";
 import NotFound from "../pages/NotFound";
-import AreaGraduado from "../pages/AreaGraduado";
+
+import AreaGraduado from "../pages/AreaGraduado/AreaGraduado";
+import Login from "../pages/AreaGraduado/Login/Login";
+
+import ProtectedRoute from "../components/ProtectedRoute";
 
 export function AppRoutes() {
   return (
@@ -22,12 +26,19 @@ export function AppRoutes() {
       <Route path="/uai-minas-bahia" element={<UAI />} />
       <Route path="/projetos" element={<Trajetorias />} />
 
-      <Route path="/area-graduado" element={<AreaGraduado />} />
+      {/* Portal do Graduado */}
+      <Route path="/area-graduado/login" element={<Login />} />
+      <Route
+        path="/area-graduado"
+        element={
+          <ProtectedRoute>
+            <AreaGraduado />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Crie uma rota específica para NotFound */}
+      {/* NotFound */}
       <Route path="/notfound" element={<NotFound />} />
-
-      {/* Rota coringa: todas as URLs que não batem com nenhuma rota definida */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

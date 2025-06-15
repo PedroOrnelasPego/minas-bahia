@@ -1,37 +1,36 @@
-// src/components/ProtectedRoute.jsx
+import { useMsal } from "@azure/msal-react";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "../../../supabaseClient"; // ajuste o caminho conforme necessário
 
-// eslint-disable-next-line react/prop-types
 const ProtectedRoute = ({ children }) => {
-  const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState(null);
+  const { instance, accounts } = useMsal();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Busca a sessão atual no Supabase (pode ser do localStorage)
-    const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
-      setLoading(false);
-    };
+    const active = instance.getActiveAccount();
 
-    getSession();
-  }, []);
+    if (active) {
+      setIsAuthenticated(true);
+      setCheckingAuth(false);
+    } else if (accounts.length > 0) {
+      instance.setActiveAccount(accounts[0]);
+      setIsAuthenticated(true);
+      setCheckingAuth(false);
+    } else {
+      setIsAuthenticated(false);
+      setCheckingAuth(false);
+    }
+  }, [accounts, instance]);
 
-  if (loading) {
-    // Enquanto verifica a autenticação, mostra um loading ou spinner
-    return <div>Loading...</div>;
+  if (checkingAuth) {
+    return <p>Verificando autenticação...</p>;
   }
 
-  if (!session) {
-    // Se não houver sessão, redireciona para a página de erro
-    return <Navigate to="/notfound" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/area-graduado/login" replace />;
   }
 
-  // Se autenticado, renderiza os elementos protegidos
   return children;
 };
 

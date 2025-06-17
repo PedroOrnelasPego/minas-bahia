@@ -12,24 +12,16 @@ const ProtectedRoute = ({ children }) => {
 
     if (active) {
       setIsAuthenticated(true);
-      setCheckingAuth(false);
     } else if (accounts.length > 0) {
       instance.setActiveAccount(accounts[0]);
       setIsAuthenticated(true);
-      setCheckingAuth(false);
-    } else {
-      setIsAuthenticated(false);
-      setCheckingAuth(false);
     }
+    setCheckingAuth(false);
   }, [accounts, instance]);
 
-  if (checkingAuth) {
-    return <p>Verificando autenticação...</p>;
-  }
+  if (checkingAuth) return <p>Verificando autenticação...</p>;
 
-  if (!isAuthenticated) {
-    return <Navigate to="/area-graduado/login" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/area-graduado/login" replace />;
 
   return children;
 };

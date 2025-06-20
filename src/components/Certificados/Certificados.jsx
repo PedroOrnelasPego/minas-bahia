@@ -45,9 +45,9 @@ const Certificados = ({ email }) => {
     }
   };
 
-  const remover = async (name) => {
+  const remover = async (nome) => {
     try {
-      await axios.delete(`${API_URL}/upload?email=${email}&arquivo=${name}`);
+      await axios.delete(`${API_URL}/upload?email=${email}&arquivo=${nome}`);
       listar();
     } catch {
       alert("Erro ao deletar.");
@@ -71,35 +71,45 @@ const Certificados = ({ email }) => {
         <p className="text-center">Nenhum arquivo enviado</p>
       ) : (
         <ul className="list-unstyled">
-          {arquivos.map((name) => (
-            <li
-              key={name}
-              className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
-            >
-              <span className="text-truncate" style={{ maxWidth: "60%" }}>
-                {name}
-              </span>
-              <div className="d-flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline-primary"
-                  onClick={() => {
-                    setPreviewUrl(`${API_URL}/certificados/${email}/${name}`);
-                    setShowPreview(true);
-                  }}
-                >
-                  🔍
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline-danger"
-                  onClick={() => remover(name)}
-                >
-                  🗑
-                </Button>
-              </div>
-            </li>
-          ))}
+          {arquivos.map(({ nome }) => {
+            const url = `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/${nome}`;
+            const ext = nome.split(".").pop()?.toLowerCase();
+            const isPdf = ext === "pdf";
+
+            return (
+              <li
+                key={nome}
+                className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
+              >
+                <span className="text-truncate" style={{ maxWidth: "60%" }}>
+                  {nome.replace(/^\d+-/, "")}
+                </span>
+                <div className="d-flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline-primary"
+                    onClick={() => {
+                      if (isPdf) {
+                        window.open(url, "_blank");
+                      } else {
+                        setPreviewUrl(url);
+                        setShowPreview(true);
+                      }
+                    }}
+                  >
+                    {isPdf ? "📄" : "🔍"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline-danger"
+                    onClick={() => remover(nome)}
+                  >
+                    🗑
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -116,7 +126,11 @@ const Certificados = ({ email }) => {
               accept=".pdf,image/png,image/jpeg"
               onChange={(e) => {
                 const file = e.target.files[0];
-                const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
+                const allowedTypes = [
+                  "application/pdf",
+                  "image/png",
+                  "image/jpeg",
+                ];
                 if (file && !allowedTypes.includes(file.type)) {
                   alert("Tipo de arquivo inválido. Envie apenas PDF, PNG ou JPG.");
                   e.target.value = null;

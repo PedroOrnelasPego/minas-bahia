@@ -17,6 +17,7 @@ const AreaGraduado = () => {
   const [perfil, setPerfil] = useState({
     nome: "",
     apelido: "",
+    corda: "",
     sexo: "",
     numero: "",
     endereco: "",
@@ -26,7 +27,6 @@ const AreaGraduado = () => {
   const [arquivos, setArquivos] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCadastroInicial, setShowCadastroInicial] = useState(false);
@@ -36,6 +36,34 @@ const AreaGraduado = () => {
   const [bairro, setBairro] = useState("");
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
+
+  const nomesCordas = {
+    "branca-amarela-mirim": "Branca com amarela",
+    "branca-azul-mirim": "Branca com azul",
+    "branca-verde-mirim": "Branca com verde",
+
+    "branca-infantil": "Branca",
+    "branca-amarela-infantil": "Branca com amarela",
+    "branca-laranja-infantil": "Branca com laranja",
+    "branca-azul-infantil": "Branca com azul",
+    "branca-verde-infantil": "Branca com verde",
+    "branca-roxa-infantil": "Branca com roxa",
+    "branca-marrom-infantil": "Branca com marrom",
+    "branca-vermelha-infantil": "Branca com vermelha",
+
+    "branca-adulto": "Branca",
+    "branca-amarela-adulto": "Branca com amarela",
+    "amarela-adulto": "Amarela",
+    "amarela-laranja-adulto": "Amarela com laranja",
+    "laranja-adulto": "Laranja",
+    "laranja-azul-adulto": "Laranja com azul",
+    "Azul-adulto": "Azul",
+    "verde-adulto": "Verde (Instrutor)",
+    "roxa-adulto": "Roxa (Professor)",
+    "marrom-adulto": "Marrom (Contra Mestre)",
+    "vermelha-mestre": "Vermelha (Mestre)",
+    "branca-e-preta-adulto": "Preta e Branca (Estagiário)",
+  };
 
   const calcularIdade = (dataNascimento) => {
     const nascimento = new Date(dataNascimento);
@@ -114,11 +142,6 @@ const AreaGraduado = () => {
     setArquivos((prev) => prev.filter((arq) => arq.name !== filename));
   };
 
-  const handlePreview = async (filename) => {
-    setPreviewUrl(`/fake-previews/${filename}`);
-    setShowPreview(true);
-  };
-
   const salvarPerfil = async () => {
     const obrigatorios = [
       "nome",
@@ -126,6 +149,7 @@ const AreaGraduado = () => {
       "numero",
       "endereco",
       "dataNascimento",
+      "corda",
     ];
     const vazios = obrigatorios.filter(
       (campo) => !formEdit[campo] || formEdit[campo].trim() === ""
@@ -177,10 +201,11 @@ const AreaGraduado = () => {
         </Col>
 
         <Col md={10} className="border p-3">
-          <h5 className="text-center">Meu Currículo</h5>
+          <h5 className="text-center">Perfil</h5>
           <div className="ps-3 pt-2">
             <p>Nome: {perfil.nome || "-"}</p>
             <p>Apelido: {perfil.apelido || "-"}</p>
+            <p>Corda: {nomesCordas[perfil.corda] || perfil.corda || "-"}</p>
             <p>
               Idade:{" "}
               {perfil.dataNascimento
@@ -246,6 +271,56 @@ const AreaGraduado = () => {
             <option value="Masculino">Masculino</option>
             <option value="Feminino">Feminino</option>
             <option value="Não informar">Não informar</option>
+          </select>
+          <select
+            className="form-control mb-2"
+            value={formEdit?.corda || ""}
+            onChange={(e) =>
+              setFormEdit({ ...formEdit, corda: e.target.value })
+            }
+          >
+            <option value="">Selecione sua corda</option>
+            <optgroup label="Mirim (2 a 5 anos)">
+              <option value="branca-amarela-mirim">Branca com amarela</option>
+              <option value="branca-azul-mirim">Branca com azul</option>
+              <option value="branca-verde-mirim">Branca com verde</option>
+            </optgroup>
+            <optgroup label="Infantil (6 a 14 anos)">
+              <option value="branca-infantil">Branca</option>
+              <option value="branca-amarela-infantil">
+                Branca com amarela
+              </option>
+              <option value="branca-laranja-infantil">
+                Branca com laranja
+              </option>
+              <option value="branca-azul-infantil">Branca com azul</option>
+              <option value="branca-verde-infantil">Branca com verde</option>
+              <option value="branca-roxa-infantil">Branca com roxa</option>
+              <option value="branca-marrom-infantil">
+                Branca com com marrom
+              </option>
+              <option value="branca-vermelha-infantil">
+                Branca com vermelha
+              </option>
+            </optgroup>
+            <optgroup label="Adulto">
+              <option value="branca-adulto">Branca</option>
+              <option value="branca-amarela-adulto">Branca com amarela</option>
+              <option value="amarela-adulto">Amarela</option>
+              <option value="amarela-laranja-adulto">
+                Amarela com laranja
+              </option>
+              <option value="laranja-adulto">Laranja</option>
+              <option value="laranja-azul-adulto">Laranja com azul</option>
+              <option value="Azul-adulto">Azul</option>
+              <option value="verde-adulto">Verde</option>
+              <option value="roxa-adulto">Roxa</option>
+              <option value="marrom-adulto">Marrom</option>
+              <option value="branca-e-preta-adulto">
+                Branca e Preta (Estagiário)
+              </option>
+              <option value="vermelha-mestre">Vermelha (Mestre)</option>
+            </optgroup>
           </select>
           <div className="d-flex gap-2 mb-2">
             <input

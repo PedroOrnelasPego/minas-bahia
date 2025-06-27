@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, Row, Col } from "react-bootstrap";
+import { Container, Row, Col, Button } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import {
   criarPerfil,
@@ -12,6 +12,7 @@ import nomesCordas from "../../constants/nomesCordas";
 import calcularIdade from "../../utils/calcularIdade";
 import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
 import axios from "axios";
+import fotoPadrao from "../../assets/foto-perfil/istockphoto-1337144146-612x612.jpg";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -38,7 +39,8 @@ const AreaGraduado = () => {
   const [bairro, setBairro] = useState("");
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
-  const [fotoPreview, setFotoPreview] = useState("");
+  const [fotoPreview, setFotoPreview] = useState(null);
+  const [temFotoRemota, setTemFotoRemota] = useState(false);
 
   useEffect(() => {
     const account = accounts[0];
@@ -58,7 +60,12 @@ const AreaGraduado = () => {
         .finally(() => setLoading(false));
 
       const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}/foto-perfil.jpg`;
-      setFotoPreview(fotoUrl);
+      fetch(fotoUrl, { method: "HEAD" }).then((res) => {
+        if (res.ok) {
+          setFotoPreview(fotoUrl);
+          setTemFotoRemota(true);
+        }
+      });
     }
   }, [accounts]);
 
@@ -74,6 +81,7 @@ const AreaGraduado = () => {
           formData
         );
         setFotoPreview(URL.createObjectURL(file));
+        setTemFotoRemota(true);
       } catch {
         alert("Erro ao enviar a foto.");
       }
@@ -87,7 +95,8 @@ const AreaGraduado = () => {
       await axios.delete(
         `${API_URL}/upload/foto-perfil?email=${userData.email}`
       );
-      setFotoPreview("");
+      setFotoPreview(null);
+      setTemFotoRemota(false);
       alert("Foto removida com sucesso!");
     } catch {
       alert("Erro ao remover a foto.");
@@ -173,8 +182,8 @@ const AreaGraduado = () => {
       <Row className="mb-4">
         <Col className="bg-light p-3">
           <h4>
-            Graduado(a): {perfil.nome || userData.nome}{" "}
-            {perfil.apelido ? `- ${perfil.apelido}` : ""}
+            Graduado(a): {perfil.nome || userData.nome}
+            {perfil.apelido ? ` - ${perfil.apelido}` : ""}
           </h4>
         </Col>
       </Row>
@@ -198,47 +207,48 @@ const AreaGraduado = () => {
         <Col md={10} className="border p-3">
           <h5 className="text-center">Perfil</h5>
 
-          <div className="d-flex align-items-start mb-3">
-            <img
-              src={fotoPreview}
-              alt="Foto de perfil"
-              className="rounded-circle me-3"
-              style={{
-                width: 120,
-                height: 120,
-                objectFit: "cover",
-                border: "2px solid #ccc",
-              }}
-            />
-            <div className="d-flex flex-column">
-              <input
-                type="file"
-                accept="image/png, image/jpeg"
-                onChange={handleFotoChange}
-                className="mb-2"
-                style={{ maxWidth: 300 }}
-              />
-              <button
-                className="btn btn-outline-danger"
-                onClick={handleRemoverFoto}
-              >
-                Remover Foto
-              </button>
+          <div className="d-flex align-items-start mb-3 justify-content-between flex-wrap">
+            <div className="pe-3">
+              <p>Nome: {perfil.nome || "-"}</p>
+              <p>Apelido: {perfil.apelido || "-"}</p>
+              <p>Corda: {nomesCordas[perfil.corda] || perfil.corda || "-"}</p>
+              <p>
+                Idade: {perfil.dataNascimento ? `${calcularIdade(perfil.dataNascimento)} anos` : "-"}
+              </p>
+              <p>Sexo: {perfil.sexo || "-"}</p>
+              <p>Endereço: {perfil.endereco || "-"}</p>
             </div>
-          </div>
 
-          <div className="ps-3 pt-2">
-            <p>Nome: {perfil.nome || "-"}</p>
-            <p>Apelido: {perfil.apelido || "-"}</p>
-            <p>Corda: {nomesCordas[perfil.corda] || perfil.corda || "-"}</p>
-            <p>
-              Idade:{" "}
-              {perfil.dataNascimento
-                ? calcularIdade(perfil.dataNascimento) + " anos"
-                : "-"}
-            </p>
-            <p>Sexo: {perfil.sexo || "-"}</p>
-            <p>Endereço: {perfil.endereco || "-"}</p>
+            <div className="d-flex flex-column align-items-center">
+              <img
+                src={fotoPreview || fotoPadrao}
+                alt="Foto de perfil"
+                className="rounded-circle mb-2"
+                style={{
+                  width: 120,
+                  height: 120,
+                  objectFit: "cover",
+                  border: "2px solid #ccc",
+                }}
+              />
+              <label className="btn btn-outline-secondary btn-sm mb-2">
+                Trocar Foto
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg"
+                  onChange={handleFotoChange}
+                  hidden
+                />
+              </label>
+              {temFotoRemota && (
+                <button
+                  className="btn btn-outline-danger btn-sm"
+                  onClick={handleRemoverFoto}
+                >
+                  Remover Foto
+                </button>
+              )}
+            </div>
           </div>
         </Col>
       </Row>

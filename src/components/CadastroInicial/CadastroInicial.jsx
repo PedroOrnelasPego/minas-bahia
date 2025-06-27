@@ -9,6 +9,7 @@ const CadastroInicial = ({ show, onSave }) => {
     sexo: "",
     endereco: "",
     numero: "",
+    corda: "",
   });
 
   const [cep, setCep] = useState("");
@@ -17,6 +18,7 @@ const CadastroInicial = ({ show, onSave }) => {
   const [bairro, setBairro] = useState("");
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
+  const [aceitouTermos, setAceitouTermos] = useState(false); // NOVO
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -55,8 +57,8 @@ const CadastroInicial = ({ show, onSave }) => {
     setForm((prev) => ({
       ...prev,
       endereco: logradouro
-      ? `${logradouro}, ${numero} - ${bairro}, ${cidade} - ${uf}`
-      : "",
+        ? `${logradouro}, ${numero} - ${bairro}, ${cidade} - ${uf}`
+        : "",
       numero,
     }));
   };
@@ -68,6 +70,7 @@ const CadastroInicial = ({ show, onSave }) => {
       "sexo",
       "endereco",
       "numero",
+      "corda",
     ];
     const vazios = obrigatorios.filter(
       (campo) => !form[campo] || form[campo].trim() === ""
@@ -78,6 +81,13 @@ const CadastroInicial = ({ show, onSave }) => {
       return;
     }
 
+    if (!aceitouTermos) {
+      alert(
+        "Você precisa aceitar os termos de uso e política de privacidade para continuar."
+      );
+      return;
+    }
+
     onSave({
       ...form,
       nome: form.nome.trim(),
@@ -85,6 +95,8 @@ const CadastroInicial = ({ show, onSave }) => {
       sexo: form.sexo.trim(),
       endereco: form.endereco.trim(),
       numero: form.numero.trim(),
+      corda: form.corda,
+      aceitouTermos: true,
     });
   };
 
@@ -129,6 +141,49 @@ const CadastroInicial = ({ show, onSave }) => {
           <option value="Não informar">Não informar</option>
         </select>
 
+        <select
+          name="corda"
+          className="form-control mb-2"
+          value={form.corda}
+          onChange={handleChange}
+          required
+        >
+          <option value="">Selecione sua corda</option>
+          <optgroup label="Mirim (2 a 5 anos)">
+            <option value="branca-amarela-mirim">Branca com amarela</option>
+            <option value="branca-azul-mirim">Branca com azul</option>
+            <option value="branca-verde-mirim">Branca com verde</option>
+          </optgroup>
+          <optgroup label="Infantil (6 a 14 anos)">
+            <option value="branca-infantil">Branca</option>
+            <option value="branca-amarela-infantil">Branca com amarela</option>
+            <option value="branca-laranja-infantil">Branca com laranja</option>
+            <option value="branca-azul-infantil">Branca com azul</option>
+            <option value="branca-verde-infantil">Branca com verde</option>
+            <option value="branca-roxa-infantil">Branca com roxa</option>
+            <option value="branca-marrom-infantil">Branca com marrom</option>
+            <option value="branca-vermelha-infantil">
+              Branca com vermelha
+            </option>
+          </optgroup>
+          <optgroup label="Adulto">
+            <option value="branca-adulto">Branca</option>
+            <option value="branca-amarela-adulto">Branca com amarela</option>
+            <option value="amarela-adulto">Amarela</option>
+            <option value="amarela-laranja-adulto">Amarela com laranja</option>
+            <option value="laranja-adulto">Laranja</option>
+            <option value="laranja-azul-adulto">Laranja com azul</option>
+            <option value="Azul-adulto">Azul</option>
+            <option value="verde-adulto">Verde</option>
+            <option value="roxa-adulto">Roxa</option>
+            <option value="marrom-adulto">Marrom</option>
+            <option value="branca-e-preta-adulto">
+              Branca e Preta (Estagiário)
+            </option>
+            <option value="vermelha-mestre">Vermelha (Mestre)</option>
+          </optgroup>
+        </select>
+
         <div className="d-flex gap-2 mb-2">
           <input
             type="text"
@@ -170,7 +225,6 @@ const CadastroInicial = ({ show, onSave }) => {
           value={uf}
           disabled
         />
-
         <input
           type="text"
           className="form-control mb-2"
@@ -179,6 +233,22 @@ const CadastroInicial = ({ show, onSave }) => {
           value={form.numero}
           onChange={handleNumeroChange}
         />
+
+        {/* CAMPO NOVO: Aceite de Termos */}
+        <div className="form-check mt-3">
+          <input
+            className="form-check-input"
+            type="checkbox"
+            id="termos"
+            checked={aceitouTermos}
+            onChange={(e) => setAceitouTermos(e.target.checked)}
+          />
+          <label className="form-check-label" htmlFor="termos">
+            Declaro que li e estou de acordo com os termos de uso e a política
+            de privacidade. Autorizo o uso e armazenamento dos meus dados para
+            fins administrativos da plataforma.
+          </label>
+        </div>
       </Modal.Body>
       <Modal.Footer>
         <Button onClick={handleSubmit} variant="primary">

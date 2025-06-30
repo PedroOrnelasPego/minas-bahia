@@ -194,59 +194,65 @@ const PainelAdmin = () => {
                         <>
                           <h5 className="mt-3">Certificados</h5>
                           <ul className="list-unstyled">
-                            {certificadosUsuarios[user.email].map(
-                              ({ nome }) => {
-                                const nomeArquivo =
-                                  typeof nome === "string"
-                                    ? nome.split("/").pop()
-                                    : "arquivo";
-                                const ext = nomeArquivo
-                                  ?.split(".")
-                                  .pop()
-                                  ?.toLowerCase();
-                                const isPdf = ext === "pdf";
-                                const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/certificados/${nomeArquivo}`;
+                            {user?.email &&
+                              Array.isArray(certificadosUsuarios[user.email]) &&
+                              certificadosUsuarios[user.email].map(
+                                ({ nome }) => {
+                                  const nomeArquivo =
+                                    typeof nome === "string"
+                                      ? nome.split("/").pop()
+                                      : "arquivo";
+                                  const ext = nomeArquivo
+                                    ?.split(".")
+                                    .pop()
+                                    ?.toLowerCase();
+                                  const isPdf = ext === "pdf";
+                                  const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/certificados/${nomeArquivo}`;
 
-                                return (
-                                  <li
-                                    key={nome}
-                                    className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
-                                  >
-                                    <span
-                                      className="text-truncate"
-                                      style={{ maxWidth: "60%" }}
+                                  return (
+                                    <li
+                                      key={nome}
+                                      className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
                                     >
-                                      {decodeURIComponent(
-                                        escape(nomeArquivo.replace(/^\d+-/, ""))
-                                      )}
-                                    </span>
-                                    <div className="d-flex gap-2">
-                                      <button
-                                        className="btn btn-sm btn-outline-primary"
-                                        onClick={() => {
-                                          if (isPdf) {
-                                            window.open(fullUrl, "_blank");
-                                          } else {
-                                            setPreviewUrl(fullUrl);
-                                            setShowPreview(true);
+                                      <span
+                                        className="text-truncate"
+                                        style={{ maxWidth: "60%" }}
+                                      >
+                                        {decodeURIComponent(
+                                          escape(
+                                            nomeArquivo.replace(/^\d+-/, "")
+                                          )
+                                        )}
+                                      </span>
+                                      <div className="d-flex gap-2">
+                                        <button
+                                          className="btn btn-sm btn-outline-primary"
+                                          onClick={() => {
+                                            if (isPdf) {
+                                              window.open(fullUrl, "_blank");
+                                            } else {
+                                              setPreviewUrl(fullUrl);
+                                              setShowPreview(true);
+                                            }
+                                          }}
+                                        >
+                                          {isPdf
+                                            ? "📄 Visualizar"
+                                            : "🔍 Visualizar"}
+                                        </button>
+                                        <button
+                                          className="btn btn-sm btn-outline-success"
+                                          onClick={() =>
+                                            handleDownload(fullUrl)
                                           }
-                                        }}
-                                      >
-                                        {isPdf
-                                          ? "📄 Visualizar"
-                                          : "🔍 Visualizar"}
-                                      </button>
-                                      <button
-                                        className="btn btn-sm btn-outline-success"
-                                        onClick={() => handleDownload(fullUrl)}
-                                      >
-                                        ⬇️ Download
-                                      </button>
-                                    </div>
-                                  </li>
-                                );
-                              }
-                            )}
+                                        >
+                                          ⬇️ Download
+                                        </button>
+                                      </div>
+                                    </li>
+                                  );
+                                }
+                              )}
                           </ul>
                         </>
                       )}

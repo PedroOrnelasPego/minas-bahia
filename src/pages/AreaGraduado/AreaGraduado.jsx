@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, Row, Col } from "react-bootstrap";
+import { Container, Row, Col, Button } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import {
   criarPerfil,
@@ -12,6 +12,8 @@ import nomesCordas from "../../constants/nomesCordas";
 import calcularIdade from "../../utils/calcularIdade";
 import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
 import axios from "axios";
+import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
+import CropImageModal from "../../components/CropImageModal";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -38,47 +40,86 @@ const AreaGraduado = () => {
   const [bairro, setBairro] = useState("");
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
-  const [fotoPreview, setFotoPreview] = useState("");
+  const [fotoPreview, setFotoPreview] = useState(null);
+  const [temFotoRemota, setTemFotoRemota] = useState(false);
+  const [fotoFile, setFotoFile] = useState(null);
+  const [cropModal, setCropModal] = useState(false);
+  const [rawImage, setRawImage] = useState(null);
+  const [fotoCarregando, setFotoCarregando] = useState(true);
 
   useEffect(() => {
     const account = accounts[0];
-    if (account) {
-      setSession(account);
-      setUserData({ nome: account.name, email: account.username });
+    if (!account) return;
 
-      buscarPerfil(account.username)
-        .then((perfilBuscado) => {
-          if (perfilBuscado) {
-            setPerfil(perfilBuscado);
-          } else {
-            setShowCadastroInicial(true);
-          }
-        })
-        .catch(() => setShowCadastroInicial(true))
-        .finally(() => setLoading(false));
+    setSession(account);
+    setUserData({ nome: account.name, email: account.username });
 
-      const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}/foto-perfil.jpg`;
+    buscarPerfil(account.username)
+      .then((perfilBuscado) => {
+        if (perfilBuscado) {
+          setPerfil(perfilBuscado);
+        } else {
+          setShowCadastroInicial(true);
+        }
+      })
+      .catch(() => setShowCadastroInicial(true))
+      .finally(() => setLoading(false));
+
+    const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${
+      account.username
+    }/foto-perfil.jpg?${Date.now()}`;
+
+    const img = new Image();
+    img.onload = () => {
       setFotoPreview(fotoUrl);
-    }
+      setTemFotoRemota(true);
+      setFotoCarregando(false);
+      console.log("✅ Foto carregada com sucesso:", fotoUrl);
+    };
+    img.onerror = () => {
+      setFotoPreview(fotoPadrao);
+      setTemFotoRemota(false);
+      setFotoCarregando(false);
+      console.warn("❌ Foto remota não encontrada. Usando padrão.");
+    };
+    img.src = fotoUrl;
   }, [accounts]);
 
-  const handleFotoChange = async (e) => {
+  const handleFotoChange = (e) => {
     const file = e.target.files[0];
     const allowedTypes = ["image/png", "image/jpeg"];
     if (file && allowedTypes.includes(file.type)) {
-      const formData = new FormData();
-      formData.append("arquivo", file);
-      try {
-        await axios.post(
-          `${API_URL}/upload/foto-perfil?email=${userData.email}`,
-          formData
-        );
-        setFotoPreview(URL.createObjectURL(file));
-      } catch {
-        alert("Erro ao enviar a foto.");
-      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setRawImage(reader.result);
+        setCropModal(true);
+      };
+      reader.readAsDataURL(file);
     } else {
       alert("Envie uma imagem JPG ou PNG.");
+    }
+  };
+
+  const handleCroppedSave = (croppedFile) => {
+    setFotoFile(croppedFile);
+    setFotoPreview(URL.createObjectURL(croppedFile));
+    setCropModal(false);
+  };
+
+  const salvarFoto = async () => {
+    if (!fotoFile) return;
+    const formData = new FormData();
+    formData.append("arquivo", fotoFile);
+    try {
+      await axios.post(
+        `${API_URL}/upload/foto-perfil?email=${userData.email}`,
+        formData
+      );
+      alert("Foto atualizada com sucesso!");
+      setFotoFile(null);
+      setTemFotoRemota(true);
+    } catch {
+      alert("Erro ao enviar a foto.");
     }
   };
 
@@ -87,7 +128,9 @@ const AreaGraduado = () => {
       await axios.delete(
         `${API_URL}/upload/foto-perfil?email=${userData.email}`
       );
-      setFotoPreview("");
+      setFotoPreview(fotoPadrao);
+      setFotoFile(null);
+      setTemFotoRemota(false);
       alert("Foto removida com sucesso!");
     } catch {
       alert("Erro ao remover a foto.");
@@ -173,8 +216,8 @@ const AreaGraduado = () => {
       <Row className="mb-4">
         <Col className="bg-light p-3">
           <h4>
-            Graduado(a): {perfil.nome || userData.nome}{" "}
-            {perfil.apelido ? `- ${perfil.apelido}` : ""}
+            Graduado(a): {perfil.nome || userData.nome}
+            {perfil.apelido ? ` - ${perfil.apelido}` : ""}
           </h4>
         </Col>
       </Row>
@@ -198,47 +241,71 @@ const AreaGraduado = () => {
         <Col md={10} className="border p-3">
           <h5 className="text-center">Perfil</h5>
 
-          <div className="d-flex align-items-start mb-3">
-            <img
-              src={fotoPreview}
-              alt="Foto de perfil"
-              className="rounded-circle me-3"
-              style={{
-                width: 120,
-                height: 120,
-                objectFit: "cover",
-                border: "2px solid #ccc",
-              }}
-            />
-            <div className="d-flex flex-column">
-              <input
-                type="file"
-                accept="image/png, image/jpeg"
-                onChange={handleFotoChange}
-                className="mb-2"
-                style={{ maxWidth: 300 }}
-              />
-              <button
-                className="btn btn-outline-danger"
-                onClick={handleRemoverFoto}
-              >
-                Remover Foto
-              </button>
+          <div className="d-flex align-items-start mb-3 justify-content-between flex-wrap">
+            <div className="pe-3">
+              <p>Nome: {perfil.nome || "-"}</p>
+              <p>Apelido: {perfil.apelido || "-"}</p>
+              <p>Corda: {nomesCordas[perfil.corda] || perfil.corda || "-"}</p>
+              <p>
+                Idade:{" "}
+                {perfil.dataNascimento
+                  ? `${calcularIdade(perfil.dataNascimento)} anos`
+                  : "-"}
+              </p>
+              <p>Sexo: {perfil.sexo || "-"}</p>
+              <p>Endereço: {perfil.endereco || "-"}</p>
             </div>
-          </div>
 
-          <div className="ps-3 pt-2">
-            <p>Nome: {perfil.nome || "-"}</p>
-            <p>Apelido: {perfil.apelido || "-"}</p>
-            <p>Corda: {nomesCordas[perfil.corda] || perfil.corda || "-"}</p>
-            <p>
-              Idade:{" "}
-              {perfil.dataNascimento
-                ? calcularIdade(perfil.dataNascimento) + " anos"
-                : "-"}
-            </p>
-            <p>Sexo: {perfil.sexo || "-"}</p>
-            <p>Endereço: {perfil.endereco || "-"}</p>
+            <div className="d-flex flex-column align-items-center">
+              {fotoCarregando ? (
+                <div
+                  className="spinner-border text-secondary mb-3"
+                  role="status"
+                >
+                  <span className="visually-hidden">Carregando...</span>
+                </div>
+              ) : (
+                <img
+                  src={fotoFile ? URL.createObjectURL(fotoFile) : fotoPreview}
+                  alt="Foto de perfil"
+                  className="rounded mb-2"
+                  style={{
+                    width: 150,
+                    height: 200,
+                    objectFit: "cover",
+                    border: "2px solid #ccc",
+                  }}
+                />
+              )}
+
+              <label className="btn btn-outline-secondary btn-sm mb-2">
+                Trocar Foto
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg"
+                  onChange={handleFotoChange}
+                  hidden
+                />
+              </label>
+
+              {fotoFile && (
+                <button
+                  className="btn btn-success btn-sm mb-2"
+                  onClick={salvarFoto}
+                >
+                  Salvar Foto
+                </button>
+              )}
+
+              {temFotoRemota && !fotoFile && (
+                <button
+                  className="btn btn-outline-danger btn-sm"
+                  onClick={handleRemoverFoto}
+                >
+                  Remover Foto
+                </button>
+              )}
+            </div>
           </div>
         </Col>
       </Row>
@@ -285,6 +352,13 @@ const AreaGraduado = () => {
             setUserData((prev) => ({ ...prev, nome: dados.nome }));
             setShowCadastroInicial(false);
           }}
+        />
+      )}
+      {cropModal && (
+        <CropImageModal
+          imageSrc={rawImage}
+          onSave={handleCroppedSave}
+          onClose={() => setCropModal(false)}
         />
       )}
     </Container>

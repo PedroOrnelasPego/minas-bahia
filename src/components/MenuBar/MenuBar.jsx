@@ -2,11 +2,16 @@ import { useState } from "react";
 import { Container, Nav, Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 import "./MenuBar.scss";
+import { useMsal } from "@azure/msal-react";
 
 const MenuBar = () => {
   const [expanded, setExpanded] = useState(false);
 
   const handleClose = () => setExpanded(false);
+
+  const { accounts } = useMsal();
+  const mestreEmail = "contato@capoeiraminasbahia.com.br"; // Substitua
+  const isMestre = accounts[0]?.username === mestreEmail;
 
   return (
     <Navbar
@@ -102,6 +107,16 @@ const MenuBar = () => {
               >
                 Área do Graduado
               </Nav.Link>
+              {isMestre && (
+                <Nav.Link
+                  as={NavLink}
+                  to="/area-graduado/painel-admin"
+                  className="fw-bold mx-2"
+                  onClick={handleClose}
+                >
+                  Painel Administrativo
+                </Nav.Link>
+              )}
             </Nav>
           </div>
         </Navbar.Collapse>

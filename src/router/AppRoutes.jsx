@@ -14,6 +14,7 @@ import AreaGraduado from "../pages/AreaGraduado/AreaGraduado";
 import Login from "../pages/AreaGraduado/Login/Login";
 
 import ProtectedRoute from "../components/ProtectedRoute";
+import PainelAdmin from "../pages/PainelAdmin/PainelAdmin";
 
 export function AppRoutes() {
   return (
@@ -33,6 +34,14 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <AreaGraduado />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/area-graduado/painel-admin"
+        element={
+          <ProtectedRoute>
+            <PainelAdmin />
           </ProtectedRoute>
         }
       />

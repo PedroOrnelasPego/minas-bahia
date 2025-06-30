@@ -12,15 +12,14 @@ const Certificados = ({ email }) => {
   const [previewUrl, setPreviewUrl] = useState("");
   const [showPreview, setShowPreview] = useState(false);
 
-const listar = async () => {
-  try {
-    const res = await axios.get(`${API_URL}/upload?email=${email}`);
-    setArquivos(res.data.arquivos); // já vem limpo
-  } catch {
-    alert("Erro ao listar arquivos.");
-  }
-};
-
+  const listar = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/upload?email=${email}`);
+      setArquivos(res.data.arquivos); // já vem limpo
+    } catch {
+      alert("Erro ao listar arquivos.");
+    }
+  };
 
   const enviarArquivo = async () => {
     if (!arquivo) return alert("Selecione um arquivo válido.");
@@ -89,7 +88,7 @@ const listar = async () => {
                 className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
               >
                 <span className="text-truncate" style={{ maxWidth: "60%" }}>
-                  {nomeLimpo.replace(/^\d+-/, "")}
+                  {decodeURIComponent(escape(nomeLimpo.replace(/^\d+-/, "")))}
                 </span>
                 <div className="d-flex gap-2">
                   <Button

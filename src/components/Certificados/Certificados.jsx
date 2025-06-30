@@ -15,7 +15,7 @@ const Certificados = ({ email }) => {
   const listar = async () => {
     try {
       const res = await axios.get(`${API_URL}/upload?email=${email}`);
-      setArquivos(res.data.arquivos); // já vem limpo
+      setArquivos(res.data.arquivos || []); // garante array mesmo se vier undefined
     } catch {
       alert("Erro ao listar arquivos.");
     }
@@ -61,6 +61,8 @@ const Certificados = ({ email }) => {
     if (email) listar();
   }, [email]);
 
+  const arquivosSeguros = Array.isArray(arquivos) ? arquivos : [];
+
   return (
     <div>
       <h5 className="text-center mb-3">Arquivos Pessoais</h5>
@@ -70,11 +72,11 @@ const Certificados = ({ email }) => {
         </Button>
       </div>
 
-      {arquivos?.length === 0 ? (
+      {arquivosSeguros.length === 0 ? (
         <p className="text-center">Nenhum arquivo enviado</p>
       ) : (
         <ul className="list-unstyled">
-          {arquivos.map(({ nome, url }) => {
+          {arquivosSeguros.map(({ nome, url }) => {
             const nomeLimpo = nome.replace(
               `${email}/certificados_do_usuario/`,
               ""

@@ -5,6 +5,7 @@ import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import calcularIdade from "../../utils/calcularIdade";
 import axios from "axios";
+import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -134,7 +135,7 @@ const PainelAdmin = () => {
                       <img
                         src={`https://certificadoscapoeira.blob.core.windows.net/certificados/${
                           user.email
-                        }/foto-perfil.jpg?${new Date().getTime()}`}
+                        }/foto-perfil.jpg?${Date.now()}`}
                         alt="Foto de perfil"
                         className="rounded"
                         style={{
@@ -144,7 +145,8 @@ const PainelAdmin = () => {
                           border: "2px solid #ccc",
                         }}
                         onError={(e) => {
-                          e.target.src = "/default-avatar.png";
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = fotoPadrao;
                         }}
                       />
                     </Col>

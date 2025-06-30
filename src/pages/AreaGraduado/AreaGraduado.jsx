@@ -45,29 +45,44 @@ const AreaGraduado = () => {
   const [fotoFile, setFotoFile] = useState(null);
   const [cropModal, setCropModal] = useState(false);
   const [rawImage, setRawImage] = useState(null);
+  const [fotoCarregando, setFotoCarregando] = useState(true);
 
   useEffect(() => {
     const account = accounts[0];
-    if (account) {
-      setSession(account);
-      setUserData({ nome: account.name, email: account.username });
+    if (!account) return;
 
-      buscarPerfil(account.username)
-        .then((perfilBuscado) => {
-          if (perfilBuscado) {
-            setPerfil(perfilBuscado);
-          } else {
-            setShowCadastroInicial(true);
-          }
-        })
-        .catch(() => setShowCadastroInicial(true))
-        .finally(() => setLoading(false));
+    setSession(account);
+    setUserData({ nome: account.name, email: account.username });
 
-      const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${
-        account.username
-      }/foto-perfil.jpg?${new Date().getTime()}`;
+    buscarPerfil(account.username)
+      .then((perfilBuscado) => {
+        if (perfilBuscado) {
+          setPerfil(perfilBuscado);
+        } else {
+          setShowCadastroInicial(true);
+        }
+      })
+      .catch(() => setShowCadastroInicial(true))
+      .finally(() => setLoading(false));
+
+    const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${
+      account.username
+    }/foto-perfil.jpg?${Date.now()}`;
+
+    const img = new Image();
+    img.onload = () => {
       setFotoPreview(fotoUrl);
-    }
+      setTemFotoRemota(true);
+      setFotoCarregando(false);
+      console.log("✅ Foto carregada com sucesso:", fotoUrl);
+    };
+    img.onerror = () => {
+      setFotoPreview(fotoPadrao);
+      setTemFotoRemota(false);
+      setFotoCarregando(false);
+      console.warn("❌ Foto remota não encontrada. Usando padrão.");
+    };
+    img.src = fotoUrl;
   }, [accounts]);
 
   const handleFotoChange = (e) => {
@@ -113,7 +128,8 @@ const AreaGraduado = () => {
       await axios.delete(
         `${API_URL}/upload/foto-perfil?email=${userData.email}`
       );
-      setFotoPreview(null);
+      setFotoPreview(fotoPadrao);
+      setFotoFile(null);
       setTemFotoRemota(false);
       alert("Foto removida com sucesso!");
     } catch {
@@ -241,17 +257,27 @@ const AreaGraduado = () => {
             </div>
 
             <div className="d-flex flex-column align-items-center">
-              <img
-                src={fotoPreview ? fotoPreview : fotoPadrao}
-                alt="Foto de perfil"
-                className="rounded mb-2"
-                style={{
-                  width: 150,
-                  height: 200,
-                  objectFit: "cover",
-                  border: "2px solid #ccc",
-                }}
-              />
+              {fotoCarregando ? (
+                <div
+                  className="spinner-border text-secondary mb-3"
+                  role="status"
+                >
+                  <span className="visually-hidden">Carregando...</span>
+                </div>
+              ) : (
+                <img
+                  src={fotoFile ? URL.createObjectURL(fotoFile) : fotoPreview}
+                  alt="Foto de perfil"
+                  className="rounded mb-2"
+                  style={{
+                    width: 150,
+                    height: 200,
+                    objectFit: "cover",
+                    border: "2px solid #ccc",
+                  }}
+                />
+              )}
+
               <label className="btn btn-outline-secondary btn-sm mb-2">
                 Trocar Foto
                 <input
@@ -271,7 +297,7 @@ const AreaGraduado = () => {
                 </button>
               )}
 
-              {temFotoRemota && (
+              {temFotoRemota && !fotoFile && (
                 <button
                   className="btn btn-outline-danger btn-sm"
                   onClick={handleRemoverFoto}

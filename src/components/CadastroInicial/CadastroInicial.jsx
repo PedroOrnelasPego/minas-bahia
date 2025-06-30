@@ -76,7 +76,7 @@ const CadastroInicial = ({ show, onSave }) => {
       (campo) => !form[campo] || form[campo].trim() === ""
     );
 
-    if (vazios.length > 0) {
+    if (vazios?.length > 0) {
       alert("Preencha todos os campos obrigatórios corretamente.");
       return;
     }

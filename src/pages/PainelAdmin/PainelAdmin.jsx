@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Container, Row, Col, Spinner, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
+import calcularIdade from "../../utils/calcularIdade";
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -20,6 +21,12 @@ const PainelAdmin = () => {
   const [certificadosUsuarios, setCertificadosUsuarios] = useState({});
   const [previewUrl, setPreviewUrl] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+
+  const formatarData = (dataISO) => {
+    if (!dataISO) return "-";
+    const [ano, mes, dia] = dataISO.split("-");
+    return `${dia}/${mes}/${ano}`;
+  };
 
   useEffect(() => {
     const user = accounts[0];
@@ -155,8 +162,17 @@ const PainelAdmin = () => {
                       </p>
                       <p>
                         <strong>Data de Nascimento: </strong>
-                        {dadosUsuarios[user.email]?.dataNascimento || "-"}
+                        {formatarData(
+                          dadosUsuarios[user.email]?.dataNascimento
+                        )}{" "}
+                        {(() => {
+                          const idade = calcularIdade(
+                            dadosUsuarios[user.email]?.dataNascimento
+                          );
+                          return idade >= 0 ? `| ${idade} anos` : "";
+                        })()}
                       </p>
+
                       <p>
                         <strong>Endereço: </strong>
                         {dadosUsuarios[user.email]?.endereco || "-"}
@@ -193,7 +209,9 @@ const PainelAdmin = () => {
                                       className="text-truncate"
                                       style={{ maxWidth: "60%" }}
                                     >
-                                      {nomeArquivo.replace(/^\d+-/, "")}
+                                      {decodeURIComponent(
+                                        escape(nomeArquivo.replace(/^\d+-/, ""))
+                                      )}
                                     </span>
                                     <div className="d-flex gap-2">
                                       <button

@@ -12,7 +12,8 @@ import nomesCordas from "../../constants/nomesCordas";
 import calcularIdade from "../../utils/calcularIdade";
 import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
 import axios from "axios";
-import fotoPadrao from "../../assets/foto-perfil/istockphoto-1337144146-612x612.jpg";
+import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
+import CropImageModal from "../../components/CropImageModal";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -42,39 +43,52 @@ const AreaGraduado = () => {
   const [fotoPreview, setFotoPreview] = useState(null);
   const [temFotoRemota, setTemFotoRemota] = useState(false);
   const [fotoFile, setFotoFile] = useState(null);
+  const [cropModal, setCropModal] = useState(false);
+  const [rawImage, setRawImage] = useState(null);
 
-useEffect(() => {
-  const account = accounts[0];
-  if (account) {
-    setSession(account);
-    setUserData({ nome: account.name, email: account.username });
+  useEffect(() => {
+    const account = accounts[0];
+    if (account) {
+      setSession(account);
+      setUserData({ nome: account.name, email: account.username });
 
-    buscarPerfil(account.username)
-      .then((perfilBuscado) => {
-        if (perfilBuscado) {
-          setPerfil(perfilBuscado);
-        } else {
-          setShowCadastroInicial(true);
-        }
-      })
-      .catch(() => setShowCadastroInicial(true))
-      .finally(() => setLoading(false));
+      buscarPerfil(account.username)
+        .then((perfilBuscado) => {
+          if (perfilBuscado) {
+            setPerfil(perfilBuscado);
+          } else {
+            setShowCadastroInicial(true);
+          }
+        })
+        .catch(() => setShowCadastroInicial(true))
+        .finally(() => setLoading(false));
 
-    const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}/foto-perfil.jpg`;
-    setFotoPreview(fotoUrl);
-  }
-}, [accounts]);
-
+      const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${
+        account.username
+      }/foto-perfil.jpg?${new Date().getTime()}`;
+      setFotoPreview(fotoUrl);
+    }
+  }, [accounts]);
 
   const handleFotoChange = (e) => {
     const file = e.target.files[0];
     const allowedTypes = ["image/png", "image/jpeg"];
     if (file && allowedTypes.includes(file.type)) {
-      setFotoPreview(URL.createObjectURL(file));
-      setFotoFile(file); // armazena para envio posterior
+      const reader = new FileReader();
+      reader.onload = () => {
+        setRawImage(reader.result);
+        setCropModal(true);
+      };
+      reader.readAsDataURL(file);
     } else {
       alert("Envie uma imagem JPG ou PNG.");
     }
+  };
+
+  const handleCroppedSave = (croppedFile) => {
+    setFotoFile(croppedFile);
+    setFotoPreview(URL.createObjectURL(croppedFile));
+    setCropModal(false);
   };
 
   const salvarFoto = async () => {
@@ -312,6 +326,13 @@ useEffect(() => {
             setUserData((prev) => ({ ...prev, nome: dados.nome }));
             setShowCadastroInicial(false);
           }}
+        />
+      )}
+      {cropModal && (
+        <CropImageModal
+          imageSrc={rawImage}
+          onSave={handleCroppedSave}
+          onClose={() => setCropModal(false)}
         />
       )}
     </Container>

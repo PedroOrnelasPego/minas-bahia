@@ -130,14 +130,19 @@ const PainelAdmin = () => {
               ) : (
                 <>
                   <Row>
-                    <Col md={3} className="text-center">
+                    <Col md={2} className="text-center">
                       <img
                         src={`https://certificadoscapoeira.blob.core.windows.net/certificados/${
                           user.email
                         }/foto-perfil.jpg?${new Date().getTime()}`}
                         alt="Foto de perfil"
-                        className="rounded-circle"
-                        style={{ width: 100, height: 100, objectFit: "cover" }}
+                        className="rounded"
+                        style={{
+                          width: 150,
+                          height: 200,
+                          objectFit: "cover",
+                          border: "2px solid #ccc",
+                        }}
                         onError={(e) => {
                           e.target.src = "/default-avatar.png";
                         }}

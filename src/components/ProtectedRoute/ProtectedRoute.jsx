@@ -12,7 +12,7 @@ const ProtectedRoute = ({ children }) => {
 
     if (active) {
       setIsAuthenticated(true);
-    } else if (accounts.length > 0) {
+    } else if (accounts?.length > 0) {
       instance.setActiveAccount(accounts[0]);
       setIsAuthenticated(true);
     }

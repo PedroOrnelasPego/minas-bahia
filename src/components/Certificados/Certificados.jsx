@@ -70,7 +70,7 @@ const Certificados = ({ email }) => {
         </Button>
       </div>
 
-      {arquivos.length === 0 ? (
+      {arquivos?.length === 0 ? (
         <p className="text-center">Nenhum arquivo enviado</p>
       ) : (
         <ul className="list-unstyled">

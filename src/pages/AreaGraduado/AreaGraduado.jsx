@@ -193,7 +193,7 @@ const AreaGraduado = () => {
       (campo) => !formEdit[campo] || formEdit[campo].trim() === ""
     );
 
-    if (vazios.length > 0) {
+    if (vazios?.length > 0) {
       alert("Preencha todos os campos obrigatórios.");
       return;
     }

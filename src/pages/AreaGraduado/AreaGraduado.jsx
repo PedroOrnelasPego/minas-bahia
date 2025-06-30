@@ -41,52 +41,56 @@ const AreaGraduado = () => {
   const [uf, setUf] = useState("");
   const [fotoPreview, setFotoPreview] = useState(null);
   const [temFotoRemota, setTemFotoRemota] = useState(false);
+  const [fotoFile, setFotoFile] = useState(null);
 
-  useEffect(() => {
-    const account = accounts[0];
-    if (account) {
-      setSession(account);
-      setUserData({ nome: account.name, email: account.username });
+useEffect(() => {
+  const account = accounts[0];
+  if (account) {
+    setSession(account);
+    setUserData({ nome: account.name, email: account.username });
 
-      buscarPerfil(account.username)
-        .then((perfilBuscado) => {
-          if (perfilBuscado) {
-            setPerfil(perfilBuscado);
-          } else {
-            setShowCadastroInicial(true);
-          }
-        })
-        .catch(() => setShowCadastroInicial(true))
-        .finally(() => setLoading(false));
-
-      const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}/foto-perfil.jpg`;
-      fetch(fotoUrl, { method: "HEAD" }).then((res) => {
-        if (res.ok) {
-          setFotoPreview(fotoUrl);
-          setTemFotoRemota(true);
+    buscarPerfil(account.username)
+      .then((perfilBuscado) => {
+        if (perfilBuscado) {
+          setPerfil(perfilBuscado);
+        } else {
+          setShowCadastroInicial(true);
         }
-      });
-    }
-  }, [accounts]);
+      })
+      .catch(() => setShowCadastroInicial(true))
+      .finally(() => setLoading(false));
 
-  const handleFotoChange = async (e) => {
+    const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}/foto-perfil.jpg`;
+    setFotoPreview(fotoUrl);
+  }
+}, [accounts]);
+
+
+  const handleFotoChange = (e) => {
     const file = e.target.files[0];
     const allowedTypes = ["image/png", "image/jpeg"];
     if (file && allowedTypes.includes(file.type)) {
-      const formData = new FormData();
-      formData.append("arquivo", file);
-      try {
-        await axios.post(
-          `${API_URL}/upload/foto-perfil?email=${userData.email}`,
-          formData
-        );
-        setFotoPreview(URL.createObjectURL(file));
-        setTemFotoRemota(true);
-      } catch {
-        alert("Erro ao enviar a foto.");
-      }
+      setFotoPreview(URL.createObjectURL(file));
+      setFotoFile(file); // armazena para envio posterior
     } else {
       alert("Envie uma imagem JPG ou PNG.");
+    }
+  };
+
+  const salvarFoto = async () => {
+    if (!fotoFile) return;
+    const formData = new FormData();
+    formData.append("arquivo", fotoFile);
+    try {
+      await axios.post(
+        `${API_URL}/upload/foto-perfil?email=${userData.email}`,
+        formData
+      );
+      alert("Foto atualizada com sucesso!");
+      setFotoFile(null);
+      setTemFotoRemota(true);
+    } catch {
+      alert("Erro ao enviar a foto.");
     }
   };
 
@@ -213,7 +217,10 @@ const AreaGraduado = () => {
               <p>Apelido: {perfil.apelido || "-"}</p>
               <p>Corda: {nomesCordas[perfil.corda] || perfil.corda || "-"}</p>
               <p>
-                Idade: {perfil.dataNascimento ? `${calcularIdade(perfil.dataNascimento)} anos` : "-"}
+                Idade:{" "}
+                {perfil.dataNascimento
+                  ? `${calcularIdade(perfil.dataNascimento)} anos`
+                  : "-"}
               </p>
               <p>Sexo: {perfil.sexo || "-"}</p>
               <p>Endereço: {perfil.endereco || "-"}</p>
@@ -221,12 +228,12 @@ const AreaGraduado = () => {
 
             <div className="d-flex flex-column align-items-center">
               <img
-                src={fotoPreview || fotoPadrao}
+                src={fotoPreview ? fotoPreview : fotoPadrao}
                 alt="Foto de perfil"
-                className="rounded-circle mb-2"
+                className="rounded mb-2"
                 style={{
-                  width: 120,
-                  height: 120,
+                  width: 150,
+                  height: 200,
                   objectFit: "cover",
                   border: "2px solid #ccc",
                 }}
@@ -240,6 +247,16 @@ const AreaGraduado = () => {
                   hidden
                 />
               </label>
+
+              {fotoFile && (
+                <button
+                  className="btn btn-success btn-sm mb-2"
+                  onClick={salvarFoto}
+                >
+                  Salvar Foto
+                </button>
+              )}
+
               {temFotoRemota && (
                 <button
                   className="btn btn-outline-danger btn-sm"

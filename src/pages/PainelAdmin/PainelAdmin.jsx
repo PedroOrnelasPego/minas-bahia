@@ -190,13 +190,14 @@ const PainelAdmin = () => {
                       </p>
                     </Col>
                     <Col md={12}>
-                      {certificadosUsuarios[user.email]?.length > 0 && (
-                        <>
-                          <h5 className="mt-3">Certificados</h5>
-                          <ul className="list-unstyled">
-                            {user?.email &&
-                              Array.isArray(certificadosUsuarios[user.email]) &&
-                              certificadosUsuarios[user.email].map(
+                      {user?.email &&
+                        certificadosUsuarios &&
+                        Array.isArray(certificadosUsuarios[user.email]) &&
+                        certificadosUsuarios[user.email].length > 0 && (
+                          <>
+                            <h5 className="mt-3">Certificados</h5>
+                            <ul className="list-unstyled">
+                              {certificadosUsuarios[user.email].map(
                                 ({ nome }) => {
                                   const nomeArquivo =
                                     typeof nome === "string"
@@ -253,9 +254,9 @@ const PainelAdmin = () => {
                                   );
                                 }
                               )}
-                          </ul>
-                        </>
-                      )}
+                            </ul>
+                          </>
+                        )}
                     </Col>
                   </Row>
                 </>

@@ -15,6 +15,7 @@ import axios from "axios";
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import CropImageModal from "../../components/CropImageModal";
 import { nivelMap } from "../../utils/roles";
+import FileSection from "../../components/FileSection/FileSection";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -184,6 +185,7 @@ const AreaGraduado = () => {
 
   const nivelUsuario = nivelMap[perfil.nivelAcesso] ?? 0;
   const canAccess = (minLevel) => nivelUsuario >= minLevel;
+  const isMestre = userData.email === "contato@capoeiraminasbahia.com.br";
 
   const salvarPerfil = async () => {
     const obrigatorios = [
@@ -326,6 +328,7 @@ const AreaGraduado = () => {
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Alunos</h5>
             <p>Área para documentos de download público</p>
+            <FileSection pasta="aluno" canUpload={isMestre} />
           </Col>
         </Row>
       )}
@@ -335,6 +338,7 @@ const AreaGraduado = () => {
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Graduado</h5>
             <p>Área para documentos de download público</p>
+            <FileSection pasta="graduado" canUpload={isMestre} />
           </Col>
         </Row>
       )}
@@ -344,6 +348,7 @@ const AreaGraduado = () => {
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para instrutor</h5>
             <p>Área para documentos de download público</p>
+            <FileSection pasta="instrutor" canUpload={isMestre} />
           </Col>
         </Row>
       )}
@@ -353,6 +358,7 @@ const AreaGraduado = () => {
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Professor</h5>
             <p>Área para documentos de download público</p>
+            <FileSection pasta="professor" canUpload={isMestre} />
           </Col>
         </Row>
       )}

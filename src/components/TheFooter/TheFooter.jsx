@@ -24,7 +24,7 @@ const TheFooter = () => {
             md={6}
             className="d-flex flex-column align-items-center justify-content-center"
           >
-            <h6>Nos siga nas redes sociais</h6>
+            <h6>Nos siga nas redes sociais!</h6>
             <div className="d-flex gap-3">
               <a
                 href="https://www.instagram.com"

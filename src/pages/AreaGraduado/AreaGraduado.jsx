@@ -250,17 +250,29 @@ const AreaGraduado = () => {
 
           <div className="d-flex align-items-start mb-3 justify-content-between flex-wrap">
             <div className="pe-3">
-              <p>Nome: {perfil.nome || "-"}</p>
-              <p>Apelido: {perfil.apelido || "-"}</p>
-              <p>Corda: {nomesCordas[perfil.corda] || perfil.corda || "-"}</p>
               <p>
-                Idade:{" "}
+                <strong>Nome: </strong>Nome: {perfil.nome || "-"}
+              </p>
+              <p>
+                <strong>Apelido: </strong> {perfil.apelido || "-"}
+              </p>
+              <p>
+                <strong>Corda: </strong>
+                {nomesCordas[perfil.corda] || perfil.corda || "-"}
+              </p>
+              <p>
+                <strong>Idade: </strong>
                 {perfil.dataNascimento
                   ? `${calcularIdade(perfil.dataNascimento)} anos`
                   : "-"}
               </p>
-              <p>Sexo: {perfil.sexo || "-"}</p>
-              <p>Endereço: {perfil.endereco || "-"}</p>
+              <p>
+                <strong>Sexo:</strong> {perfil.sexo || "-"}
+              </p>
+              <p>
+                <strong>Endereço: </strong>
+                {perfil.endereco || "-"}
+              </p>
             </div>
 
             <div className="d-flex flex-column align-items-center">

@@ -23,12 +23,15 @@ const ModalEditarPerfil = ({
         <Modal.Title>Editar Perfil</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        <small className="text-muted">Nome completo</small>
         <input
           className="form-control mb-2"
           placeholder="Nome"
           value={formEdit?.nome || ""}
           onChange={(e) => setFormEdit({ ...formEdit, nome: e.target.value })}
         />
+
+        <small className="text-muted">Apelido</small>
         <input
           className="form-control mb-2"
           placeholder="Apelido"
@@ -37,6 +40,8 @@ const ModalEditarPerfil = ({
             setFormEdit({ ...formEdit, apelido: e.target.value })
           }
         />
+
+        <small className="text-muted">Data de nascimento</small>
         <input
           className="form-control mb-2"
           type="date"
@@ -45,6 +50,8 @@ const ModalEditarPerfil = ({
             setFormEdit({ ...formEdit, dataNascimento: e.target.value })
           }
         />
+
+        <small className="text-muted">Sexo</small>
         <select
           className="form-control mb-2"
           value={formEdit?.sexo || ""}
@@ -55,6 +62,8 @@ const ModalEditarPerfil = ({
           <option value="Feminino">Feminino</option>
           <option value="Não informar">Não informar</option>
         </select>
+
+        <small className="text-muted">Corda (graduação)</small>
         <select
           className="form-control mb-2"
           value={formEdit?.corda || ""}
@@ -96,6 +105,7 @@ const ModalEditarPerfil = ({
           </optgroup>
         </select>
 
+        <small className="text-muted">Digite seu CEP e clique em Buscar</small>
         <div className="d-flex gap-2 mb-2">
           <input
             type="text"
@@ -113,21 +123,35 @@ const ModalEditarPerfil = ({
           type="text"
           className="form-control mb-2"
           value={logradouro}
+          placeholder="Rua"
           disabled
         />
+
         <input
           type="text"
           className="form-control mb-2"
           value={bairro}
+          placeholder="Bairro"
           disabled
         />
+
         <input
           type="text"
           className="form-control mb-2"
           value={cidade}
+          placeholder="Cidade"
           disabled
         />
-        <input type="text" className="form-control mb-2" value={uf} disabled />
+
+        <input
+          type="text"
+          className="form-control mb-2"
+          placeholder="UF"
+          value={uf}
+          disabled
+        />
+
+        <small className="text-muted">Número do seu endereço</small>
         <input
           type="text"
           className="form-control mb-2"
@@ -147,6 +171,7 @@ const ModalEditarPerfil = ({
     </Modal>
   );
 };
+
 ModalEditarPerfil.propTypes = {
   show: PropTypes.bool.isRequired,
   onHide: PropTypes.func.isRequired,

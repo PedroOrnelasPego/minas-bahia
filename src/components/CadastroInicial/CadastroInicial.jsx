@@ -18,7 +18,7 @@ const CadastroInicial = ({ show, onSave }) => {
   const [bairro, setBairro] = useState("");
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
-  const [aceitouTermos, setAceitouTermos] = useState(false); // NOVO
+  const [aceitouTermos, setAceitouTermos] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -106,6 +106,7 @@ const CadastroInicial = ({ show, onSave }) => {
         <Modal.Title>Complete seu Cadastro</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        <small className="text-muted">Digite seu nome completo</small>
         <input
           name="nome"
           className="form-control mb-2"
@@ -113,6 +114,8 @@ const CadastroInicial = ({ show, onSave }) => {
           value={form.nome}
           onChange={handleChange}
         />
+
+        <small className="text-muted">Apelido</small>
         <input
           name="apelido"
           className="form-control mb-2"
@@ -120,6 +123,8 @@ const CadastroInicial = ({ show, onSave }) => {
           value={form.apelido}
           onChange={handleChange}
         />
+
+        <small className="text-muted">Sua data de nascimento</small>
         <input
           name="dataNascimento"
           className="form-control mb-2"
@@ -128,6 +133,8 @@ const CadastroInicial = ({ show, onSave }) => {
           value={form.dataNascimento}
           onChange={handleChange}
         />
+
+        <small className="text-muted">Selecione seu sexo</small>
         <select
           name="sexo"
           className="form-control mb-2"
@@ -141,6 +148,7 @@ const CadastroInicial = ({ show, onSave }) => {
           <option value="Não informar">Não informar</option>
         </select>
 
+        <small className="text-muted">Escolha sua graduação (corda)</small>
         <select
           name="corda"
           className="form-control mb-2"
@@ -162,9 +170,7 @@ const CadastroInicial = ({ show, onSave }) => {
             <option value="branca-verde-infantil">Branca com verde</option>
             <option value="branca-roxa-infantil">Branca com roxa</option>
             <option value="branca-marrom-infantil">Branca com marrom</option>
-            <option value="branca-vermelha-infantil">
-              Branca com vermelha
-            </option>
+            <option value="branca-vermelha-infantil">Branca com vermelha</option>
           </optgroup>
           <optgroup label="Adulto">
             <option value="branca-adulto">Branca</option>
@@ -177,13 +183,12 @@ const CadastroInicial = ({ show, onSave }) => {
             <option value="verde-adulto">Verde</option>
             <option value="roxa-adulto">Roxa</option>
             <option value="marrom-adulto">Marrom</option>
-            <option value="branca-e-preta-adulto">
-              Branca e Preta (Estagiário)
-            </option>
+            <option value="branca-e-preta-adulto">Branca e Preta (Estagiário)</option>
             <option value="vermelha-mestre">Vermelha (Mestre)</option>
           </optgroup>
         </select>
 
+        <small className="text-muted">Digite seu CEP e clique em Buscar</small>
         <div className="d-flex gap-2 mb-2">
           <input
             type="text"
@@ -196,35 +201,12 @@ const CadastroInicial = ({ show, onSave }) => {
             {buscandoCep ? "Buscando..." : "Buscar"}
           </Button>
         </div>
+        <input type="text" className="form-control mb-2" placeholder="Rua" value={logradouro} disabled />
+        <input type="text" className="form-control mb-2" placeholder="Bairro" value={bairro} disabled />
+        <input type="text" className="form-control mb-2" placeholder="Cidade" value={cidade} disabled />
+        <input type="text" className="form-control mb-2" placeholder="UF" value={uf} disabled />
 
-        <input
-          type="text"
-          className="form-control mb-2"
-          placeholder="Rua"
-          value={logradouro}
-          disabled
-        />
-        <input
-          type="text"
-          className="form-control mb-2"
-          placeholder="Bairro"
-          value={bairro}
-          disabled
-        />
-        <input
-          type="text"
-          className="form-control mb-2"
-          placeholder="Cidade"
-          value={cidade}
-          disabled
-        />
-        <input
-          type="text"
-          className="form-control mb-2"
-          placeholder="UF"
-          value={uf}
-          disabled
-        />
+        <small className="text-muted">Número do seu endereço</small>
         <input
           type="text"
           className="form-control mb-2"
@@ -234,7 +216,6 @@ const CadastroInicial = ({ show, onSave }) => {
           onChange={handleNumeroChange}
         />
 
-        {/* CAMPO NOVO: Aceite de Termos */}
         <div className="form-check mt-3">
           <input
             className="form-check-input"

@@ -184,10 +184,10 @@ const PainelAdmin = () => {
                         <strong>Endereço: </strong>
                         {dadosUsuarios[user.email]?.endereco || "-"}
                       </p>
-                      <p>
+                      {/* <p>
                         <strong>Número: </strong>
                         {dadosUsuarios[user.email]?.numero || "-"}
-                      </p>
+                      </p> */}
                     </Col>
                     <Col md={12}>
                       {user?.email &&

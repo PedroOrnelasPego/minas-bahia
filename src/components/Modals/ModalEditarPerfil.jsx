@@ -34,7 +34,7 @@ const ModalEditarPerfil = ({
         <small className="text-muted">Apelido</small>
         <input
           className="form-control mb-2"
-          placeholder="Apelido"
+          placeholder="Apelido (opcional)"
           value={formEdit?.apelido || ""}
           onChange={(e) =>
             setFormEdit({ ...formEdit, apelido: e.target.value })
@@ -57,7 +57,7 @@ const ModalEditarPerfil = ({
           value={formEdit?.sexo || ""}
           onChange={(e) => setFormEdit({ ...formEdit, sexo: e.target.value })}
         >
-          <option value="">Selecione o sexo</option>
+          <option value="">Selecione</option>
           <option value="Masculino">Masculino</option>
           <option value="Feminino">Feminino</option>
           <option value="Não informar">Não informar</option>
@@ -69,7 +69,7 @@ const ModalEditarPerfil = ({
           value={formEdit?.corda || ""}
           onChange={(e) => setFormEdit({ ...formEdit, corda: e.target.value })}
         >
-          <option value="">Selecione sua corda</option>
+          <option value="">Selecione</option>
           <optgroup label="Mirim (2 a 5 anos)">
             <option value="branca-amarela-mirim">Branca com amarela</option>
             <option value="branca-azul-mirim">Branca com azul</option>

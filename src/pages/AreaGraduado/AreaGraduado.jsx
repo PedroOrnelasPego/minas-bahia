@@ -14,6 +14,7 @@ import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
 import axios from "axios";
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import CropImageModal from "../../components/CropImageModal";
+import { nivelMap } from "../../utils/roles";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -30,6 +31,7 @@ const AreaGraduado = () => {
     numero: "",
     endereco: "",
     dataNascimento: "",
+    nivelAcesso: "aluno",
   });
   const [formEdit, setFormEdit] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -180,6 +182,9 @@ const AreaGraduado = () => {
     await instance.logoutRedirect();
   };
 
+  const nivelUsuario = nivelMap[perfil.nivelAcesso] ?? 0;
+  const canAccess = (minLevel) => nivelUsuario >= minLevel;
+
   const salvarPerfil = async () => {
     const obrigatorios = [
       "nome",
@@ -311,15 +316,46 @@ const AreaGraduado = () => {
       </Row>
 
       <Row className="mt-4">
-        <Col md={6} className="border p-3 text-center">
-          <h5>Arquivos Públicos</h5>
-          <p>Área para documentos de download público</p>
-        </Col>
-
-        <Col md={6} className="border p-3">
+        <Col md={12} className="border p-3">
           <Certificados email={userData.email} />
         </Col>
       </Row>
+
+      {canAccess(0) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Alunos</h5>
+            <p>Área para documentos de download público</p>
+          </Col>
+        </Row>
+      )}
+
+      {canAccess(1) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Graduado</h5>
+            <p>Área para documentos de download público</p>
+          </Col>
+        </Row>
+      )}
+
+      {canAccess(2) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para instrutor</h5>
+            <p>Área para documentos de download público</p>
+          </Col>
+        </Row>
+      )}
+
+      {canAccess(3) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Professor</h5>
+            <p>Área para documentos de download público</p>
+          </Col>
+        </Row>
+      )}
 
       <ModalEditarPerfil
         show={showEditModal}

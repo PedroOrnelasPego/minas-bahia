@@ -97,6 +97,7 @@ const CadastroInicial = ({ show, onSave }) => {
       numero: form.numero.trim(),
       corda: form.corda,
       aceitouTermos: true,
+      nivelAcesso: "aluno",
     });
   };
 
@@ -142,7 +143,7 @@ const CadastroInicial = ({ show, onSave }) => {
           onChange={handleChange}
           required
         >
-          <option value="">Selecione o sexo</option>
+          <option value="">Selecione</option>
           <option value="Masculino">Masculino</option>
           <option value="Feminino">Feminino</option>
           <option value="Não informar">Não informar</option>
@@ -156,7 +157,7 @@ const CadastroInicial = ({ show, onSave }) => {
           onChange={handleChange}
           required
         >
-          <option value="">Selecione sua corda</option>
+          <option value="">Selecione</option>
           <optgroup label="Mirim (2 a 5 anos)">
             <option value="branca-amarela-mirim">Branca com amarela</option>
             <option value="branca-azul-mirim">Branca com azul</option>

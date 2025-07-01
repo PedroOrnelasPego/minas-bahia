@@ -29,6 +29,22 @@ const PainelAdmin = () => {
     return `${dia}/${mes}/${ano}`;
   };
 
+  const atualizarNivel = async (email, novoNivel) => {
+    try {
+      await axios.put(`${API_URL}/perfil/${email}`, { nivelAcesso: novoNivel });
+      setDadosUsuarios((prev) => ({
+        ...prev,
+        [email]: {
+          ...prev[email],
+          nivelAcesso: novoNivel,
+        },
+      }));
+      alert("Nível atualizado com sucesso.");
+    } catch {
+      alert("Erro ao atualizar nível de acesso.");
+    }
+  };
+
   useEffect(() => {
     const user = accounts[0];
     if (!user || user.username !== mestreEmail) {
@@ -257,6 +273,29 @@ const PainelAdmin = () => {
                             </ul>
                           </>
                         )}
+                    </Col>
+                    <Col>
+                      <p>
+                        <strong>Nível de Acesso: </strong>
+                        {user.email === mestreEmail ? (
+                          <span className="badge bg-dark ms-2">Mestre</span>
+                        ) : (
+                          <select
+                            className="form-select d-inline w-auto ms-2"
+                            value={
+                              dadosUsuarios[user.email]?.nivelAcesso || "aluno"
+                            }
+                            onChange={(e) =>
+                              atualizarNivel(user.email, e.target.value)
+                            }
+                          >
+                            <option value="aluno">Aluno</option>
+                            <option value="graduado">Graduado</option>
+                            <option value="instrutor">Instrutor</option>
+                            <option value="professor">Professor</option>
+                          </select>
+                        )}
+                      </p>
                     </Col>
                   </Row>
                 </>

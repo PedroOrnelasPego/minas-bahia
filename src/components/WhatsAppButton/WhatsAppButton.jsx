@@ -25,7 +25,7 @@ const WhatsAppButton = () => {
       {showBalloon && <div className="balloon">Grupo de Eventos</div>}
       <a
         target="_blank"
-        href="https://wa.me//5531984524218?text=Ol%C3%A1,%20gostaria%20de%20saber%20mais%20sobre%20os%20seus%20servi%C3%A7os.%20Pode%20me%20dar%20mais%20informa%C3%A7%C3%B5es%3F"
+        href="https://wa.me//553199371235?text=Ol%C3%A1,%20gostaria%20de%20saber%20mais%20sobre%20os%20seus%20servi%C3%A7os.%20Pode%20me%20dar%20mais%20informa%C3%A7%C3%B5es%3F"
         rel="noopener noreferrer"
       >
         <img

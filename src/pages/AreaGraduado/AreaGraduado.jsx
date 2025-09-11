@@ -8,7 +8,7 @@ import {
 } from "../../services/backend";
 import CadastroInicial from "../../components/CadastroInicial/CadastroInicial";
 import Certificados from "../../components/Certificados/Certificados";
-import nomesCordas from "../../constants/nomesCordas";
+import { getCordaNome } from "../../constants/nomesCordas";
 import calcularIdade from "../../utils/calcularIdade";
 import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
 import axios from "axios";
@@ -32,7 +32,7 @@ const AreaGraduado = () => {
     numero: "",
     endereco: "",
     dataNascimento: "",
-    nivelAcesso: "aluno",
+    nivelAcesso: "",
   });
   const [formEdit, setFormEdit] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -251,14 +251,14 @@ const AreaGraduado = () => {
           <div className="d-flex align-items-start mb-3 justify-content-between flex-wrap">
             <div className="pe-3">
               <p>
-                <strong>Nome: </strong>Nome: {perfil.nome || "-"}
+                <strong>Nome: </strong> {perfil.nome || "-"}
               </p>
               <p>
                 <strong>Apelido: </strong> {perfil.apelido || "-"}
               </p>
               <p>
                 <strong>Corda: </strong>
-                {nomesCordas[perfil.corda] || perfil.corda || "-"}
+                {getCordaNome(perfil.corda) || "-"}
               </p>
               <p>
                 <strong>Idade: </strong>
@@ -329,13 +329,15 @@ const AreaGraduado = () => {
         </Col>
       </Row>
 
-      <Row className="mt-4">
-        <Col md={12} className="border p-3">
-          <Certificados email={userData.email} />
-        </Col>
-      </Row>
+      {canAccess(1) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3">
+            <Certificados email={userData.email} />
+          </Col>
+        </Row>
+      )}
 
-      {canAccess(0) && (
+      {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Alunos</h5>
@@ -345,7 +347,7 @@ const AreaGraduado = () => {
         </Row>
       )}
 
-      {canAccess(1) && (
+      {canAccess(2) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Graduado</h5>
@@ -355,7 +357,7 @@ const AreaGraduado = () => {
         </Row>
       )}
 
-      {canAccess(2) && (
+      {canAccess(3) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para instrutor</h5>
@@ -365,7 +367,7 @@ const AreaGraduado = () => {
         </Row>
       )}
 
-      {canAccess(3) && (
+      {canAccess(4) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Professor</h5>

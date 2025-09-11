@@ -1,7 +1,8 @@
 export const nivelMap = {
-  aluno: 0,
-  graduado: 1,
-  instrutor: 2,
-  professor: 3,
-  mestre: 4,
+  visitante: 0,
+  aluno: 1,
+  graduado: 2,
+  instrutor: 3,
+  professor: 4,
+  mestre: 5,
 };

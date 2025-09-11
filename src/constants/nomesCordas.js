@@ -1,28 +1,53 @@
-const nomesCordas = {
-  "branca-amarela-mirim": "Branca com amarela",
-  "branca-azul-mirim": "Branca com azul",
-  "branca-verde-mirim": "Branca com verde",
+// constants/nomesCordas.js
+export const nomesCordas = {
+  // Mirim
+  "amarela-mirim": "Amarela Claro",
+  "azul-mirim": "Azul Claro",
+  "verde-mirim": "Verde Claro",
 
-  "branca-infantil": "Branca",
-  "branca-amarela-infantil": "Branca com amarela",
-  "branca-laranja-infantil": "Branca com laranja",
-  "branca-azul-infantil": "Branca com azul",
-  "branca-verde-infantil": "Branca com verde",
-  "branca-roxa-infantil": "Branca com roxa",
-  "branca-marrom-infantil": "Branca com marrom",
-  "branca-vermelha-infantil": "Branca com vermelha",
+  // Infantil
+  "cru-infantil": "Cru",
+  "cru-amarela-infantil": "Cru / Amarela",
+  "cru-laranja-infantil": "Cru / Laranja",
+  "cru-azul-infantil": "Cru / Azul",
+  "cru-verde-infantil": "Cru / Verde",
+  "cru-roxa-infantil": "Cru / Roxa",
+  "cru-marrom-infantil": "Cru / Marrom",
+  "cru-vermelha-infantil": "Cru / Vermelha",
 
-  "branca-adulto": "Branca",
-  "branca-amarela-adulto": "Branca com amarela",
+  // Adulto
+  "cru-adulto": "Cru",
+  "cru-amarela-adulto": "Cru / Amarela",
   "amarela-adulto": "Amarela",
-  "amarela-laranja-adulto": "Amarela com laranja",
+  "amarela-laranja-adulto": "Amarela / Laranja",
   "laranja-adulto": "Laranja",
-  "laranja-azul-adulto": "Laranja com azul",
-  "Azul-adulto": "Azul",
+  "laranja-azul-adulto": "Laranja / Azul (Graduado)",
+  "azul-adulto": "Azul (Monitor)",
   "verde-adulto": "Verde (Instrutor)",
   "roxa-adulto": "Roxa (Professor)",
-  "marrom-adulto": "Marrom (Contra Mestre)",
+  "marrom-adulto": "Marrom (Contra-mestre)",
+
+  // Estagiário
+  "cru-e-preta-estagiario": "Cru / preta (Estagiário)",
+
+  // Mestre
   "vermelha-mestre": "Vermelha (Mestre)",
-  "branca-e-preta-adulto": "Preta e Branca (Estagiário)",
 };
+
+export const gruposCordas = [
+  { key: "mirim", label: "Mirim (2 a 5 anos)", match: (k) => k.endsWith("-mirim") },
+  { key: "infantil", label: "Infantil (6 a 14 anos)", match: (k) => k.endsWith("-infantil") },
+  { key: "adulto", label: "Adulto", match: (k) => k.endsWith("-adulto") },
+  { key: "estagiario", label: "Estagiário", match: (k) => k.endsWith("-estagiario") },
+  { key: "mestre", label: "Mestre", match: (k) => k === "vermelha-mestre" },
+];
+
+export const listarCordasPorGrupo = (grupoKey) => {
+  const g = gruposCordas.find((x) => x.key === grupoKey);
+  if (!g) return [];
+  return Object.keys(nomesCordas).filter((k) => g.match(k));
+};
+
+export const getCordaNome = (slug) => nomesCordas[slug] || slug || "-";
+
 export default nomesCordas;

@@ -251,7 +251,7 @@ const AreaGraduado = () => {
           <div className="d-flex align-items-start mb-3 justify-content-between flex-wrap">
             <div className="pe-3">
               <p>
-                <strong>Nome: </strong>Nome: {perfil.nome || "-"}
+                <strong>Nome: </strong> {perfil.nome || "-"}
               </p>
               <p>
                 <strong>Apelido: </strong> {perfil.apelido || "-"}

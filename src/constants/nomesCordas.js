@@ -1,32 +1,34 @@
 // constants/nomesCordas.js
 export const nomesCordas = {
   // Mirim
-  "crua-amarela-mirim": "Crua / Amarela Claro",
-  "crua-azul-mirim": "Crua / Azul Claro",
-  "crua-verde-mirim": "Crua / Verde Claro",
+  "amarela-mirim": "Amarela Claro",
+  "azul-mirim": "Azul Claro",
+  "verde-mirim": "Verde Claro",
 
   // Infantil
-  "crua-infantil": "Crua",
-  "crua-amarela-infantil": "Crua / Amarela",
-  "crua-laranja-infantil": "Crua / Laranja",
-  "crua-azul-infantil": "Crua / Azul",
-  "crua-verde-infantil": "Crua / Verde",
-  "crua-roxa-infantil": "Crua / Roxa",
-  "crua-marrom-infantil": "Crua / Marrom",
-  "crua-vermelha-infantil": "Crua / Vermelha",
+  "cru-infantil": "Cru",
+  "cru-amarela-infantil": "Cru / Amarela",
+  "cru-laranja-infantil": "Cru / Laranja",
+  "cru-azul-infantil": "Cru / Azul",
+  "cru-verde-infantil": "Cru / Verde",
+  "cru-roxa-infantil": "Cru / Roxa",
+  "cru-marrom-infantil": "Cru / Marrom",
+  "cru-vermelha-infantil": "Cru / Vermelha",
 
   // Adulto
-  "crua-adulto": "Crua",
-  "crua-amarela-adulto": "Crua / Amarela",
+  "cru-adulto": "Cru",
+  "cru-amarela-adulto": "Cru / Amarela",
   "amarela-adulto": "Amarela",
   "amarela-laranja-adulto": "Amarela / Laranja",
   "laranja-adulto": "Laranja",
-  "laranja-azul-adulto": "Laranja / Azul",
-  "azul-adulto": "Azul",
+  "laranja-azul-adulto": "Laranja / Azul (Graduado)",
+  "azul-adulto": "Azul (Monitor)",
   "verde-adulto": "Verde (Instrutor)",
   "roxa-adulto": "Roxa (Professor)",
   "marrom-adulto": "Marrom (Contra-mestre)",
-  "crua-e-preta-adulto": "Crua / preta (Estagiário)",
+
+  // Estagiário
+  "cru-e-preta-estagiario": "Cru / preta (Estagiário)",
 
   // Mestre
   "vermelha-mestre": "Vermelha (Mestre)",
@@ -36,6 +38,7 @@ export const gruposCordas = [
   { key: "mirim", label: "Mirim (2 a 5 anos)", match: (k) => k.endsWith("-mirim") },
   { key: "infantil", label: "Infantil (6 a 14 anos)", match: (k) => k.endsWith("-infantil") },
   { key: "adulto", label: "Adulto", match: (k) => k.endsWith("-adulto") },
+  { key: "estagiario", label: "Estagiário", match: (k) => k.endsWith("-estagiario") },
   { key: "mestre", label: "Mestre", match: (k) => k === "vermelha-mestre" },
 ];
 

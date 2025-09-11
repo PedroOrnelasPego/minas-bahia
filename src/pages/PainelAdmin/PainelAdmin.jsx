@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 import { Container, Row, Col, Spinner, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
@@ -6,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import calcularIdade from "../../utils/calcularIdade";
 import axios from "axios";
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
+import { getCordaNome } from "../../constants/nomesCordas";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -181,7 +181,7 @@ const PainelAdmin = () => {
                       </p>
                       <p>
                         <strong>Corda: </strong>
-                        {dadosUsuarios[user.email]?.corda || "-"}
+                        {getCordaNome(dadosUsuarios[user.email]?.corda) || "-"}
                       </p>
                       <p>
                         <strong>Data de Nascimento: </strong>
@@ -289,6 +289,7 @@ const PainelAdmin = () => {
                               atualizarNivel(user.email, e.target.value)
                             }
                           >
+                            <option value="visitante">Visitante</option>
                             <option value="aluno">Aluno</option>
                             <option value="graduado">Graduado</option>
                             <option value="instrutor">Instrutor</option>

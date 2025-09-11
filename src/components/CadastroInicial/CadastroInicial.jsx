@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { Modal, Button } from "react-bootstrap";
+import nomesCordas, {
+  gruposCordas,
+  listarCordasPorGrupo,
+} from "../../constants/nomesCordas";
 
 const CadastroInicial = ({ show, onSave }) => {
   const [form, setForm] = useState({
@@ -97,7 +101,7 @@ const CadastroInicial = ({ show, onSave }) => {
       numero: form.numero.trim(),
       corda: form.corda,
       aceitouTermos: true,
-      nivelAcesso: "aluno",
+      nivelAcesso: "visitante",
     });
   };
 
@@ -158,35 +162,15 @@ const CadastroInicial = ({ show, onSave }) => {
           required
         >
           <option value="">Selecione</option>
-          <optgroup label="Mirim (2 a 5 anos)">
-            <option value="branca-amarela-mirim">Branca com amarela</option>
-            <option value="branca-azul-mirim">Branca com azul</option>
-            <option value="branca-verde-mirim">Branca com verde</option>
-          </optgroup>
-          <optgroup label="Infantil (6 a 14 anos)">
-            <option value="branca-infantil">Branca</option>
-            <option value="branca-amarela-infantil">Branca com amarela</option>
-            <option value="branca-laranja-infantil">Branca com laranja</option>
-            <option value="branca-azul-infantil">Branca com azul</option>
-            <option value="branca-verde-infantil">Branca com verde</option>
-            <option value="branca-roxa-infantil">Branca com roxa</option>
-            <option value="branca-marrom-infantil">Branca com marrom</option>
-            <option value="branca-vermelha-infantil">Branca com vermelha</option>
-          </optgroup>
-          <optgroup label="Adulto">
-            <option value="branca-adulto">Branca</option>
-            <option value="branca-amarela-adulto">Branca com amarela</option>
-            <option value="amarela-adulto">Amarela</option>
-            <option value="amarela-laranja-adulto">Amarela com laranja</option>
-            <option value="laranja-adulto">Laranja</option>
-            <option value="laranja-azul-adulto">Laranja com azul</option>
-            <option value="Azul-adulto">Azul</option>
-            <option value="verde-adulto">Verde</option>
-            <option value="roxa-adulto">Roxa</option>
-            <option value="marrom-adulto">Marrom</option>
-            <option value="branca-e-preta-adulto">Branca e Preta (Estagiário)</option>
-            <option value="vermelha-mestre">Vermelha (Mestre)</option>
-          </optgroup>
+          {gruposCordas.map((g) => (
+            <optgroup key={g.key} label={g.label}>
+              {listarCordasPorGrupo(g.key).map((slug) => (
+                <option key={slug} value={slug}>
+                  {nomesCordas[slug]}
+                </option>
+              ))}
+            </optgroup>
+          ))}
         </select>
 
         <small className="text-muted">Digite seu CEP e clique em Buscar</small>
@@ -202,10 +186,34 @@ const CadastroInicial = ({ show, onSave }) => {
             {buscandoCep ? "Buscando..." : "Buscar"}
           </Button>
         </div>
-        <input type="text" className="form-control mb-2" placeholder="Rua" value={logradouro} disabled />
-        <input type="text" className="form-control mb-2" placeholder="Bairro" value={bairro} disabled />
-        <input type="text" className="form-control mb-2" placeholder="Cidade" value={cidade} disabled />
-        <input type="text" className="form-control mb-2" placeholder="UF" value={uf} disabled />
+        <input
+          type="text"
+          className="form-control mb-2"
+          placeholder="Rua"
+          value={logradouro}
+          disabled
+        />
+        <input
+          type="text"
+          className="form-control mb-2"
+          placeholder="Bairro"
+          value={bairro}
+          disabled
+        />
+        <input
+          type="text"
+          className="form-control mb-2"
+          placeholder="Cidade"
+          value={cidade}
+          disabled
+        />
+        <input
+          type="text"
+          className="form-control mb-2"
+          placeholder="UF"
+          value={uf}
+          disabled
+        />
 
         <small className="text-muted">Número do seu endereço</small>
         <input

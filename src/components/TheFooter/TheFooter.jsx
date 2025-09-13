@@ -6,7 +6,7 @@ const TheFooter = () => {
       <Container>
         <Row className="text-center text-md-start">
           {/* Coluna 1 - Endereço e horários */}
-          <Col md={6} className="">
+          <Col md={6}>
             <h5>Centro Cultural Salgado Filho</h5>
             <p>
               R. Nova Ponte, 22 – Salgado Filho, Belo Horizonte – MG, 30550-720
@@ -44,7 +44,14 @@ const TheFooter = () => {
               </a>
             </div>
           </Col>
-        </Row>        
+        </Row>
+
+        {/* Linha com versão bem apagada */}
+        <Row className="mt-3">
+          <Col className="text-center">
+            <small className="text-muted">v{__APP_VERSION__}</small>
+          </Col>
+        </Row>
       </Container>
     </footer>
   );

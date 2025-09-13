@@ -142,27 +142,40 @@ const PainelAdmin = () => {
                 </div>
               ) : (
                 <>
-                  <Row>
-                    <Col md={2} className="text-center">
-                      <img
-                        src={`https://certificadoscapoeira.blob.core.windows.net/certificados/${
-                          user.email
-                        }/foto-perfil.jpg?${Date.now()}`}
-                        alt="Foto de perfil"
-                        className="rounded"
+                  <Row className="g-3 align-items-start">
+                    {/* FOTO: largura fixa 150px no md+, quebra para baixo no xs */}
+                    <Col
+                      xs={12}
+                      md="auto"
+                      className="text-center text-md-start flex-shrink-0"
+                    >
+                      <div
                         style={{
                           width: 150,
-                          height: 200,
-                          objectFit: "cover",
-                          border: "2px solid #ccc",
+                          marginInline: "auto",
                         }}
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = fotoPadrao;
-                        }}
-                      />
+                      >
+                        <img
+                          src={`https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/foto-perfil.jpg?${Date.now()}`}
+                          alt="Foto de perfil"
+                          className="rounded"
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            height: 200,
+                            objectFit: "cover",
+                            border: "2px solid #ccc",
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = fotoPadrao;
+                          }}
+                        />
+                      </div>
                     </Col>
-                    <Col md={9}>
+
+                    {/* DADOS */}
+                    <Col xs={12} md={9}>
                       <p>
                         <strong>Nome: </strong>
                         {dadosUsuarios[user.email]?.nome || "-"}
@@ -222,7 +235,9 @@ const PainelAdmin = () => {
                         {dadosUsuarios[user.email]?.professorReferencia || "-"}
                       </p>
                     </Col>
-                    <Col md={12}>
+
+                    {/* CERTIFICADOS */}
+                    <Col xs={12}>
                       {user?.email &&
                         certificadosUsuarios &&
                         Array.isArray(certificadosUsuarios[user.email]) &&
@@ -291,6 +306,8 @@ const PainelAdmin = () => {
                           </>
                         )}
                     </Col>
+
+                    {/* NÍVEL */}
                     <Col>
                       <p>
                         <strong>Nível de Acesso: </strong>

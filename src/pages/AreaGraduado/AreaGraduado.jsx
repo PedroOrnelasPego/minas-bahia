@@ -20,6 +20,7 @@ import { getHorarioLabel } from "../../helpers/agendaTreino";
 import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { formatarData } from "../../utils/formatarData";
+import { AVATAR, optimizeProfilePhoto, makeProfileThumb } from "../../utils/imagePerfil";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -108,11 +109,26 @@ const AreaGraduado = () => {
     }
   };
 
-  const handleCroppedSave = (croppedFile) => {
-    setFotoFile(croppedFile);
-    setFotoPreview(URL.createObjectURL(croppedFile));
+  const handleCroppedSave = async (croppedFile) => {
+  try {
+    const optimized = await optimizeProfilePhoto(croppedFile, {
+      width: AVATAR.width,
+      height: AVATAR.height,
+      quality: AVATAR.quality,
+      mime: AVATAR.mime,
+    });
+
+    setFotoFile(optimized);
+    setFotoPreview(URL.createObjectURL(optimized));
+  } catch (err) {
+    console.error(err);
+    alert("Não foi possível processar a imagem.");
+  } finally {
     setCropModal(false);
-  };
+  }
+};
+
+
 
   const salvarFoto = async () => {
     if (!fotoFile) return;

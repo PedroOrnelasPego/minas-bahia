@@ -14,6 +14,7 @@ export const LOCAIS = {
       },
     ],
   },
+
   "E. M. Professora Efigênia Vidigal": {
     dias: "Segunda e Quarta",
     horarios: [
@@ -24,6 +25,7 @@ export const LOCAIS = {
       },
     ],
   },
+
   Visitante: {
     dias: "",
     horarios: [

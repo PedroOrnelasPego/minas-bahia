@@ -1,13 +1,26 @@
-// helpers/agenda.js
-import { LOCAIS } from "../constants/localHorariosTreinos.js";
+// src/helpers/agendaTreino.js
+import { LOCAIS } from "../constants/localHorariosTreinos";
 
+// retorna [] se local inválido
+export const getHorariosDoLocal = (localTreino) =>
+  (localTreino && LOCAIS[localTreino]?.horarios) || [];
+
+// retorna "" se local inválido
+export const getDiasDoLocal = (localTreino) =>
+  (localTreino && LOCAIS[localTreino]?.dias) || "";
+
+// encontra o objeto do horário
+export const findHorario = (localTreino, horarioId) =>
+  getHorariosDoLocal(localTreino).find((h) => h.value === horarioId);
+
+// label “bonito” do horário
 export const getHorarioLabel = (localTreino, horarioId) => {
-  if (!localTreino || !horarioId) return "";
-  const horarios = LOCAIS[localTreino]?.horarios || [];
-  const found = horarios.find((h) => h.value === horarioId);
-  return found ? found.label : horarioId;
+  const h = findHorario(localTreino, horarioId);
+  return h ? h.label : (horarioId || "");
 };
 
-export const getDiasDoLocal = (localTreino) => {
-  return LOCAIS[localTreino]?.dias || "";
+// professor referente ao horário
+export const getProfessorLabel = (localTreino, horarioId) => {
+  const h = findHorario(localTreino, horarioId);
+  return h ? h.professorLabel : "";
 };

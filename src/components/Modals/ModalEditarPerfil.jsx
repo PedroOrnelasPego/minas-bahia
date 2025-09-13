@@ -1,29 +1,19 @@
-import { useMemo } from "react";
-import { Modal, Button, Row, Col } from "react-bootstrap";
+import { useMemo, useState } from "react";
+import { Modal, Button, Row, Col, Alert } from "react-bootstrap";
 import PropTypes from "prop-types";
 import nomesCordas, {
   gruposCordas,
   listarCordasPorGrupo,
 } from "../../constants/nomesCordas";
 import { LOCAIS } from "../../constants/localHorariosTreinos";
-
-// mesma máscara do cadastro
-const formatPhoneBR = (value) => {
-  const digits = (value || "").replace(/\D/g, "");
-  if (digits.length <= 10) {
-    return digits.replace(/^(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_, d1, d2, d3) =>
-      [
-        d1 ? `(${d1}` : "",
-        d1 && d1.length === 2 ? ") " : "",
-        d2,
-        d3 ? `-${d3}` : "",
-      ].join("")
-    );
-  }
-  return digits
-    .slice(0, 11)
-    .replace(/^(\d{2})(\d{1})(\d{4})(\d{4}).*/, "($1) $2$3-$4");
-};
+import {
+  getHorariosDoLocal,
+  getDiasDoLocal,
+  getProfessorLabel,
+} from "../../helpers/agendaTreino";
+import { maskPhoneBR } from "../../utils/phone";
+import { buildFullAddress } from "../../utils/address";
+import { validateRequiredFields } from "../../utils/validate";
 
 const ModalEditarPerfil = ({
   show,
@@ -33,35 +23,85 @@ const ModalEditarPerfil = ({
   salvarPerfil,
   cep,
   setCep,
-  buscarEnderecoPorCep,
-  handleNumeroChange, // mantém sua lógica de número/endereço
+  buscarEnderecoPorCep, // vem do pai e já atualiza logradouro/bairro/cidade/uf
+  handleNumeroChange,   // vem do pai e já atualiza numero/endereco no form
   logradouro,
   bairro,
   cidade,
   uf,
   buscandoCep,
 }) => {
-  // calcula listas dependentes (igual ao cadastro)
-  const horariosDisponiveis = useMemo(() => {
-    if (!formEdit?.localTreino || !LOCAIS[formEdit.localTreino]) return [];
-    return LOCAIS[formEdit.localTreino].horarios;
-  }, [formEdit?.localTreino]);
+  // estados de validação/feedback (iguais ao cadastro)
+  const [errors, setErrors] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [feedback, setFeedback] = useState({
+    show: false,
+    variant: "danger",
+    message: "",
+  });
+  const showError = (message) =>
+    setFeedback({ show: true, variant: "danger", message });
+  const hideFeedback = () =>
+    setFeedback((prev) => ({ ...prev, show: false, message: "" }));
 
-  const diasDoLocal = useMemo(() => {
-    if (!formEdit?.localTreino || !LOCAIS[formEdit.localTreino]) return "";
-    return LOCAIS[formEdit.localTreino].dias;
-  }, [formEdit?.localTreino]);
+  // campos obrigatórios (sem “aceitouTermos”)
+  const obrigatorios = [
+    "nome",
+    "corda",
+    "genero",
+    "racaCor",
+    "dataNascimento",
+    "whatsapp",
+    "contatoEmergencia",
+    "localTreino",
+    "horarioTreino",
+    "professorReferencia",
+    "endereco",
+    "numero",
+  ];
+
+  // dependentes do local
+  const horariosDisponiveis = useMemo(
+    () => getHorariosDoLocal(formEdit?.localTreino),
+    [formEdit?.localTreino]
+  );
+  const diasDoLocalTxt = useMemo(
+    () => getDiasDoLocal(formEdit?.localTreino),
+    [formEdit?.localTreino]
+  );
+
+  // helper de classe com erro (igual cadastro)
+  const fc = (name) => `form-control mb-2 ${errors[name] ? "is-invalid" : ""}`;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // máscara de telefone
-    if (name === "whatsapp" || name === "contatoEmergencia") {
-      return setFormEdit({ ...formEdit, [name]: formatPhoneBR(value) });
+    // qualquer interação esconde feedback
+    if (feedback.show) hideFeedback();
+
+    // limpa erro do campo se preencher
+    if (errors[name] && String(value).trim() !== "") {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
     }
 
-    // reset encadeado local -> horário -> professor
+    // máscaras
+    if (name === "whatsapp" || name === "contatoEmergencia") {
+      return setFormEdit({ ...formEdit, [name]: maskPhoneBR(value) });
+    }
+
+    // reset encadeado local -> horário -> professor (e limpa erros relacionados)
     if (name === "localTreino") {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.localTreino;
+        delete next.horarioTreino;
+        delete next.professorReferencia;
+        return next;
+      });
       return setFormEdit({
         ...formEdit,
         localTreino: value,
@@ -70,18 +110,95 @@ const ModalEditarPerfil = ({
       });
     }
 
-    // ao escolher horário, professor referência é pré-setado e não editável
+    // ao escolher horário, setar professor automaticamente e limpar erros
     if (name === "horarioTreino") {
-      const h = horariosDisponiveis.find((x) => x.value === value);
-      const professorLabel = h?.professorLabel || "";
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.horarioTreino;
+        delete next.professorReferencia;
+        return next;
+      });
       return setFormEdit({
         ...formEdit,
         horarioTreino: value,
-        professorReferencia: professorLabel,
+        professorReferencia: getProfessorLabel(formEdit?.localTreino, value),
       });
     }
 
     setFormEdit({ ...formEdit, [name]: value });
+  };
+
+  // wrapper para número: chama o handler do pai e também cuida de erros locais
+  const handleNumeroLocal = (e) => {
+    const numero = e.target.value;
+    handleNumeroChange(e); // atualiza formEdit no pai
+
+    // limpeza de erros “numero” e “endereco” (derivado)
+    if (errors.numero && String(numero).trim() !== "") {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.numero;
+        return next;
+      });
+    }
+    const endereco = logradouro
+      ? buildFullAddress({ logradouro, numero, bairro, cidade, uf })
+      : "";
+    if (errors.endereco && endereco.trim() !== "") {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.endereco;
+        return next;
+      });
+    }
+  };
+
+  // wrapper do CEP: mantém UX do cadastro (feedback e limpeza)
+  const buscarCepLocal = async () => {
+    if (!cep) return;
+    hideFeedback();
+    try {
+      await buscarEnderecoPorCep(); // pai já popula logradouro/bairro/cidade/uf e possivelmente endereco
+      // se endereço ficou completo, limpa erro
+      const enderecoAtual = formEdit?.endereco || "";
+      if (errors.endereco && enderecoAtual.trim() !== "") {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.endereco;
+          return next;
+        });
+      }
+    } catch (e) {
+      // caso o pai dispare erro via throw (se aplicável)
+      showError(e?.message || "Erro ao buscar o CEP.");
+    }
+  };
+
+  const handleSubmit = () => {
+    setSubmitted(true);
+    hideFeedback();
+
+    const newErrors = validateRequiredFields(formEdit || {}, obrigatorios);
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      showError("Preencha todos os campos obrigatórios corretamente.");
+      return;
+    }
+
+    // segue o fluxo igual ao cadastro (trim básico antes de salvar)
+    const atualizado = {
+      ...formEdit,
+      nome: (formEdit?.nome || "").trim(),
+      apelido: (formEdit?.apelido || "").trim(),
+      genero: (formEdit?.genero || "").trim(),
+      racaCor: (formEdit?.racaCor || "").trim(),
+      endereco: (formEdit?.endereco || "").trim(),
+      numero: (formEdit?.numero || "").trim(),
+      corda: formEdit?.corda,
+    };
+
+    salvarPerfil(atualizado);
   };
 
   return (
@@ -90,13 +207,25 @@ const ModalEditarPerfil = ({
         <Modal.Title>Editar Perfil</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        {/* Alert global (igual ao cadastro) */}
+        {feedback.show && (
+          <Alert
+            variant={feedback.variant}
+            onClose={hideFeedback}
+            dismissible
+            className="mb-3"
+          >
+            {feedback.message}
+          </Alert>
+        )}
+
         <Row className="g-3">
-          {/* Coluna Esquerda: Dados pessoais */}
+          {/* Coluna Esquerda: dados pessoais */}
           <Col md={6}>
             <small className="text-muted">Nome completo</small>
             <input
               name="nome"
-              className="form-control mb-2"
+              className={fc("nome")}
               placeholder="Nome"
               value={formEdit?.nome || ""}
               onChange={handleChange}
@@ -114,7 +243,7 @@ const ModalEditarPerfil = ({
             <small className="text-muted">Gênero</small>
             <select
               name="genero"
-              className="form-control mb-2"
+              className={fc("genero")}
               value={formEdit?.genero || ""}
               onChange={handleChange}
             >
@@ -129,7 +258,7 @@ const ModalEditarPerfil = ({
             <small className="text-muted">Raça/Cor</small>
             <select
               name="racaCor"
-              className="form-control mb-2"
+              className={fc("racaCor")}
               value={formEdit?.racaCor || ""}
               onChange={handleChange}
             >
@@ -145,7 +274,7 @@ const ModalEditarPerfil = ({
             <small className="text-muted">Data de nascimento</small>
             <input
               name="dataNascimento"
-              className="form-control mb-2"
+              className={fc("dataNascimento")}
               type="date"
               value={formEdit?.dataNascimento || ""}
               onChange={handleChange}
@@ -157,7 +286,7 @@ const ModalEditarPerfil = ({
                 <small className="text-muted">WhatsApp (pessoal)</small>
                 <input
                   name="whatsapp"
-                  className="form-control mb-2"
+                  className={fc("whatsapp")}
                   placeholder="(31) 9XXXX-XXXX"
                   inputMode="numeric"
                   value={formEdit?.whatsapp || ""}
@@ -168,7 +297,7 @@ const ModalEditarPerfil = ({
                 <small className="text-muted">Contato de emergência</small>
                 <input
                   name="contatoEmergencia"
-                  className="form-control mb-2"
+                  className={fc("contatoEmergencia")}
                   placeholder="(31) 9XXX-XXXX"
                   inputMode="numeric"
                   value={formEdit?.contatoEmergencia || ""}
@@ -176,30 +305,14 @@ const ModalEditarPerfil = ({
                 />
               </Col>
             </Row>
-
-            {/* CEP (igual ao cadastro: na coluna esquerda, logo abaixo dos telefones) */}
-            <small className="text-muted">Digite seu CEP e clique em Buscar</small>
-            <div className="d-flex gap-2 mb-2">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Buscar por CEP"
-                value={cep}
-                onChange={(e) => setCep(e.target.value)}
-                inputMode="numeric"
-              />
-              <Button onClick={buscarEnderecoPorCep} disabled={buscandoCep}>
-                {buscandoCep ? "Buscando..." : "Buscar"}
-              </Button>
-            </div>
           </Col>
 
-          {/* Coluna Direita: Local/horário/prof/corda e endereço derivado */}
+          {/* Coluna Direita: local/horário/prof + CEP + endereço (igual ao cadastro) */}
           <Col md={6}>
             <small className="text-muted">Local de treino</small>
             <select
               name="localTreino"
-              className="form-control mb-1"
+              className={fc("localTreino")}
               value={formEdit?.localTreino || ""}
               onChange={handleChange}
             >
@@ -211,18 +324,17 @@ const ModalEditarPerfil = ({
               ))}
             </select>
 
-            {/* Dias do local (somente visual) */}
-            {formEdit?.localTreino && (
+            {diasDoLocalTxt && (
               <div className="mb-2">
                 <small className="text-muted">Dias</small>
-                <div className="form-control-plaintext">{diasDoLocal}</div>
+                <div className="form-control-plaintext">{diasDoLocalTxt}</div>
               </div>
             )}
 
             <small className="text-muted">Horário de treino</small>
             <select
               name="horarioTreino"
-              className="form-control mb-2"
+              className={fc("horarioTreino")}
               value={formEdit?.horarioTreino || ""}
               onChange={handleChange}
               disabled={!formEdit?.localTreino}
@@ -239,61 +351,64 @@ const ModalEditarPerfil = ({
               ))}
             </select>
 
-            {/* Professor referência (pré-setado e imutável) */}
-            {formEdit?.horarioTreino && (
-              <div className="mb-2">
-                <small className="text-muted">Professor referência</small>
-                <div className="form-control-plaintext">
-                  {formEdit?.professorReferencia || "-"}
-                </div>
+            <div className="mb-2">
+              <small className="text-muted">Professor referência</small>
+              <div
+                className={`form-control-plaintext ${
+                  submitted && !formEdit?.professorReferencia
+                    ? "text-danger"
+                    : ""
+                }`}
+              >
+                {formEdit?.professorReferencia ||
+                  (submitted ? "Obrigatório" : "-")}
               </div>
-            )}
+            </div>
 
-            <small className="text-muted">Corda (graduação)</small>
-            <select
-              name="corda"
-              className="form-control mb-2"
-              value={formEdit?.corda || ""}
-              onChange={handleChange}
-            >
-              <option value="">Selecione</option>
-              {gruposCordas.map((g) => (
-                <optgroup key={g.key} label={g.label}>
-                  {listarCordasPorGrupo(g.key).map((slug) => (
-                    <option key={slug} value={slug}>
-                      {nomesCordas[slug]}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            {/* CEP — placeholders iguais ao cadastro */}
+            <small className="text-muted">
+              Digite seu CEP e clique em Buscar
+            </small>
+            <div className="d-flex gap-2 mb-2">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por CEP"
+                value={cep}
+                onChange={(e) => setCep(e.target.value)}
+                inputMode="numeric"
+              />
+              <Button onClick={buscarCepLocal} disabled={buscandoCep}>
+                {buscandoCep ? "Buscando..." : "Buscar"}
+              </Button>
+            </div>
 
-            {/* Endereço (derivado do CEP) */}
+            {/* Endereço (derivado do CEP) — mesmos placeholders/erros visuais */}
             <input
               type="text"
-              className="form-control mb-2"
+              className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""}`}
+              placeholder="Rua (preenchida pelo CEP)"
               value={logradouro}
-              placeholder="Rua"
               disabled
             />
             <input
               type="text"
-              className="form-control mb-2"
+              className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""}`}
+              placeholder="Bairro (preenchido pelo CEP)"
               value={bairro}
-              placeholder="Bairro"
               disabled
             />
             <input
               type="text"
-              className="form-control mb-2"
+              className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""}`}
+              placeholder="Cidade (preenchida pelo CEP)"
               value={cidade}
-              placeholder="Cidade"
               disabled
             />
             <input
               type="text"
-              className="form-control mb-2"
-              placeholder="UF"
+              className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""}`}
+              placeholder="UF (preenchida pelo CEP)"
               value={uf}
               disabled
             />
@@ -301,11 +416,11 @@ const ModalEditarPerfil = ({
             <small className="text-muted">Número do seu endereço</small>
             <input
               type="text"
-              className="form-control mb-2"
+              className={fc("numero")}
               placeholder="Número"
               name="numero"
               value={formEdit?.numero || ""}
-              onChange={handleNumeroChange}
+              onChange={handleNumeroLocal}
             />
           </Col>
         </Row>
@@ -314,7 +429,7 @@ const ModalEditarPerfil = ({
         <Button variant="secondary" onClick={onHide}>
           Cancelar
         </Button>
-        <Button variant="primary" onClick={salvarPerfil}>
+        <Button variant="primary" onClick={handleSubmit}>
           Salvar
         </Button>
       </Modal.Footer>

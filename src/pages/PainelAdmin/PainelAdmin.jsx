@@ -7,6 +7,7 @@ import axios from "axios";
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import { getCordaNome } from "../../constants/nomesCordas";
 import { getHorarioLabel } from "../../helpers/agendaTreino";
+import { formatarData } from "../../utils/formatarData";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -23,12 +24,6 @@ const PainelAdmin = () => {
   const [certificadosUsuarios, setCertificadosUsuarios] = useState({});
   const [previewUrl, setPreviewUrl] = useState("");
   const [showPreview, setShowPreview] = useState(false);
-
-  const formatarData = (dataISO) => {
-    if (!dataISO) return "-";
-    const [ano, mes, dia] = dataISO.split("-");
-    return `${dia}/${mes}/${ano}`;
-  };
 
   const atualizarNivel = async (email, novoNivel) => {
     try {
@@ -181,8 +176,8 @@ const PainelAdmin = () => {
                         {getCordaNome(dadosUsuarios[user.email]?.corda) || "-"}
                       </p>
                       <p>
-                        <strong>Sexo: </strong>
-                        {dadosUsuarios[user.email]?.sexo || "-"}
+                        <strong>Gênero: </strong>
+                        {dadosUsuarios[user.email]?.genero || "-"}
                       </p>
                       <p>
                         <strong>Raça/Cor:</strong>{" "}

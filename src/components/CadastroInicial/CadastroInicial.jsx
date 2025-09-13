@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Modal, Button, Row, Col } from "react-bootstrap";
 import nomesCordas, {
   gruposCordas,
   listarCordasPorGrupo,
 } from "../../constants/nomesCordas";
+import { LOCAIS } from "../../constants/localHorariosTreinos";
 
 const formatPhoneBR = (value) => {
-  // mantém apenas dígitos
   const digits = (value || "").replace(/\D/g, "");
   if (digits.length <= 10) {
-    // (DD) XXXX-XXXX
     return digits.replace(/^(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_, d1, d2, d3) =>
       [
         d1 ? `(${d1}` : "",
@@ -19,7 +18,6 @@ const formatPhoneBR = (value) => {
       ].join("")
     );
   }
-  // (DD) 9XXXX-XXXX
   return digits
     .slice(0, 11)
     .replace(/^(\d{2})(\d{1})(\d{4})(\d{4}).*/, "($1) $2$3-$4");
@@ -29,15 +27,17 @@ const CadastroInicial = ({ show, onSave }) => {
   const [form, setForm] = useState({
     nome: "",
     apelido: "",
-    dataNascimento: "",
-    genero: "",
-    sexo: "",
-    racaCor: "",
-    endereco: "",
-    numero: "",
     corda: "",
+    genero: "",
+    racaCor: "",
+    dataNascimento: "",
     whatsapp: "",
     contatoEmergencia: "",
+    localTreino: "",
+    horarioTreino: "",
+    professorReferencia: "",
+    endereco: "",
+    numero: "",
   });
 
   const [cep, setCep] = useState("");
@@ -48,12 +48,40 @@ const CadastroInicial = ({ show, onSave }) => {
   const [uf, setUf] = useState("");
   const [aceitouTermos, setAceitouTermos] = useState(false);
 
+  const horariosDisponiveis = useMemo(() => {
+    if (!form.localTreino || !LOCAIS[form.localTreino]) return [];
+    return LOCAIS[form.localTreino].horarios;
+  }, [form.localTreino]);
+
+  const diasDoLocal = useMemo(() => {
+    if (!form.localTreino || !LOCAIS[form.localTreino]) return "";
+    return LOCAIS[form.localTreino].dias;
+  }, [form.localTreino]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // formatação automática para telefones
     if (name === "whatsapp" || name === "contatoEmergencia") {
       return setForm((prev) => ({ ...prev, [name]: formatPhoneBR(value) }));
+    }
+
+    if (name === "localTreino") {
+      return setForm((prev) => ({
+        ...prev,
+        localTreino: value,
+        horarioTreino: "",
+        professorReferencia: "",
+      }));
+    }
+
+    if (name === "horarioTreino") {
+      const h = horariosDisponiveis.find((x) => x.value === value);
+      const professorLabel = h?.professorLabel || "";
+      return setForm((prev) => ({
+        ...prev,
+        horarioTreino: value,
+        professorReferencia: professorLabel,
+      }));
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -101,20 +129,24 @@ const CadastroInicial = ({ show, onSave }) => {
   const handleSubmit = () => {
     const obrigatorios = [
       "nome",
-      "dataNascimento",
-      "sexo",
-      "endereco",
-      "numero",
       "corda",
+      "genero",
+      "racaCor",
+      "dataNascimento",
       "whatsapp",
       "contatoEmergencia",
+      "localTreino",
+      "horarioTreino",
+      "professorReferencia",
+      "endereco",
+      "numero",
     ];
 
     const vazios = obrigatorios.filter(
       (campo) => !form[campo] || String(form[campo]).trim() === ""
     );
 
-    if (vazios?.length > 0) {
+    if (vazios.length > 0) {
       alert("Preencha todos os campos obrigatórios corretamente.");
       return;
     }
@@ -130,7 +162,7 @@ const CadastroInicial = ({ show, onSave }) => {
       ...form,
       nome: form.nome.trim(),
       apelido: form.apelido.trim(),
-      sexo: form.sexo.trim(),
+      genero: form.genero.trim(),
       racaCor: form.racaCor?.trim(),
       endereco: form.endereco.trim(),
       numero: form.numero.trim(),
@@ -147,7 +179,7 @@ const CadastroInicial = ({ show, onSave }) => {
       </Modal.Header>
       <Modal.Body>
         <Row className="g-3">
-          {/* Coluna Esquerda: Dados pessoais */}
+          {/* Coluna Esquerda */}
           <Col md={6}>
             <small className="text-muted">Digite seu nome completo</small>
             <input
@@ -167,21 +199,32 @@ const CadastroInicial = ({ show, onSave }) => {
               onChange={handleChange}
             />
 
-            <small className="text-muted">Sua data de nascimento</small>
-            <input
-              name="dataNascimento"
-              className="form-control mb-2"
-              placeholder="Data de Nascimento"
-              type="date"
-              value={form.dataNascimento}
-              onChange={handleChange}
-            />
-
-            <small className="text-muted">Sexo</small>
+            {/* Graduação */}
+            <small className="text-muted">Escolha sua graduação (corda)</small>
             <select
-              name="sexo"
+              name="corda"
               className="form-control mb-2"
-              value={form.sexo}
+              value={form.corda}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Selecione</option>
+              {gruposCordas.map((g) => (
+                <optgroup key={g.key} label={g.label}>
+                  {listarCordasPorGrupo(g.key).map((slug) => (
+                    <option key={slug} value={slug}>
+                      {nomesCordas[slug]}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+
+            <small className="text-muted">Gênero</small>
+            <select
+              name="genero"
+              className="form-control mb-2"
+              value={form.genero}
               onChange={handleChange}
             >
               <option value="">Selecione</option>
@@ -207,51 +250,101 @@ const CadastroInicial = ({ show, onSave }) => {
               <option value="Prefere não informar">Prefere não informar</option>
             </select>
 
-            <small className="text-muted">WhatsApp (pessoal)</small>
+            <small className="text-muted">Sua data de nascimento</small>
             <input
-              name="whatsapp"
+              name="dataNascimento"
               className="form-control mb-2"
-              placeholder="(31) 9XXXX-XXXX"
-              inputMode="numeric"
-              value={form.whatsapp}
+              placeholder="Data de Nascimento"
+              type="date"
+              value={form.dataNascimento}
               onChange={handleChange}
             />
 
-            <small className="text-muted">
-              Contato de emergência / responsável
-            </small>
-            <input
-              name="contatoEmergencia"
-              className="form-control mb-2"
-              placeholder="(31) 9XXX-XXXX"
-              inputMode="numeric"
-              value={form.contatoEmergencia}
-              onChange={handleChange}
-            />
+            {/* Telefones lado a lado (responsivo) */}
+            <Row className="g-2">
+              <Col md={6}>
+                <small className="text-muted">WhatsApp (pessoal)</small>
+                <input
+                  name="whatsapp"
+                  className="form-control mb-2"
+                  placeholder="(31) 9XXXX-XXXX"
+                  inputMode="numeric"
+                  value={form.whatsapp}
+                  onChange={handleChange}
+                />
+              </Col>
+              <Col md={6}>
+                <small className="text-muted">Contato de emergência</small>
+                <input
+                  name="contatoEmergencia"
+                  className="form-control mb-2"
+                  placeholder="(31) 9XXX-XXXX"
+                  inputMode="numeric"
+                  value={form.contatoEmergencia}
+                  onChange={handleChange}
+                />
+              </Col>
+            </Row>
           </Col>
 
-          {/* Coluna Direita: Graduação e Endereço */}
+          {/* Coluna Direita */}
           <Col md={6}>
-            <small className="text-muted">Escolha sua graduação (corda)</small>
+            {/* Local */}
+            <small className="text-muted">Local de treino</small>
             <select
-              name="corda"
-              className="form-control mb-2"
-              value={form.corda}
+              name="localTreino"
+              className="form-control mb-1"
+              value={form.localTreino}
               onChange={handleChange}
-              required
             >
-              <option value="">Selecione</option>
-              {gruposCordas.map((g) => (
-                <optgroup key={g.key} label={g.label}>
-                  {listarCordasPorGrupo(g.key).map((slug) => (
-                    <option key={slug} value={slug}>
-                      {nomesCordas[slug]}
-                    </option>
-                  ))}
-                </optgroup>
+              <option value="">Selecione o local</option>
+              {Object.keys(LOCAIS).map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
               ))}
             </select>
 
+            {/* Dias do local (somente visual) */}
+            {diasDoLocal && (
+              <div className="mb-2">
+                <small className="text-muted">Dias</small>
+                <div className="form-control-plaintext">{diasDoLocal}</div>
+              </div>
+            )}
+
+            {/* Horário dependente do local */}
+            <small className="text-muted">Horário de treino</small>
+            <select
+              name="horarioTreino"
+              className="form-control mb-2"
+              value={form.horarioTreino}
+              onChange={handleChange}
+              disabled={!form.localTreino}
+            >
+              <option value="">
+                {form.localTreino
+                  ? "Selecione o horário"
+                  : "Selecione um local primeiro"}
+              </option>
+              {horariosDisponiveis.map((h) => (
+                <option key={h.value} value={h.value}>
+                  {h.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Professor referência (pré-setado e imutável) */}
+            {form.horarioTreino && (
+              <div className="mb-2">
+                <small className="text-muted">Professor referência</small>
+                <div className="form-control-plaintext">
+                  {form.professorReferencia || "-"}
+                </div>
+              </div>
+            )}
+
+            {/* CEP movido para a esquerda, logo abaixo dos telefones */}
             <small className="text-muted">
               Digite seu CEP e clique em Buscar
             </small>
@@ -269,6 +362,7 @@ const CadastroInicial = ({ show, onSave }) => {
               </Button>
             </div>
 
+            {/* Campos de endereço exibidos/derivados do CEP */}
             <input
               type="text"
               className="form-control mb-2"

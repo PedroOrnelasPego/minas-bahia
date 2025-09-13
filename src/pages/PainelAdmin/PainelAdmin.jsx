@@ -6,6 +6,7 @@ import calcularIdade from "../../utils/calcularIdade";
 import axios from "axios";
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import { getCordaNome } from "../../constants/nomesCordas";
+import { getHorarioLabel } from "../../helpers/agendaTreino";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -176,16 +177,8 @@ const PainelAdmin = () => {
                         {dadosUsuarios[user.email]?.apelido || "-"}
                       </p>
                       <p>
-                        <strong>Data de Nascimento: </strong>
-                        {formatarData(
-                          dadosUsuarios[user.email]?.dataNascimento
-                        )}{" "}
-                        {(() => {
-                          const idade = calcularIdade(
-                            dadosUsuarios[user.email]?.dataNascimento
-                          );
-                          return idade >= 0 ? `| ${idade} anos` : "";
-                        })()}
+                        <strong>Corda: </strong>
+                        {getCordaNome(dadosUsuarios[user.email]?.corda) || "-"}
                       </p>
                       <p>
                         <strong>Sexo: </strong>
@@ -196,6 +189,19 @@ const PainelAdmin = () => {
                         {dadosUsuarios[user.email]?.racaCor || "-"}
                       </p>
                       <p>
+                        <strong>Data de Nascimento e Idade: </strong>
+                        {formatarData(
+                          dadosUsuarios[user.email]?.dataNascimento
+                        )}{" "}
+                        {(() => {
+                          const idade = calcularIdade(
+                            dadosUsuarios[user.email]?.dataNascimento
+                          );
+                          return idade >= 0 ? `| ${idade} anos` : "";
+                        })()}
+                      </p>
+
+                      <p>
                         <strong>WhatsApp (pessoal):</strong>{" "}
                         {dadosUsuarios[user.email]?.whatsapp || "-"}
                       </p>
@@ -203,19 +209,23 @@ const PainelAdmin = () => {
                         <strong>Contato de emergência / responsável:</strong>{" "}
                         {dadosUsuarios[user.email]?.contatoEmergencia || "-"}
                       </p>
-                      <p>
-                        <strong>Corda: </strong>
-                        {getCordaNome(dadosUsuarios[user.email]?.corda) || "-"}
-                      </p>
 
                       <p>
                         <strong>Endereço: </strong>
                         {dadosUsuarios[user.email]?.endereco || "-"}
                       </p>
-                      {/* <p>
-                        <strong>Número: </strong>
-                        {dadosUsuarios[user.email]?.numero || "-"}
-                      </p> */}
+                      <p>
+                        <strong>Local e horário de treino: </strong>
+                        {dadosUsuarios[user.email]?.localTreino || "-"} |{" "}
+                        {getHorarioLabel(
+                          dadosUsuarios[user.email]?.localTreino,
+                          dadosUsuarios[user.email]?.horarioTreino
+                        ) || "-"}
+                      </p>
+                      <p>
+                        <strong>Professor referência: </strong>
+                        {dadosUsuarios[user.email]?.professorReferencia || "-"}
+                      </p>
                     </Col>
                     <Col md={12}>
                       {user?.email &&
@@ -308,7 +318,6 @@ const PainelAdmin = () => {
                             <option value="instrutor">Instrutor</option>
                             <option value="professor">Professor</option>
                             <option value="contramestre">Contramestre</option>
-
                           </select>
                         )}
                       </p>

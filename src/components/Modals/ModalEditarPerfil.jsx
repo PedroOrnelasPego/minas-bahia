@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Modal, Button, Row, Col } from "react-bootstrap";
 import PropTypes from "prop-types";
 import nomesCordas, {
   gruposCordas,
   listarCordasPorGrupo,
 } from "../../constants/nomesCordas";
+import { LOCAIS } from "../../constants/localHorariosTreinos";
 
 // mesma máscara do cadastro
 const formatPhoneBR = (value) => {
@@ -39,11 +41,46 @@ const ModalEditarPerfil = ({
   uf,
   buscandoCep,
 }) => {
+  // calcula listas dependentes (igual ao cadastro)
+  const horariosDisponiveis = useMemo(() => {
+    if (!formEdit?.localTreino || !LOCAIS[formEdit.localTreino]) return [];
+    return LOCAIS[formEdit.localTreino].horarios;
+  }, [formEdit?.localTreino]);
+
+  const diasDoLocal = useMemo(() => {
+    if (!formEdit?.localTreino || !LOCAIS[formEdit.localTreino]) return "";
+    return LOCAIS[formEdit.localTreino].dias;
+  }, [formEdit?.localTreino]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // máscara de telefone
     if (name === "whatsapp" || name === "contatoEmergencia") {
       return setFormEdit({ ...formEdit, [name]: formatPhoneBR(value) });
     }
+
+    // reset encadeado local -> horário -> professor
+    if (name === "localTreino") {
+      return setFormEdit({
+        ...formEdit,
+        localTreino: value,
+        horarioTreino: "",
+        professorReferencia: "",
+      });
+    }
+
+    // ao escolher horário, professor referência é pré-setado e não editável
+    if (name === "horarioTreino") {
+      const h = horariosDisponiveis.find((x) => x.value === value);
+      const professorLabel = h?.professorLabel || "";
+      return setFormEdit({
+        ...formEdit,
+        horarioTreino: value,
+        professorReferencia: professorLabel,
+      });
+    }
+
     setFormEdit({ ...formEdit, [name]: value });
   };
 
@@ -74,25 +111,17 @@ const ModalEditarPerfil = ({
               onChange={handleChange}
             />
 
-            <small className="text-muted">Data de nascimento</small>
-            <input
-              name="dataNascimento"
-              className="form-control mb-2"
-              type="date"
-              value={formEdit?.dataNascimento || ""}
-              onChange={handleChange}
-            />
-
-            <small className="text-muted">Sexo</small>
+            <small className="text-muted">Gênero</small>
             <select
-              name="sexo"
+              name="genero"
               className="form-control mb-2"
-              value={formEdit?.sexo || ""}
+              value={formEdit?.genero || ""}
               onChange={handleChange}
             >
               <option value="">Selecione</option>
               <option value="Masculino">Masculino</option>
               <option value="Feminino">Feminino</option>
+              <option value="Não-binário">Não-binário</option>
               <option value="Outro">Outro</option>
               <option value="Prefere não informar">Prefere não informar</option>
             </select>
@@ -113,29 +142,113 @@ const ModalEditarPerfil = ({
               <option value="Prefere não informar">Prefere não informar</option>
             </select>
 
-            <small className="text-muted">WhatsApp (pessoal)</small>
+            <small className="text-muted">Data de nascimento</small>
             <input
-              name="whatsapp"
+              name="dataNascimento"
               className="form-control mb-2"
-              placeholder="(31) 9XXXX-XXXX"
-              inputMode="numeric"
-              value={formEdit?.whatsapp || ""}
+              type="date"
+              value={formEdit?.dataNascimento || ""}
               onChange={handleChange}
             />
 
-            <small className="text-muted">Contato de emergência / responsável</small>
-            <input
-              name="contatoEmergencia"
-              className="form-control mb-2"
-              placeholder="(31) 9XXX-XXXX"
-              inputMode="numeric"
-              value={formEdit?.contatoEmergencia || ""}
-              onChange={handleChange}
-            />
+            {/* Telefones lado a lado (responsivo) */}
+            <Row className="g-2">
+              <Col md={6}>
+                <small className="text-muted">WhatsApp (pessoal)</small>
+                <input
+                  name="whatsapp"
+                  className="form-control mb-2"
+                  placeholder="(31) 9XXXX-XXXX"
+                  inputMode="numeric"
+                  value={formEdit?.whatsapp || ""}
+                  onChange={handleChange}
+                />
+              </Col>
+              <Col md={6}>
+                <small className="text-muted">Contato de emergência</small>
+                <input
+                  name="contatoEmergencia"
+                  className="form-control mb-2"
+                  placeholder="(31) 9XXX-XXXX"
+                  inputMode="numeric"
+                  value={formEdit?.contatoEmergencia || ""}
+                  onChange={handleChange}
+                />
+              </Col>
+            </Row>
+
+            {/* CEP (igual ao cadastro: na coluna esquerda, logo abaixo dos telefones) */}
+            <small className="text-muted">Digite seu CEP e clique em Buscar</small>
+            <div className="d-flex gap-2 mb-2">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por CEP"
+                value={cep}
+                onChange={(e) => setCep(e.target.value)}
+                inputMode="numeric"
+              />
+              <Button onClick={buscarEnderecoPorCep} disabled={buscandoCep}>
+                {buscandoCep ? "Buscando..." : "Buscar"}
+              </Button>
+            </div>
           </Col>
 
-          {/* Coluna Direita: Graduação e Endereço */}
+          {/* Coluna Direita: Local/horário/prof/corda e endereço derivado */}
           <Col md={6}>
+            <small className="text-muted">Local de treino</small>
+            <select
+              name="localTreino"
+              className="form-control mb-1"
+              value={formEdit?.localTreino || ""}
+              onChange={handleChange}
+            >
+              <option value="">Selecione o local</option>
+              {Object.keys(LOCAIS).map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </select>
+
+            {/* Dias do local (somente visual) */}
+            {formEdit?.localTreino && (
+              <div className="mb-2">
+                <small className="text-muted">Dias</small>
+                <div className="form-control-plaintext">{diasDoLocal}</div>
+              </div>
+            )}
+
+            <small className="text-muted">Horário de treino</small>
+            <select
+              name="horarioTreino"
+              className="form-control mb-2"
+              value={formEdit?.horarioTreino || ""}
+              onChange={handleChange}
+              disabled={!formEdit?.localTreino}
+            >
+              <option value="">
+                {formEdit?.localTreino
+                  ? "Selecione o horário"
+                  : "Selecione um local primeiro"}
+              </option>
+              {horariosDisponiveis.map((h) => (
+                <option key={h.value} value={h.value}>
+                  {h.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Professor referência (pré-setado e imutável) */}
+            {formEdit?.horarioTreino && (
+              <div className="mb-2">
+                <small className="text-muted">Professor referência</small>
+                <div className="form-control-plaintext">
+                  {formEdit?.professorReferencia || "-"}
+                </div>
+              </div>
+            )}
+
             <small className="text-muted">Corda (graduação)</small>
             <select
               name="corda"
@@ -155,21 +268,7 @@ const ModalEditarPerfil = ({
               ))}
             </select>
 
-            <small className="text-muted">Digite seu CEP e clique em Buscar</small>
-            <div className="d-flex gap-2 mb-2">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Buscar por CEP"
-                value={cep}
-                onChange={(e) => setCep(e.target.value)}
-                inputMode="numeric"
-              />
-              <Button onClick={buscarEnderecoPorCep} disabled={buscandoCep}>
-                {buscandoCep ? "Buscando..." : "Buscar"}
-              </Button>
-            </div>
-
+            {/* Endereço (derivado do CEP) */}
             <input
               type="text"
               className="form-control mb-2"

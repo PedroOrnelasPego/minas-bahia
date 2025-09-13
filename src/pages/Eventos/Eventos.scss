@@ -1,30 +1,46 @@
 .cards-eventos {
-  // background-image: url("../../assets/uai23/batizado.jpg");
-  background-position: center;
+  position: relative;
+  width: 280px;
+  height: 180px;
+  border-radius: 8px;
   background-size: cover;
-  background-repeat: no-repeat;
-  width: 200px !important;
-  height: 300px !important;
-  border: none !important;
-  box-shadow: rgba(0, 0, 0, 0.1294117647) 1px 2px 11px 2px !important;
-  transition: transform 0.3s ease !important;
-  cursor: pointer !important;
-
-  &:hover {
-    transform: translateY(-5px); // efeito de flutuação
-  }
-
-  .card-eventos-title {
-    background: rgba(255, 255, 255, 0.13);
-    border-radius: 16px;
-    padding: 2px 8px;
-    box-shadow: 0 4px 30px #00000088;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    color: #fff;
-  }
+  background-position: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  overflow: hidden;
 }
 
-a {
-  text-decoration: none !important;
+.card-overlay-title {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 10px 12px;
+  background: linear-gradient(transparent, rgba(0,0,0,.55));
+  color: #fff;
+  font-weight: 600;
 }
+
+.card-sub { font-size: 0.875rem; opacity: .9; }
+
+.card-placeholder {
+  background: #f2f2f2;
+  color: #777;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Botões de ação */
+.icon-btn {
+  position: absolute;
+  top: 8px;
+  border: none;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  line-height: 1;
+  cursor: pointer;
+}
+.icon-btn:hover { background: rgba(0,0,0,.75); }
+
+.edit-btn { right: 8px; }
+.trash-btn { right: 44px; } /* lixeira fica à esquerda do lápis */

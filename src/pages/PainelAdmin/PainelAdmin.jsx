@@ -176,14 +176,6 @@ const PainelAdmin = () => {
                         {dadosUsuarios[user.email]?.apelido || "-"}
                       </p>
                       <p>
-                        <strong>Sexo: </strong>
-                        {dadosUsuarios[user.email]?.sexo || "-"}
-                      </p>
-                      <p>
-                        <strong>Corda: </strong>
-                        {getCordaNome(dadosUsuarios[user.email]?.corda) || "-"}
-                      </p>
-                      <p>
                         <strong>Data de Nascimento: </strong>
                         {formatarData(
                           dadosUsuarios[user.email]?.dataNascimento
@@ -194,6 +186,26 @@ const PainelAdmin = () => {
                           );
                           return idade >= 0 ? `| ${idade} anos` : "";
                         })()}
+                      </p>
+                      <p>
+                        <strong>Sexo: </strong>
+                        {dadosUsuarios[user.email]?.sexo || "-"}
+                      </p>
+                      <p>
+                        <strong>Raça/Cor:</strong>{" "}
+                        {dadosUsuarios[user.email]?.racaCor || "-"}
+                      </p>
+                      <p>
+                        <strong>WhatsApp (pessoal):</strong>{" "}
+                        {dadosUsuarios[user.email]?.whatsapp || "-"}
+                      </p>
+                      <p>
+                        <strong>Contato de emergência / responsável:</strong>{" "}
+                        {dadosUsuarios[user.email]?.contatoEmergencia || "-"}
+                      </p>
+                      <p>
+                        <strong>Corda: </strong>
+                        {getCordaNome(dadosUsuarios[user.email]?.corda) || "-"}
                       </p>
 
                       <p>
@@ -292,8 +304,11 @@ const PainelAdmin = () => {
                             <option value="visitante">Visitante</option>
                             <option value="aluno">Aluno</option>
                             <option value="graduado">Graduado</option>
+                            <option value="monitor">Monitor</option>
                             <option value="instrutor">Instrutor</option>
                             <option value="professor">Professor</option>
+                            <option value="contramestre">Contramestre</option>
+
                           </select>
                         )}
                       </p>

@@ -17,6 +17,9 @@ import CropImageModal from "../../components/CropImageModal";
 import { nivelMap } from "../../utils/roles";
 import FileSection from "../../components/FileSection/FileSection";
 import { getHorarioLabel } from "../../helpers/agendaTreino";
+import { buscarCep } from "../../services/cep";
+import { buildFullAddress } from "../../utils/address";
+import { formatarData } from "../../utils/formatarData";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -29,7 +32,7 @@ const AreaGraduado = () => {
     nome: "",
     apelido: "",
     corda: "",
-    sexo: "",
+    genero: "",
     racaCor: "",
     numero: "",
     endereco: "",
@@ -146,25 +149,19 @@ const AreaGraduado = () => {
     if (!cep) return;
     setBuscandoCep(true);
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const data = await response.json();
-
-      if (data.erro) {
-        alert("CEP não encontrado.");
-        return;
-      }
-
+      const data = await buscarCep(cep);
       setLogradouro(data.logradouro);
       setBairro(data.bairro);
-      setCidade(data.localidade);
+      setCidade(data.cidade);
       setUf(data.uf);
-
-      if (formEdit.numero) {
-        const enderecoFinal = `${data.logradouro}, ${formEdit.numero} - ${data.bairro}, ${data.localidade} - ${data.uf}`;
-        setFormEdit((prev) => ({ ...prev, endereco: enderecoFinal }));
+      if (formEdit?.numero) {
+        setFormEdit((prev) => ({
+          ...prev,
+          endereco: buildFullAddress({ ...data, numero: prev.numero }),
+        }));
       }
     } catch {
-      alert("Erro ao buscar o CEP.");
+      alert(e.message || "Erro ao buscar o CEP.");
     } finally {
       setBuscandoCep(false);
     }
@@ -192,7 +189,7 @@ const AreaGraduado = () => {
   const salvarPerfil = async () => {
     const obrigatorios = [
       "nome",
-      "sexo",
+      "genero",
       "numero",
       "endereco",
       "racaCor",
@@ -265,15 +262,17 @@ const AreaGraduado = () => {
                 {getCordaNome(perfil.corda) || "-"}
               </p>
               <p>
-                <strong>Sexo:</strong> {perfil.sexo || "-"}
+                <strong>Gênero:</strong> {perfil.genero || "-"}
               </p>
               <p>
                 <strong>Raça/Cor:</strong> {perfil.racaCor || "-"}
               </p>
               <p>
-                <strong>Idade: </strong>
+                <strong>Data de Nascimento e Idade: </strong>
                 {perfil.dataNascimento
-                  ? `${calcularIdade(perfil.dataNascimento)} anos`
+                  ? `${formatarData(perfil.dataNascimento)} | ${calcularIdade(
+                      perfil.dataNascimento
+                    )} anos`
                   : "-"}
               </p>
 

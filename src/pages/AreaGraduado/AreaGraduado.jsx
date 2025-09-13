@@ -16,6 +16,7 @@ import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import CropImageModal from "../../components/CropImageModal";
 import { nivelMap } from "../../utils/roles";
 import FileSection from "../../components/FileSection/FileSection";
+import { getHorarioLabel } from "../../helpers/agendaTreino";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -260,10 +261,8 @@ const AreaGraduado = () => {
                 <strong>Apelido: </strong> {perfil.apelido || "-"}
               </p>
               <p>
-                <strong>Idade: </strong>
-                {perfil.dataNascimento
-                  ? `${calcularIdade(perfil.dataNascimento)} anos`
-                  : "-"}
+                <strong>Corda: </strong>
+                {getCordaNome(perfil.corda) || "-"}
               </p>
               <p>
                 <strong>Sexo:</strong> {perfil.sexo || "-"}
@@ -272,6 +271,13 @@ const AreaGraduado = () => {
                 <strong>Raça/Cor:</strong> {perfil.racaCor || "-"}
               </p>
               <p>
+                <strong>Idade: </strong>
+                {perfil.dataNascimento
+                  ? `${calcularIdade(perfil.dataNascimento)} anos`
+                  : "-"}
+              </p>
+
+              <p>
                 <strong>WhatsApp (pessoal):</strong> {perfil.whatsapp || "-"}
               </p>
               <p>
@@ -279,12 +285,19 @@ const AreaGraduado = () => {
                 {perfil.contatoEmergencia || "-"}
               </p>
               <p>
-                <strong>Corda: </strong>
-                {getCordaNome(perfil.corda) || "-"}
-              </p>
-              <p>
                 <strong>Endereço: </strong>
                 {perfil.endereco || "-"}
+              </p>
+
+              <p>
+                <strong>Local e horário de treino: </strong>
+                {perfil.localTreino || "-"} |{" "}
+                {getHorarioLabel(perfil.localTreino, perfil.horarioTreino) ||
+                  "-"}
+              </p>
+              <p>
+                <strong>Professor referência: </strong>
+                {perfil.professorReferencia || "-"}
               </p>
             </div>
 
@@ -405,7 +418,7 @@ const AreaGraduado = () => {
           </Col>
         </Row>
       )}
-      
+
       {/* Arquivos para Contramestre */}
       {canAccess(6) && (
         <Row className="mt-4">

@@ -29,6 +29,7 @@ const AreaGraduado = () => {
     apelido: "",
     corda: "",
     sexo: "",
+    racaCor: "",
     numero: "",
     endereco: "",
     dataNascimento: "",
@@ -193,6 +194,9 @@ const AreaGraduado = () => {
       "sexo",
       "numero",
       "endereco",
+      "racaCor",
+      "whatsapp",
+      "contatoEmergencia",
       "dataNascimento",
       "corda",
     ];
@@ -228,7 +232,6 @@ const AreaGraduado = () => {
           </h4>
         </Col>
       </Row>
-
       <Row>
         <Col md={2} className="border p-3 d-flex flex-column gap-2">
           <button
@@ -257,10 +260,6 @@ const AreaGraduado = () => {
                 <strong>Apelido: </strong> {perfil.apelido || "-"}
               </p>
               <p>
-                <strong>Corda: </strong>
-                {getCordaNome(perfil.corda) || "-"}
-              </p>
-              <p>
                 <strong>Idade: </strong>
                 {perfil.dataNascimento
                   ? `${calcularIdade(perfil.dataNascimento)} anos`
@@ -268,6 +267,20 @@ const AreaGraduado = () => {
               </p>
               <p>
                 <strong>Sexo:</strong> {perfil.sexo || "-"}
+              </p>
+              <p>
+                <strong>Raça/Cor:</strong> {perfil.racaCor || "-"}
+              </p>
+              <p>
+                <strong>WhatsApp (pessoal):</strong> {perfil.whatsapp || "-"}
+              </p>
+              <p>
+                <strong>Contato de emergência / responsável:</strong>{" "}
+                {perfil.contatoEmergencia || "-"}
+              </p>
+              <p>
+                <strong>Corda: </strong>
+                {getCordaNome(perfil.corda) || "-"}
               </p>
               <p>
                 <strong>Endereço: </strong>
@@ -329,6 +342,7 @@ const AreaGraduado = () => {
         </Col>
       </Row>
 
+      {/* Arquivos Pessoais*/}
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3">
@@ -337,6 +351,7 @@ const AreaGraduado = () => {
         </Row>
       )}
 
+      {/* Arquivos para Alunos */}
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
@@ -347,6 +362,7 @@ const AreaGraduado = () => {
         </Row>
       )}
 
+      {/* Arquivos para Graduado */}
       {canAccess(2) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
@@ -357,22 +373,46 @@ const AreaGraduado = () => {
         </Row>
       )}
 
+      {/* Arquivos para Monitores */}
       {canAccess(3) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
-            <h5>Arquivos para instrutor</h5>
+            <h5>Arquivos para Monitores</h5>
+            <p>Área para documentos de download público</p>
+            <FileSection pasta="monitor" canUpload={isMestre} />
+          </Col>
+        </Row>
+      )}
+
+      {/* Arquivos para Instrutores */}
+      {canAccess(4) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Instrutores</h5>
             <p>Área para documentos de download público</p>
             <FileSection pasta="instrutor" canUpload={isMestre} />
           </Col>
         </Row>
       )}
 
-      {canAccess(4) && (
+      {/* Arquivos para Professores */}
+      {canAccess(5) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
-            <h5>Arquivos para Professor</h5>
+            <h5>Arquivos para Professores</h5>
             <p>Área para documentos de download público</p>
             <FileSection pasta="professor" canUpload={isMestre} />
+          </Col>
+        </Row>
+      )}
+      
+      {/* Arquivos para Contramestre */}
+      {canAccess(6) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Contramestre</h5>
+            <p>Área para documentos de download público</p>
+            <FileSection pasta="contramestre" canUpload={isMestre} />
           </Col>
         </Row>
       )}
@@ -393,7 +433,6 @@ const AreaGraduado = () => {
         uf={uf}
         buscandoCep={buscandoCep}
       />
-
       {showCadastroInicial && (
         <CadastroInicial
           show={showCadastroInicial}

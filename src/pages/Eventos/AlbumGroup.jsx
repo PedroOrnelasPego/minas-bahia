@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+// src/pages/Eventos/AlbumGroup.jsx
+import { useEffect, useState } from "react";
 import {
   Button,
   Card,
@@ -9,56 +10,70 @@ import {
   Row,
 } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
-import { loadGroups, saveGroups, slugify } from "./store";
-import EditAlbumModal from "./EditAlbumModal";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
+import EditAlbumModal from "./EditAlbumModal";
+import {
+  listGroups,
+  listAlbums,
+  createAlbum,
+  deleteAlbum,
+  updateAlbumTitle,
+  uploadAlbumCover,
+} from "../../services/eventos";
+
+const slugify = (s) =>
+  String(s)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 const AlbumGroup = () => {
   const { groupSlug } = useParams();
   const navigate = useNavigate();
 
-  const [groups, setGroups] = useState([]);
-  const [loaded, setLoaded] = useState(false);
+  const [group, setGroup] = useState(null);
+  const [albums, setAlbums] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // novo álbum
   const [showNewAlbum, setShowNewAlbum] = useState(false);
   const [albumTitle, setAlbumTitle] = useState("");
-  const [cover, setCover] = useState(null);
+  const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState("");
 
-  // editar álbum
+  // editar/excluir
   const [editingAlbum, setEditingAlbum] = useState(null);
   const [showEditAlbum, setShowEditAlbum] = useState(false);
-
-  // excluir álbum
   const [deletingAlbum, setDeletingAlbum] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const groups = await listGroups();
+      const g = groups.find((x) => x.slug === groupSlug) || null;
+      setGroup(g);
+      if (g) setAlbums(await listAlbums(groupSlug));
+      else setAlbums([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const data = loadGroups();
-    setGroups(data);
-    setLoaded(true);
-  }, []);
+    refresh();
+  }, [groupSlug]);
 
-  const group = useMemo(
-    () => groups.find((g) => g.slug === groupSlug),
-    [groups, groupSlug]
-  );
-
-  useEffect(() => {
-    if (group) document.title = `${group.title} | Eventos`;
-  }, [group]);
-
-  // ainda carregando
-  if (!loaded) {
+  if (loading) {
     return (
       <Container className="py-4">
         <p className="text-muted">Carregando…</p>
       </Container>
     );
   }
-
-  // não achou
   if (!group) {
     return (
       <Container className="py-4">
@@ -70,112 +85,62 @@ const AlbumGroup = () => {
     );
   }
 
-  const persist = (nextGroups) => {
-    setGroups(nextGroups);
-    saveGroups(nextGroups);
-  };
-
   const onCoverChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setCover(file);
-    setCoverPreview(URL.createObjectURL(file));
+    const f = e.target.files?.[0];
+    setCoverFile(f || null);
+    setCoverPreview(f ? URL.createObjectURL(f) : "");
   };
 
-  const createAlbum = () => {
-    if (!albumTitle.trim()) return;
-    const albumSlug = slugify(albumTitle);
+  const handleCreateAlbum = async () => {
+    const title = albumTitle.trim();
+    if (!title) return;
 
-    const nextGroups = groups.map((g) =>
-      g.id === group.id
-        ? {
-            ...g,
-            albums: [
-              ...g.albums,
-              {
-                id: crypto.randomUUID(),
-                title: albumTitle.trim(),
-                slug: albumSlug,
-                coverUrl: coverPreview || "",
-                photos: [],
-              },
-            ],
-          }
-        : g
-    );
+    const slug = slugify(title);
+    await createAlbum(group.slug, { slug, title });
+    if (coverFile) await uploadAlbumCover(group.slug, slug, coverFile);
 
-    persist(nextGroups);
-
-    // limpa modal
-    setAlbumTitle("");
-    setCover(null);
-    setCoverPreview("");
     setShowNewAlbum(false);
+    setAlbumTitle("");
+    setCoverFile(null);
+    setCoverPreview("");
+    await refresh();
   };
 
-  const openAlbum = (album) => {
-    navigate(`/eventos/${group.slug}/${album.slug}`);
-  };
-
-  // ====== editar álbum ======
   const askEditAlbum = (album) => {
     setEditingAlbum(album);
     setShowEditAlbum(true);
   };
-
-  const saveEditedAlbum = (updated) => {
-    // Se o título mudou, atualiza o slug para manter URL amigável
-    const nextTitle = (updated.title || "").trim();
-    const nextSlug =
-      nextTitle && nextTitle !== editingAlbum.title
-        ? slugify(nextTitle)
-        : editingAlbum.slug;
-
-    const nextGroups = groups.map((g) =>
-      g.id === group.id
-        ? {
-            ...g,
-            albums: g.albums.map((a) =>
-              a.id === updated.id
-                ? {
-                    ...a,
-                    title: nextTitle || a.title,
-                    slug: nextSlug,
-                    coverUrl: updated.coverUrl ?? a.coverUrl,
-                  }
-                : a
-            ),
-          }
-        : g
-    );
-
-    persist(nextGroups);
-    setShowEditAlbum(false);
-    setEditingAlbum(null);
-  };
-
-  // ====== excluir álbum ======
   const askDeleteAlbum = (album) => {
     setDeletingAlbum(album);
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteAlbum = () => {
+  const confirmDeleteAlbum = async () => {
     if (!deletingAlbum) return;
-
-    const nextGroups = groups.map((g) =>
-      g.id === group.id
-        ? {
-            ...g,
-            albums: g.albums.filter((a) => a.id !== deletingAlbum.id),
-          }
-        : g
-    );
-
-    persist(nextGroups);
+    await deleteAlbum(group.slug, deletingAlbum.slug);
     setShowDeleteModal(false);
     setDeletingAlbum(null);
+    await refresh();
   };
+
+  const saveEditedAlbum = async (updated) => {
+    const nextTitle = (updated.title || "").trim();
+    if (nextTitle && nextTitle !== editingAlbum.title) {
+      await updateAlbumTitle(group.slug, editingAlbum.slug, nextTitle);
+    }
+    if (updated.newCoverFile) {
+      await uploadAlbumCover(
+        group.slug,
+        editingAlbum.slug,
+        updated.newCoverFile
+      );
+    }
+    setShowEditAlbum(false);
+    setEditingAlbum(null);
+    await refresh();
+  };
+
+  const openAlbum = (album) => navigate(`/eventos/${group.slug}/${album.slug}`);
 
   return (
     <Container className="py-4">
@@ -190,21 +155,19 @@ const AlbumGroup = () => {
           </Button>
           <h2 className="d-inline">{group.title}</h2>
         </div>
-        <Button onClick={() => setShowNewAlbum(true)}>+ Novo álbum</Button>
+        <RequireAccess nivelMinimo="graduado" requireEditor>
+          <Button onClick={() => setShowNewAlbum(true)}>+ Novo álbum</Button>
+        </RequireAccess>
       </div>
 
-      {group.albums.length === 0 ? (
+      {albums.length === 0 ? (
         <Card className="p-4 text-center">
           <p className="mb-1">Nenhum álbum neste grupo ainda.</p>
-          <small className="text-muted">
-            Clique em “Novo álbum” para começar e selecione um título e uma
-            imagem de capa.
-          </small>
         </Card>
       ) : (
         <Row className="g-3">
-          {group.albums.map((a) => (
-            <Col key={a.id} xs={12} sm={6} md={4} lg={3}>
+          {albums.map((a) => (
+            <Col key={a.slug} xs={12} sm={6} md={4} lg={3}>
               <div
                 className="cards-eventos position-relative"
                 style={{
@@ -221,12 +184,10 @@ const AlbumGroup = () => {
                   </div>
                 )}
 
-                {/* Lixeira */}
                 <button
                   type="button"
                   className="icon-btn trash-btn"
                   title="Excluir álbum"
-                  aria-label={`Excluir álbum ${a.title}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     askDeleteAlbum(a);
@@ -235,12 +196,10 @@ const AlbumGroup = () => {
                   🗑️
                 </button>
 
-                {/* Lápis */}
                 <button
                   type="button"
                   className="icon-btn edit-btn"
                   title="Editar álbum"
-                  aria-label={`Editar álbum ${a.title}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     askEditAlbum(a);
@@ -251,7 +210,7 @@ const AlbumGroup = () => {
 
                 <div className="card-overlay-title">
                   <div>{a.title}</div>
-                  <div className="card-sub">{a.photos?.length ?? 0} fotos</div>
+                  <div className="card-sub">{a.count ?? 0} fotos</div>
                 </div>
               </div>
             </Col>
@@ -259,7 +218,7 @@ const AlbumGroup = () => {
         </Row>
       )}
 
-      {/* Modal novo álbum */}
+      {/* novo álbum */}
       <Modal show={showNewAlbum} onHide={() => setShowNewAlbum(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Novo álbum</Modal.Title>
@@ -301,14 +260,12 @@ const AlbumGroup = () => {
           <Button variant="secondary" onClick={() => setShowNewAlbum(false)}>
             Cancelar
           </Button>
-
-          <Button onClick={createAlbum} disabled={!albumTitle.trim()}>
+          <Button onClick={handleCreateAlbum} disabled={!albumTitle.trim()}>
             Criar álbum
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* Modal editar álbum */}
       <EditAlbumModal
         show={showEditAlbum}
         initial={editingAlbum}
@@ -316,7 +273,6 @@ const AlbumGroup = () => {
         onSave={saveEditedAlbum}
       />
 
-      {/* Modal confirmar exclusão */}
       <Modal
         show={showDeleteModal}
         onHide={() => setShowDeleteModal(false)}
@@ -326,8 +282,7 @@ const AlbumGroup = () => {
           <Modal.Title>Excluir álbum</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Tem certeza que deseja excluir o álbum{" "}
-          <strong>{deletingAlbum?.title}</strong>?
+          Excluir <strong>{deletingAlbum?.title}</strong>?
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>

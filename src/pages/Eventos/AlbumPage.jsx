@@ -1,8 +1,14 @@
 // src/pages/Eventos/AlbumPage.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Alert, Button, Container, Modal } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
-import { loadGroups, saveGroups } from "./store";
+import {
+  listGroups,
+  listAlbums,
+  listPhotos,
+  uploadPhotos,
+  deletePhoto,
+} from "../../services/eventos";
 import "./Eventos.scss";
 
 const MAX_PER_UPLOAD = 5;
@@ -11,10 +17,12 @@ const AlbumPage = () => {
   const { groupSlug, albumSlug } = useParams();
   const navigate = useNavigate();
 
-  const [groups, setGroups] = useState([]);
-  const [loaded, setLoaded] = useState(false);
+  const [group, setGroup] = useState(null);
+  const [album, setAlbum] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // seleção pendente
+  // seleção
   const [pending, setPending] = useState([]);
   const [infoMsg, setInfoMsg] = useState("");
   const [warnMsg, setWarnMsg] = useState("");
@@ -25,32 +33,34 @@ const AlbumPage = () => {
 
   const fileInputRef = useRef(null);
 
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const groups = await listGroups();
+      const g = groups.find((x) => x.slug === groupSlug) || null;
+      setGroup(g);
+      if (!g) return;
+
+      const albums = await listAlbums(groupSlug);
+      const a = albums.find((x) => x.slug === albumSlug) || null;
+      setAlbum(a);
+
+      if (a) setPhotos(await listPhotos(groupSlug, albumSlug));
+      else setPhotos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const data = loadGroups();
-    setGroups(data);
-    setLoaded(true);
-  }, []);
+    refresh();
+  }, [groupSlug, albumSlug]);
 
-  const group = useMemo(
-    () => groups.find((g) => g.slug === groupSlug),
-    [groups, groupSlug]
-  );
-
-  const album = useMemo(
-    () => group?.albums?.find((a) => a.slug === albumSlug),
-    [group, albumSlug]
-  );
-
-  useEffect(() => {
-    if (album) document.title = `${album.title} | ${group?.title} | Eventos`;
-  }, [album, group]);
-
-  // ====== Navegação do lightbox (deve ficar ANTES de qualquer return) ======
-  const total = album?.photos?.length ?? 0;
+  // navegação lightbox
+  const total = photos.length;
   const goPrev = () =>
     setViewerIndex((i) => (i - 1 + Math.max(total, 1)) % Math.max(total, 1));
-  const goNext = () =>
-    setViewerIndex((i) => (i + 1) % Math.max(total, 1));
+  const goNext = () => setViewerIndex((i) => (i + 1) % Math.max(total, 1));
 
   useEffect(() => {
     if (!viewerOpen) return;
@@ -61,19 +71,15 @@ const AlbumPage = () => {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewerOpen, total]);
-  // ========================================================================
 
-  // returns condicionais
-  if (!loaded) {
+  if (loading) {
     return (
       <Container className="py-4">
         <p className="text-muted">Carregando…</p>
       </Container>
     );
   }
-
   if (!group || !album) {
     return (
       <Container className="py-4">
@@ -85,43 +91,24 @@ const AlbumPage = () => {
     );
   }
 
-  const persist = (nextGroups) => {
-    setGroups(nextGroups);
-    saveGroups(nextGroups);
-  };
-
+  // upload
   const remaining = Math.max(0, MAX_PER_UPLOAD - pending.length);
-
   const openPicker = () => {
     setWarnMsg("");
     setInfoMsg("");
     fileInputRef.current?.click();
   };
-
   const addFilesToPending = (fileList) => {
     const files = Array.from(fileList || []);
     if (!files.length) return;
-
     if (remaining === 0) {
-      setWarnMsg(
-        `Limite de ${MAX_PER_UPLOAD} por envio já atingido. Envie ou limpe a seleção.`
-      );
+      setWarnMsg(`Limite de ${MAX_PER_UPLOAD} por envio já atingido.`);
       return;
     }
-
     const allowed = files.slice(0, remaining);
-    const ignoredCount = files.length - allowed.length;
-
+    const ignored = files.length - allowed.length;
     setPending((prev) => [...prev, ...allowed]);
-
-    if (ignoredCount > 0) {
-      setWarnMsg(
-        `${ignoredCount} arquivo(s) ignorado(s) por exceder o limite de ${MAX_PER_UPLOAD}.`
-      );
-    } else {
-      setWarnMsg("");
-    }
-
+    setWarnMsg(ignored > 0 ? `${ignored} arquivo(s) ignorado(s).` : "");
     setInfoMsg(
       `Selecionados: ${Math.min(
         MAX_PER_UPLOAD,
@@ -129,68 +116,31 @@ const AlbumPage = () => {
       )}/${MAX_PER_UPLOAD}`
     );
   };
-
   const handleFilesChosen = (e) => {
     addFilesToPending(e.target.files);
     e.target.value = "";
   };
-
   const removePending = (idx) => {
     setPending((prev) => prev.filter((_, i) => i !== idx));
-    setWarnMsg("");
     const nextLen = pending.length - 1;
     setInfoMsg(nextLen > 0 ? `Selecionados: ${nextLen}/${MAX_PER_UPLOAD}` : "");
   };
-
   const clearPending = () => {
     setPending([]);
     setWarnMsg("");
     setInfoMsg("");
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (pending.length === 0) return;
-
-    const newPhotos = pending.map((f) => ({
-      id: crypto.randomUUID(),
-      name: f.name,
-      url: URL.createObjectURL(f),
-    }));
-
-    const next = groups.map((g) =>
-      g.id !== group.id
-        ? g
-        : {
-            ...g,
-            albums: g.albums.map((a) =>
-              a.id !== album.id
-                ? a
-                : { ...a, photos: [...(a.photos || []), ...newPhotos] }
-            ),
-          }
-    );
-
-    persist(next);
+    await uploadPhotos(group.slug, album.slug, pending);
     clearPending();
+    await refresh();
   };
 
-  const handleDeletePhoto = (photoId) => {
-    const next = groups.map((g) =>
-      g.id !== group.id
-        ? g
-        : {
-            ...g,
-            albums: g.albums.map((a) =>
-              a.id !== album.id
-                ? a
-                : {
-                    ...a,
-                    photos: (a.photos || []).filter((p) => p.id !== photoId),
-                  }
-            ),
-          }
-    );
-    persist(next);
+  const handleDelete = async (name) => {
+    await deletePhoto(group.slug, album.slug, name);
+    await refresh();
   };
 
   // drag & drop
@@ -201,9 +151,8 @@ const AlbumPage = () => {
   };
   const onDragOver = (ev) => ev.preventDefault();
 
-  // abrir/fechar lightbox
-  const openViewer = (startIndex) => {
-    setViewerIndex(startIndex);
+  const openViewer = (idx) => {
+    setViewerIndex(idx);
     setViewerOpen(true);
   };
   const closeViewer = () => setViewerOpen(false);
@@ -219,6 +168,7 @@ const AlbumPage = () => {
           >
             ← Voltar
           </Button>
+          <h2 className="d-inline">{album.title}</h2>
         </div>
 
         <div className="text-end">
@@ -230,14 +180,15 @@ const AlbumPage = () => {
             hidden
             onChange={handleFilesChosen}
           />
-
           <div className="d-flex flex-wrap gap-2 justify-content-end">
             <Button variant="outline-primary" onClick={openPicker}>
               + Selecionar fotos
             </Button>
             <Button onClick={handleSend} disabled={pending.length === 0}>
               Enviar{" "}
-              {pending.length > 0 ? `(${pending.length}/${MAX_PER_UPLOAD})` : ""}
+              {pending.length > 0
+                ? `(${pending.length}/${MAX_PER_UPLOAD})`
+                : ""}
             </Button>
             <Button
               variant="outline-secondary"
@@ -247,7 +198,6 @@ const AlbumPage = () => {
               Limpar seleção
             </Button>
           </div>
-
           {warnMsg && (
             <Alert variant="warning" className="py-1 px-2 mt-2 mb-0">
               {warnMsg}
@@ -256,7 +206,6 @@ const AlbumPage = () => {
           {infoMsg && !warnMsg && (
             <div className="text-muted small mt-2">{infoMsg}</div>
           )}
-
           {pending.length > 0 && (
             <div className="pending-list mt-2">
               {pending.map((f, i) => (
@@ -266,7 +215,6 @@ const AlbumPage = () => {
                     type="button"
                     className="chip-x"
                     onClick={() => removePending(i)}
-                    aria-label="Remover"
                   >
                     ×
                   </button>
@@ -274,53 +222,40 @@ const AlbumPage = () => {
               ))}
             </div>
           )}
-
           <div className="text-muted small mt-1">
             limite de {MAX_PER_UPLOAD} por envio
           </div>
         </div>
       </div>
 
-      {(album.photos || []).length === 0 ? (
+      {photos.length === 0 ? (
         <div
           className="p-4 text-center border rounded bg-white"
           onDrop={onDrop}
           onDragOver={onDragOver}
         >
           <p className="mb-1">Nenhuma foto neste álbum ainda.</p>
-          <small className="text-muted d-block mb-2">
-            Clique em “Selecionar fotos” (pode escolher várias de uma vez) —
-            aceitamos no máximo {MAX_PER_UPLOAD} por envio.
-          </small>
           <small className="text-muted">
-            Dica: você também pode <strong>arrastar e soltar</strong> arquivos
-            aqui.
+            Arraste e solte ou use “Selecionar fotos”.
           </small>
         </div>
       ) : (
         <div onDrop={onDrop} onDragOver={onDragOver}>
-          <div className="d-flex align-items-center gap-3 mb-2">
-            <h2 className="mb-0">{album.title}</h2>
-            <span className="text-muted">
-              · {(album.photos || []).length} fotos
-            </span>
-          </div>
-
           <div className="album-grid">
-            {album.photos.map((p, idx) => (
+            {photos.map((p, idx) => (
               <div
-                key={p.id}
+                key={p.name}
                 className="photo-card"
                 onClick={() => openViewer(idx)}
               >
-                <img src={p.url} alt={p.name || "foto"} />
+                <img src={p.url} alt={p.name} />
                 <button
                   type="button"
                   className="photo-del"
                   title="Excluir"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeletePhoto(p.id);
+                    handleDelete(p.name);
                   }}
                 >
                   🗑️
@@ -336,38 +271,22 @@ const AlbumPage = () => {
         <Modal.Body className="p-0 d-flex align-items-center justify-content-center bg-black">
           {total > 0 && (
             <>
-              <button
-                className="lightbox-nav left"
-                onClick={goPrev}
-                aria-label="Anterior"
-              >
+              <button className="lightbox-nav left" onClick={goPrev}>
                 ‹
               </button>
-
               <img
                 className="lightbox-img"
-                src={album.photos[viewerIndex]?.url}
-                alt={album.photos[viewerIndex]?.name || "foto"}
+                src={photos[viewerIndex]?.url}
+                alt={photos[viewerIndex]?.name}
               />
-
-              <button
-                className="lightbox-nav right"
-                onClick={goNext}
-                aria-label="Próxima"
-              >
+              <button className="lightbox-nav right" onClick={goNext}>
                 ›
               </button>
-
-              <button
-                className="lightbox-close"
-                onClick={closeViewer}
-                aria-label="Fechar"
-              >
+              <button className="lightbox-close" onClick={closeViewer}>
                 ×
               </button>
-
               <div className="lightbox-caption">
-                {viewerIndex + 1} / {total} — {album.photos[viewerIndex]?.name}
+                {viewerIndex + 1} / {total} — {photos[viewerIndex]?.name}
               </div>
             </>
           )}

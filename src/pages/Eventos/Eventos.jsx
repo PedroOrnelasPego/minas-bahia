@@ -1,4 +1,4 @@
-// src/pages/Eventos/index.jsx
+// src/pages/Eventos/Eventos.jsx (o seu index.jsx atual)
 import { useEffect, useState } from "react";
 import { Container, Button, Modal, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
@@ -9,9 +9,12 @@ import {
   listGroups,
   createGroup as apiCreateGroup,
   deleteGroup as apiDeleteGroup,
+  updateGroupTitle,
+  uploadGroupCover,
 } from "../../services/eventos";
+import "./Eventos.scss";
 
-// util simples p/ slug
+// slug util
 const slugify = (s) =>
   String(s)
     .normalize("NFD")
@@ -20,8 +23,6 @@ const slugify = (s) =>
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-
-import "./Eventos.scss";
 
 const Eventos = () => {
   const navigate = useNavigate();
@@ -35,18 +36,14 @@ const Eventos = () => {
   const [editingGroup, setEditingGroup] = useState(null);
   const [showEditGroup, setShowEditGroup] = useState(false);
 
-  // exclusão
   const [deletingGroup, setDeletingGroup] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // carregar grupos da API
   const refresh = async () => {
     setLoading(true);
     try {
-      const data = await listGroups();
-      setGroups(data || []);
-    } catch (e) {
-      console.error("Erro ao listar grupos:", e);
+      const list = await listGroups();
+      setGroups(list || []);
     } finally {
       setLoading(false);
     }
@@ -59,39 +56,28 @@ const Eventos = () => {
   const handleCreateGroup = async () => {
     const title = newTitle.trim();
     if (!title) return;
+    const slug = slugify(title);
 
-    const payload = { title, slug: slugify(title) };
+    await apiCreateGroup({ slug, title });
+    setShowNewGroup(false);
+    setNewTitle("");
+    await refresh();
 
-    try {
-      await apiCreateGroup(payload);
-      setShowNewGroup(false);
-      setNewTitle("");
-      // recarrega da API
-      await refresh();
-      // abre modal de edição com o grupo recém-criado
-      const created = (groups || []).find((g) => g.slug === payload.slug) || {
-        id: undefined,
-        ...payload,
-        coverUrl: "",
-        albums: [],
-      };
-      setEditingGroup(created);
-      setShowEditGroup(true);
-    } catch (e) {
-      console.error("Erro ao criar grupo:", e);
-      alert("Erro ao criar grupo.");
-    }
+    // abre edição pro usuário já trocar capa
+    const created = (groups || []).find((g) => g.slug === slug) || {
+      slug,
+      title,
+      coverUrl: "",
+    };
+    setEditingGroup(created);
+    setShowEditGroup(true);
   };
 
-  const handleOpenGroup = (group) => {
-    navigate(`/eventos/${group.slug}`);
-  };
-
+  const handleOpenGroup = (group) => navigate(`/eventos/${group.slug}`);
   const handleOpenEdit = (group) => {
     setEditingGroup(group);
     setShowEditGroup(true);
   };
-
   const handleAskDelete = (group) => {
     setDeletingGroup(group);
     setShowDeleteConfirm(true);
@@ -99,21 +85,28 @@ const Eventos = () => {
 
   const handleConfirmDelete = async () => {
     if (!deletingGroup) return;
-    try {
-      await apiDeleteGroup(deletingGroup.slug);
-      setShowDeleteConfirm(false);
-      setDeletingGroup(null);
-      await refresh();
-    } catch (e) {
-      console.error("Erro ao excluir grupo:", e);
-      alert("Erro ao excluir grupo.");
-    }
+    await apiDeleteGroup(deletingGroup.slug);
+    setShowDeleteConfirm(false);
+    setDeletingGroup(null);
+    await refresh();
   };
 
-  const handleSaveGroup = () => {
-    // o EditGroupModal deve chamar a API dele; aqui só fechamos e recarregamos
+  /** recebe { title, newCoverFile } do modal */
+  const handleSaveGroup = async (payload) => {
+    const current = editingGroup;
+    if (!current) return;
+
+    const nextTitle = (payload.title || "").trim();
+    if (nextTitle && nextTitle !== current.title) {
+      await updateGroupTitle(current.slug, nextTitle);
+    }
+    if (payload.newCoverFile) {
+      await uploadGroupCover(current.slug, payload.newCoverFile);
+    }
+
     setShowEditGroup(false);
-    refresh();
+    setEditingGroup(null);
+    await refresh();
   };
 
   return (
@@ -127,21 +120,20 @@ const Eventos = () => {
 
       {loading ? (
         <div className="p-4 text-center border rounded bg-white">
-          Carregando grupos…
+          Carregando…
         </div>
       ) : groups.length === 0 ? (
         <div className="p-4 text-center border rounded bg-white">
           <p className="mb-1">Nenhum grupo ainda.</p>
           <small className="text-muted">
-            Crie um grupo para organizar seus álbuns (ex.: “UAI Minas Bahia”,
-            “Batizado e Troca de Cordas”...).
+            Crie um grupo para organizar seus álbuns (ex.: “UAI Minas Bahia”…).
           </small>
         </div>
       ) : (
         <div className="d-flex flex-wrap gap-4">
           {groups.map((g) => (
             <AlbumCard
-              key={g.slug || g.id}
+              key={g.slug}
               group={g}
               onOpen={handleOpenGroup}
               onEdit={handleOpenEdit}
@@ -151,7 +143,7 @@ const Eventos = () => {
         </div>
       )}
 
-      {/* Modal: novo grupo */}
+      {/* novo grupo */}
       <Modal show={showNewGroup} onHide={() => setShowNewGroup(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Novo grupo de álbuns</Modal.Title>
@@ -176,7 +168,7 @@ const Eventos = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Modal: editar grupo */}
+      {/* editar grupo */}
       <EditGroupModal
         show={showEditGroup}
         initial={editingGroup}
@@ -184,7 +176,7 @@ const Eventos = () => {
         onSave={handleSaveGroup}
       />
 
-      {/* Modal: confirmar exclusão */}
+      {/* confirmar exclusão */}
       <Modal
         show={showDeleteConfirm}
         onHide={() => setShowDeleteConfirm(false)}
@@ -194,11 +186,8 @@ const Eventos = () => {
           <Modal.Title>Excluir grupo</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Tem certeza que deseja excluir o grupo{" "}
-          <strong>{deletingGroup?.title}</strong>?<br />
-          <small className="text-muted">
-            Todos os álbuns deste grupo serão removidos desta lista.
-          </small>
+          Tem certeza que deseja excluir <strong>{deletingGroup?.title}</strong>
+          ?
         </Modal.Body>
         <Modal.Footer>
           <Button

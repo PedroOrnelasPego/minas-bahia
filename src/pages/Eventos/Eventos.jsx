@@ -1,16 +1,34 @@
+// src/pages/Eventos/index.jsx
 import { useEffect, useState } from "react";
 import { Container, Button, Modal, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import AlbumCard from "./AlbumCard";
 import EditGroupModal from "./EditGroupModal";
-import { loadGroups, saveGroups, slugify } from "./eventos";
-import "./Eventos.scss";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
+import {
+  listGroups,
+  createGroup as apiCreateGroup,
+  deleteGroup as apiDeleteGroup,
+} from "../../services/eventos";
+
+// util simples p/ slug
+const slugify = (s) =>
+  String(s)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+import "./Eventos.scss";
 
 const Eventos = () => {
   const navigate = useNavigate();
 
   const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [newTitle, setNewTitle] = useState("");
 
@@ -21,33 +39,48 @@ const Eventos = () => {
   const [deletingGroup, setDeletingGroup] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => setGroups(loadGroups()), []);
-
-  const persist = (next) => {
-    setGroups(next);
-    saveGroups(next);
+  // carregar grupos da API
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const data = await listGroups();
+      setGroups(data || []);
+    } catch (e) {
+      console.error("Erro ao listar grupos:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreateGroup = () => {
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleCreateGroup = async () => {
     const title = newTitle.trim();
     if (!title) return;
 
-    const group = {
-      id: crypto.randomUUID(),
-      title,
-      slug: slugify(title),
-      coverUrl: "",
-      albums: [],
-    };
+    const payload = { title, slug: slugify(title) };
 
-    const next = [...groups, group];
-    persist(next);
-
-    setNewTitle("");
-    setShowNewGroup(false);
-
-    setEditingGroup(group);
-    setShowEditGroup(true);
+    try {
+      await apiCreateGroup(payload);
+      setShowNewGroup(false);
+      setNewTitle("");
+      // recarrega da API
+      await refresh();
+      // abre modal de edição com o grupo recém-criado
+      const created = (groups || []).find((g) => g.slug === payload.slug) || {
+        id: undefined,
+        ...payload,
+        coverUrl: "",
+        albums: [],
+      };
+      setEditingGroup(created);
+      setShowEditGroup(true);
+    } catch (e) {
+      console.error("Erro ao criar grupo:", e);
+      alert("Erro ao criar grupo.");
+    }
   };
 
   const handleOpenGroup = (group) => {
@@ -64,20 +97,23 @@ const Eventos = () => {
     setShowDeleteConfirm(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deletingGroup) return;
-    const next = groups.filter((g) => g.id !== deletingGroup.id);
-    persist(next);
-    setShowDeleteConfirm(false);
-    setDeletingGroup(null);
+    try {
+      await apiDeleteGroup(deletingGroup.slug);
+      setShowDeleteConfirm(false);
+      setDeletingGroup(null);
+      await refresh();
+    } catch (e) {
+      console.error("Erro ao excluir grupo:", e);
+      alert("Erro ao excluir grupo.");
+    }
   };
 
-  const handleSaveGroup = (updated) => {
-    const next = groups.map((g) =>
-      g.id === updated.id ? { ...g, ...updated } : g
-    );
-    persist(next);
+  const handleSaveGroup = () => {
+    // o EditGroupModal deve chamar a API dele; aqui só fechamos e recarregamos
     setShowEditGroup(false);
+    refresh();
   };
 
   return (
@@ -89,7 +125,11 @@ const Eventos = () => {
         </RequireAccess>
       </div>
 
-      {groups.length === 0 ? (
+      {loading ? (
+        <div className="p-4 text-center border rounded bg-white">
+          Carregando grupos…
+        </div>
+      ) : groups.length === 0 ? (
         <div className="p-4 text-center border rounded bg-white">
           <p className="mb-1">Nenhum grupo ainda.</p>
           <small className="text-muted">
@@ -101,11 +141,11 @@ const Eventos = () => {
         <div className="d-flex flex-wrap gap-4">
           {groups.map((g) => (
             <AlbumCard
-              key={g.id}
+              key={g.slug || g.id}
               group={g}
               onOpen={handleOpenGroup}
               onEdit={handleOpenEdit}
-              onDelete={handleAskDelete} // << novo
+              onDelete={handleAskDelete}
             />
           ))}
         </div>

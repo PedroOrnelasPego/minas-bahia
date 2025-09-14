@@ -6,8 +6,8 @@ import MinasBahia from "../pages/MinasBahia";
 import Mestre from "../pages/Mestre";
 import UAI from "../pages/UAI";
 import Eventos from "../pages/Eventos/Eventos";
-import AlbumGroupPage from "../pages/Eventos/AlbumGroup";   // <- página do grupo
-import EventAlbum from "../components/EventAlbum";          // opcional: página do álbum
+import AlbumGroup from "../pages/Eventos/AlbumGroup";
+import AlbumPage from "../pages/Eventos/AlbumPage";
 import Trajetorias from "../pages/Trajetorias";
 import NotFound from "../pages/NotFound";
 
@@ -22,13 +22,16 @@ export function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/minas-bahia-capoeira" element={<MinasBahia />} />
       <Route path="/mestre-costela" element={<Mestre />} />
+
+      {/* Eventos */}
       <Route path="/eventos" element={<Eventos />} />
-      <Route path="/eventos/:groupSlug" element={<AlbumGroupPage />} />
-      {/* opcional: álbum específico */}
-      <Route path="/eventos/:groupSlug/:albumSlug" element={<EventAlbum />} />
+      <Route path="/eventos/:groupSlug" element={<AlbumGroup />} />
+      <Route path="/eventos/:groupSlug/:albumSlug" element={<AlbumPage />} />
+
       <Route path="/uai-minas-bahia" element={<UAI />} />
       <Route path="/projetos" element={<Trajetorias />} />
 
+      {/* Portal do Graduado */}
       <Route path="/area-graduado/login" element={<Login />} />
       <Route
         path="/area-graduado"
@@ -47,6 +50,7 @@ export function AppRoutes() {
         }
       />
 
+      {/* NotFound */}
       <Route path="/notfound" element={<NotFound />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

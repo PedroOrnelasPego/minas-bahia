@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, Col, Container, Form, Modal, Row } from "react-bootstrap";
+import {
+  Button,
+  Card,
+  Col,
+  Container,
+  Form,
+  Modal,
+  Row,
+} from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { loadGroups, saveGroups, slugify } from "./store";
 import EditAlbumModal from "./EditAlbumModal";
+import RequireAccess from "../../components/RequireAccess/RequireAccess";
 
 const AlbumGroup = () => {
   const { groupSlug } = useParams();
@@ -172,10 +181,14 @@ const AlbumGroup = () => {
     <Container className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <Button variant="link" className="px-0 me-2" onClick={() => navigate("/eventos")}>
+          <Button
+            variant="link"
+            className="px-0 me-2"
+            onClick={() => navigate("/eventos")}
+          >
             ← Voltar
           </Button>
-        <h2 className="d-inline">{group.title}</h2>
+          <h2 className="d-inline">{group.title}</h2>
         </div>
         <Button onClick={() => setShowNewAlbum(true)}>+ Novo álbum</Button>
       </div>
@@ -184,7 +197,8 @@ const AlbumGroup = () => {
         <Card className="p-4 text-center">
           <p className="mb-1">Nenhum álbum neste grupo ainda.</p>
           <small className="text-muted">
-            Clique em “Novo álbum” para começar e selecione um título e uma imagem de capa.
+            Clique em “Novo álbum” para começar e selecione um título e uma
+            imagem de capa.
           </small>
         </Card>
       ) : (
@@ -202,7 +216,9 @@ const AlbumGroup = () => {
                 onClick={() => openAlbum(a)}
               >
                 {!a.coverUrl && (
-                  <div className="w-100 h-100 card-placeholder">capa do álbum</div>
+                  <div className="w-100 h-100 card-placeholder">
+                    capa do álbum
+                  </div>
                 )}
 
                 {/* Lixeira */}
@@ -259,7 +275,11 @@ const AlbumGroup = () => {
           </Form.Group>
           <Form.Group>
             <Form.Label>Imagem de capa</Form.Label>
-            <Form.Control type="file" accept="image/*" onChange={onCoverChange} />
+            <Form.Control
+              type="file"
+              accept="image/*"
+              onChange={onCoverChange}
+            />
             {coverPreview && (
               <div className="mt-2">
                 <img
@@ -281,6 +301,7 @@ const AlbumGroup = () => {
           <Button variant="secondary" onClick={() => setShowNewAlbum(false)}>
             Cancelar
           </Button>
+
           <Button onClick={createAlbum} disabled={!albumTitle.trim()}>
             Criar álbum
           </Button>
@@ -296,7 +317,11 @@ const AlbumGroup = () => {
       />
 
       {/* Modal confirmar exclusão */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title>Excluir álbum</Modal.Title>
         </Modal.Header>

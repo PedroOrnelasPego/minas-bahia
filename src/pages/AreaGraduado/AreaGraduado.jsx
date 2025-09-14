@@ -25,6 +25,7 @@ import {
   optimizeProfilePhoto,
   makeProfileThumb,
 } from "../../utils/imagePerfil";
+import { setPerfilCache } from "../../utils/profileCache";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -84,6 +85,7 @@ const AreaGraduado = () => {
       .then((perfilBuscado) => {
         if (perfilBuscado) {
           setPerfil(perfilBuscado);
+          setPerfilCache(account.username, perfilBuscado);
         } else {
           setShowCadastroInicial(true);
         }
@@ -512,6 +514,7 @@ const AreaGraduado = () => {
             };
             await criarPerfil(perfilFinal);
             setPerfil(perfilFinal);
+            setPerfilCache(userData.email, perfilFinal);
             setUserData((prev) => ({ ...prev, nome: dados.nome }));
             setShowCadastroInicial(false);
             showSuccess("Cadastro criado com sucesso!");

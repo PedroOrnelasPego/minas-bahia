@@ -3,8 +3,9 @@ import { Container, Button, Modal, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import AlbumCard from "./AlbumCard";
 import EditGroupModal from "./EditGroupModal";
-import { loadGroups, saveGroups, slugify } from "./store";
+import { loadGroups, saveGroups, slugify } from "./eventos";
 import "./Eventos.scss";
+import RequireAccess from "../../components/RequireAccess/RequireAccess";
 
 const Eventos = () => {
   const navigate = useNavigate();
@@ -72,7 +73,9 @@ const Eventos = () => {
   };
 
   const handleSaveGroup = (updated) => {
-    const next = groups.map((g) => (g.id === updated.id ? { ...g, ...updated } : g));
+    const next = groups.map((g) =>
+      g.id === updated.id ? { ...g, ...updated } : g
+    );
     persist(next);
     setShowEditGroup(false);
   };
@@ -81,14 +84,17 @@ const Eventos = () => {
     <Container className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h1 className="mb-0">Eventos (grupos)</h1>
-        <Button onClick={() => setShowNewGroup(true)}>+ Novo grupo</Button>
+        <RequireAccess nivelMinimo="graduado" requireEditor>
+          <Button onClick={() => setShowNewGroup(true)}>+ Novo grupo</Button>
+        </RequireAccess>
       </div>
 
       {groups.length === 0 ? (
         <div className="p-4 text-center border rounded bg-white">
           <p className="mb-1">Nenhum grupo ainda.</p>
           <small className="text-muted">
-            Crie um grupo para organizar seus álbuns (ex.: “UAI Minas Bahia”, “Batizado e Troca de Cordas”...).
+            Crie um grupo para organizar seus álbuns (ex.: “UAI Minas Bahia”,
+            “Batizado e Troca de Cordas”...).
           </small>
         </div>
       ) : (
@@ -99,7 +105,7 @@ const Eventos = () => {
               group={g}
               onOpen={handleOpenGroup}
               onEdit={handleOpenEdit}
-              onDelete={handleAskDelete}    // << novo
+              onDelete={handleAskDelete} // << novo
             />
           ))}
         </div>
@@ -155,7 +161,10 @@ const Eventos = () => {
           </small>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
+          <Button
+            variant="secondary"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
             Cancelar
           </Button>
           <Button variant="danger" onClick={handleConfirmDelete}>

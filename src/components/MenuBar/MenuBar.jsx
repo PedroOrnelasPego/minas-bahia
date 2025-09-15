@@ -46,7 +46,7 @@ const MenuBar = () => {
         <Navbar.Collapse id="menu-principal">
           <div className="w-100 text-center">
             <h2 className="mb-0 fw-bold">
-              Instituto Cultutal Minas Bahia de Capoeira
+              Instituto Cultural Minas Bahia de Capoeira
             </h2>
             <p className="mb-2 text-muted">Mestre Costela</p>
 

@@ -1,4 +1,4 @@
-// src/pages/Eventos/Eventos.jsx (o seu index.jsx atual)
+// src/pages/Eventos/Eventos.jsx
 import { useEffect, useState } from "react";
 import { Container, Button, Modal, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
@@ -9,8 +9,8 @@ import {
   listGroups,
   createGroup as apiCreateGroup,
   deleteGroup as apiDeleteGroup,
-  updateGroupTitle,
   uploadGroupCover,
+  updateGroupTitle,
 } from "../../services/eventos";
 import "./Eventos.scss";
 
@@ -74,10 +74,12 @@ const Eventos = () => {
   };
 
   const handleOpenGroup = (group) => navigate(`/eventos/${group.slug}`);
+
   const handleOpenEdit = (group) => {
     setEditingGroup(group);
     setShowEditGroup(true);
   };
+
   const handleAskDelete = (group) => {
     setDeletingGroup(group);
     setShowDeleteConfirm(true);
@@ -91,22 +93,38 @@ const Eventos = () => {
     await refresh();
   };
 
-  /** recebe { title, newCoverFile } do modal */
-  const handleSaveGroup = async (payload) => {
+  const handleSaveGroup = async (updated) => {
     const current = editingGroup;
-    if (!current) return;
+    try {
+      const nextTitle = (updated.title || "").trim();
+      if (current && nextTitle && nextTitle !== current.title) {
+        await updateGroupTitle(current.slug, nextTitle);
+        // atualiza UI local
+        setGroups((gs) =>
+          gs.map((g) =>
+            g.slug === current.slug ? { ...g, title: nextTitle } : g
+          )
+        );
+      }
 
-    const nextTitle = (payload.title || "").trim();
-    if (nextTitle && nextTitle !== current.title) {
-      await updateGroupTitle(current.slug, nextTitle);
-    }
-    if (payload.newCoverFile) {
-      await uploadGroupCover(current.slug, payload.newCoverFile);
-    }
+      if (updated.newCoverFile) {
+        const { url } = await uploadGroupCover(
+          current.slug,
+          updated.newCoverFile
+        );
+        // cache-buster p/ aparecer sem F5
+        const coverUrl = `${url}?v=${Date.now()}`;
+        setGroups((gs) =>
+          gs.map((g) => (g.slug === current.slug ? { ...g, coverUrl } : g))
+        );
+      }
 
-    setShowEditGroup(false);
-    setEditingGroup(null);
-    await refresh();
+      setShowEditGroup(false);
+      setEditingGroup(null);
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao salvar grupo.");
+    }
   };
 
   return (

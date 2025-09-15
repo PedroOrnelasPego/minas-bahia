@@ -17,8 +17,8 @@ import {
   listAlbums,
   createAlbum,
   deleteAlbum,
-  updateAlbumTitle,
   uploadAlbumCover,
+  updateAlbumTitle,
 } from "../../services/eventos";
 
 const slugify = (s) =>
@@ -56,8 +56,9 @@ const AlbumGroup = () => {
       const groups = await listGroups();
       const g = groups.find((x) => x.slug === groupSlug) || null;
       setGroup(g);
-      if (g) setAlbums(await listAlbums(groupSlug));
-      else setAlbums([]);
+      setAlbums(g ? await listAlbums(groupSlug) : []);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -74,6 +75,7 @@ const AlbumGroup = () => {
       </Container>
     );
   }
+
   if (!group) {
     return (
       <Container className="py-4">
@@ -86,8 +88,8 @@ const AlbumGroup = () => {
   }
 
   const onCoverChange = (e) => {
-    const f = e.target.files?.[0];
-    setCoverFile(f || null);
+    const f = e.target.files?.[0] || null;
+    setCoverFile(f);
     setCoverPreview(f ? URL.createObjectURL(f) : "");
   };
 
@@ -97,19 +99,57 @@ const AlbumGroup = () => {
 
     const slug = slugify(title);
     await createAlbum(group.slug, { slug, title });
-    if (coverFile) await uploadAlbumCover(group.slug, slug, coverFile);
+
+    let coverUrl = "";
+    if (coverFile) {
+      const { url } = await uploadAlbumCover(group.slug, slug, coverFile);
+      coverUrl = `${url}?v=${Date.now()}`;
+    }
+
+    // adiciona localmente sem precisar refrescar
+    setAlbums((arr) => [...arr, { slug, title, coverUrl, count: 0 }]);
 
     setShowNewAlbum(false);
     setAlbumTitle("");
     setCoverFile(null);
     setCoverPreview("");
-    await refresh();
   };
 
   const askEditAlbum = (album) => {
     setEditingAlbum(album);
     setShowEditAlbum(true);
   };
+
+  const saveEditedAlbum = async (updated) => {
+    const target = editingAlbum;
+    try {
+      const nextTitle = (updated.title || "").trim();
+      if (nextTitle && nextTitle !== target.title) {
+        await updateAlbumTitle(group.slug, target.slug, nextTitle);
+        setAlbums((arr) =>
+          arr.map((a) =>
+            a.slug === target.slug ? { ...a, title: nextTitle } : a
+          )
+        );
+      }
+
+      if (updated.newCoverFile) {
+        const { url } = await uploadAlbumCover(
+          group.slug,
+          target.slug,
+          updated.newCoverFile
+        );
+        const coverUrl = `${url}?v=${Date.now()}`;
+        setAlbums((arr) =>
+          arr.map((a) => (a.slug === target.slug ? { ...a, coverUrl } : a))
+        );
+      }
+    } finally {
+      setShowEditAlbum(false);
+      setEditingAlbum(null);
+    }
+  };
+
   const askDeleteAlbum = (album) => {
     setDeletingAlbum(album);
     setShowDeleteModal(true);
@@ -120,23 +160,6 @@ const AlbumGroup = () => {
     await deleteAlbum(group.slug, deletingAlbum.slug);
     setShowDeleteModal(false);
     setDeletingAlbum(null);
-    await refresh();
-  };
-
-  const saveEditedAlbum = async (updated) => {
-    const nextTitle = (updated.title || "").trim();
-    if (nextTitle && nextTitle !== editingAlbum.title) {
-      await updateAlbumTitle(group.slug, editingAlbum.slug, nextTitle);
-    }
-    if (updated.newCoverFile) {
-      await uploadAlbumCover(
-        group.slug,
-        editingAlbum.slug,
-        updated.newCoverFile
-      );
-    }
-    setShowEditAlbum(false);
-    setEditingAlbum(null);
     await refresh();
   };
 
@@ -184,33 +207,38 @@ const AlbumGroup = () => {
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  className="icon-btn trash-btn"
-                  title="Excluir álbum"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    askDeleteAlbum(a);
-                  }}
-                >
-                  🗑️
-                </button>
-
-                <button
-                  type="button"
-                  className="icon-btn edit-btn"
-                  title="Editar álbum"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    askEditAlbum(a);
-                  }}
-                >
-                  ✏️
-                </button>
+                <RequireAccess nivelMinimo="graduado" requireEditor>
+                  <button
+                    type="button"
+                    className="icon-btn trash-btn"
+                    title="Excluir álbum"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      askDeleteAlbum(a);
+                    }}
+                  >
+                    🗑️
+                  </button>
+                </RequireAccess>
+                <RequireAccess nivelMinimo="graduado" requireEditor>
+                  <button
+                    type="button"
+                    className="icon-btn edit-btn"
+                    title="Editar álbum"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      askEditAlbum(a);
+                    }}
+                  >
+                    ✏️
+                  </button>
+                </RequireAccess>
 
                 <div className="card-overlay-title">
                   <div>{a.title}</div>
-                  <div className="card-sub">{a.count ?? 0} fotos</div>
+                  <div className="card-sub">
+                    {a.totalPhotos ?? a.count ?? 0} fotos
+                  </div>
                 </div>
               </div>
             </Col>

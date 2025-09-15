@@ -11,6 +11,7 @@ const NIVEIS = [
   "instrutor",
   "professor",
   "contramestre",
+  "mestre",
 ];
 
 const rankNivel = (n) => {

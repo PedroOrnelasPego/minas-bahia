@@ -5,14 +5,14 @@ import Home from "../pages/Home";
 import MinasBahia from "../pages/MinasBahia";
 import Mestre from "../pages/Mestre";
 import UAI from "../pages/UAI";
-import Eventos from "../pages/Eventos";
-import EventAlbum from "../components/EventAlbum";
+import Eventos from "../pages/Eventos/Eventos";
+import AlbumGroup from "../pages/Eventos/AlbumGroup";
+import AlbumPage from "../pages/Eventos/AlbumPage";
 import Trajetorias from "../pages/Trajetorias";
 import NotFound from "../pages/NotFound";
 
 import AreaGraduado from "../pages/AreaGraduado/AreaGraduado";
 import Login from "../pages/AreaGraduado/Login/Login";
-
 import ProtectedRoute from "../components/ProtectedRoute";
 import PainelAdmin from "../pages/PainelAdmin/PainelAdmin";
 
@@ -22,8 +22,12 @@ export function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/minas-bahia-capoeira" element={<MinasBahia />} />
       <Route path="/mestre-costela" element={<Mestre />} />
+
+      {/* Eventos */}
       <Route path="/eventos" element={<Eventos />} />
-      <Route path="/eventos/:eventLink" element={<EventAlbum />} />
+      <Route path="/eventos/:groupSlug" element={<AlbumGroup />} />
+      <Route path="/eventos/:groupSlug/:albumSlug" element={<AlbumPage />} />
+
       <Route path="/uai-minas-bahia" element={<UAI />} />
       <Route path="/projetos" element={<Trajetorias />} />
 

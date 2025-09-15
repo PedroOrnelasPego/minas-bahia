@@ -30,6 +30,7 @@ const CadastroInicial = ({ show, onSave }) => {
     professorReferencia: "",
     endereco: "",
     numero: "",
+    permissaoEventos: "leitor",
   });
 
   const [cep, setCep] = useState("");

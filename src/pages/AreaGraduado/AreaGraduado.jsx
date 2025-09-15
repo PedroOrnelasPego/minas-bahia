@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, Row, Col } from "react-bootstrap";
+import { Container, Row, Col, Alert } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import {
   criarPerfil,
@@ -20,6 +20,12 @@ import { getHorarioLabel } from "../../helpers/agendaTreino";
 import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { formatarData } from "../../utils/formatarData";
+import {
+  AVATAR,
+  optimizeProfilePhoto,
+  makeProfileThumb,
+} from "../../utils/imagePerfil";
+import { setPerfilCache } from "../../utils/profileCache";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -55,6 +61,19 @@ const AreaGraduado = () => {
   const [rawImage, setRawImage] = useState(null);
   const [fotoCarregando, setFotoCarregando] = useState(true);
 
+  // ===== Feedback (substitui window.alert) =====
+  const [feedback, setFeedback] = useState({
+    show: false,
+    variant: "danger",
+    message: "",
+  });
+  const showError = (message) =>
+    setFeedback({ show: true, variant: "danger", message });
+  const showSuccess = (message) =>
+    setFeedback({ show: true, variant: "success", message });
+  const hideFeedback = () =>
+    setFeedback((prev) => ({ ...prev, show: false, message: "" }));
+
   useEffect(() => {
     const account = accounts[0];
     if (!account) return;
@@ -66,6 +85,7 @@ const AreaGraduado = () => {
       .then((perfilBuscado) => {
         if (perfilBuscado) {
           setPerfil(perfilBuscado);
+          setPerfilCache(account.username, perfilBuscado);
         } else {
           setShowCadastroInicial(true);
         }
@@ -73,9 +93,7 @@ const AreaGraduado = () => {
       .catch(() => setShowCadastroInicial(true))
       .finally(() => setLoading(false));
 
-    const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${
-      account.username
-    }/foto-perfil.jpg?${Date.now()}`;
+    const fotoUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}/foto-perfil.jpg?${Date.now()}`;
 
     const img = new Image();
     img.onload = () => {
@@ -94,6 +112,7 @@ const AreaGraduado = () => {
   }, [accounts]);
 
   const handleFotoChange = (e) => {
+    hideFeedback();
     const file = e.target.files[0];
     const allowedTypes = ["image/png", "image/jpeg"];
     if (file && allowedTypes.includes(file.type)) {
@@ -104,17 +123,32 @@ const AreaGraduado = () => {
       };
       reader.readAsDataURL(file);
     } else {
-      alert("Envie uma imagem JPG ou PNG.");
+      showError("Envie uma imagem JPG ou PNG.");
     }
   };
 
-  const handleCroppedSave = (croppedFile) => {
-    setFotoFile(croppedFile);
-    setFotoPreview(URL.createObjectURL(croppedFile));
-    setCropModal(false);
+  const handleCroppedSave = async (croppedFile) => {
+    hideFeedback();
+    try {
+      const optimized = await optimizeProfilePhoto(croppedFile, {
+        width: AVATAR.width,
+        height: AVATAR.height,
+        quality: AVATAR.quality,
+        mime: AVATAR.mime,
+      });
+
+      setFotoFile(optimized);
+      setFotoPreview(URL.createObjectURL(optimized));
+    } catch (err) {
+      console.error(err);
+      showError("Não foi possível processar a imagem.");
+    } finally {
+      setCropModal(false);
+    }
   };
 
   const salvarFoto = async () => {
+    hideFeedback();
     if (!fotoFile) return;
     const formData = new FormData();
     formData.append("arquivo", fotoFile);
@@ -123,15 +157,16 @@ const AreaGraduado = () => {
         `${API_URL}/upload/foto-perfil?email=${userData.email}`,
         formData
       );
-      alert("Foto atualizada com sucesso!");
+      showSuccess("Foto atualizada com sucesso!");
       setFotoFile(null);
       setTemFotoRemota(true);
     } catch {
-      alert("Erro ao enviar a foto.");
+      showError("Erro ao enviar a foto.");
     }
   };
 
   const handleRemoverFoto = async () => {
+    hideFeedback();
     try {
       await axios.delete(
         `${API_URL}/upload/foto-perfil?email=${userData.email}`
@@ -139,13 +174,14 @@ const AreaGraduado = () => {
       setFotoPreview(fotoPadrao);
       setFotoFile(null);
       setTemFotoRemota(false);
-      alert("Foto removida com sucesso!");
+      showSuccess("Foto removida com sucesso!");
     } catch {
-      alert("Erro ao remover a foto.");
+      showError("Erro ao remover a foto.");
     }
   };
 
   const buscarEnderecoPorCep = async () => {
+    hideFeedback();
     if (!cep) return;
     setBuscandoCep(true);
     try {
@@ -160,14 +196,15 @@ const AreaGraduado = () => {
           endereco: buildFullAddress({ ...data, numero: prev.numero }),
         }));
       }
-    } catch {
-      alert(e.message || "Erro ao buscar o CEP.");
+    } catch (e) {
+      showError(e?.message || "Erro ao buscar o CEP.");
     } finally {
       setBuscandoCep(false);
     }
   };
 
   const handleNumeroChange = (e) => {
+    hideFeedback();
     const numero = e.target.value;
     setFormEdit((prev) => ({
       ...prev,
@@ -187,6 +224,7 @@ const AreaGraduado = () => {
   const isMestre = userData.email === "contato@capoeiraminasbahia.com.br";
 
   const salvarPerfil = async () => {
+    hideFeedback();
     const obrigatorios = [
       "nome",
       "genero",
@@ -198,12 +236,13 @@ const AreaGraduado = () => {
       "dataNascimento",
       "corda",
     ];
+
     const vazios = obrigatorios.filter(
       (campo) => !formEdit[campo] || formEdit[campo].trim() === ""
     );
 
     if (vazios?.length > 0) {
-      alert("Preencha todos os campos obrigatórios.");
+      showError("Preencha todos os campos obrigatórios.");
       return;
     }
 
@@ -216,12 +255,25 @@ const AreaGraduado = () => {
     await atualizarPerfil(userData.email, atualizado);
     setPerfil(atualizado);
     setShowEditModal(false);
+    showSuccess("Perfil atualizado com sucesso!");
   };
 
   if (loading) return <p>Carregando...</p>;
 
   return (
     <Container fluid className="min-h-screen p-4">
+      {/* Feedback global */}
+      {feedback.show && (
+        <Alert
+          variant={feedback.variant}
+          dismissible
+          onClose={hideFeedback}
+          className="mb-3"
+        >
+          {feedback.message}
+        </Alert>
+      )}
+
       <Row className="mb-4">
         <Col className="bg-light p-3">
           <h4>
@@ -230,11 +282,13 @@ const AreaGraduado = () => {
           </h4>
         </Col>
       </Row>
+
       <Row>
         <Col md={2} className="border p-3 d-flex flex-column gap-2">
           <button
             className="btn btn-primary"
             onClick={() => {
+              hideFeedback();
               setFormEdit({ ...perfil });
               setShowEditModal(true);
             }}
@@ -354,7 +408,7 @@ const AreaGraduado = () => {
         </Col>
       </Row>
 
-      {/* Arquivos Pessoais*/}
+      {/* Arquivos Pessoais */}
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3">
@@ -431,7 +485,10 @@ const AreaGraduado = () => {
 
       <ModalEditarPerfil
         show={showEditModal}
-        onHide={() => setShowEditModal(false)}
+        onHide={() => {
+          hideFeedback();
+          setShowEditModal(false);
+        }}
         formEdit={formEdit}
         setFormEdit={setFormEdit}
         salvarPerfil={salvarPerfil}
@@ -445,6 +502,7 @@ const AreaGraduado = () => {
         uf={uf}
         buscandoCep={buscandoCep}
       />
+
       {showCadastroInicial && (
         <CadastroInicial
           show={showCadastroInicial}
@@ -456,11 +514,14 @@ const AreaGraduado = () => {
             };
             await criarPerfil(perfilFinal);
             setPerfil(perfilFinal);
+            setPerfilCache(userData.email, perfilFinal);
             setUserData((prev) => ({ ...prev, nome: dados.nome }));
             setShowCadastroInicial(false);
+            showSuccess("Cadastro criado com sucesso!");
           }}
         />
       )}
+
       {cropModal && (
         <CropImageModal
           imageSrc={rawImage}

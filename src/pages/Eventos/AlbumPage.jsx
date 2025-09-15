@@ -7,7 +7,7 @@ import { listAlbums } from "../../services/eventos";
 import "./Eventos.scss";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
 
-const MAX_PER_UPLOAD = 5;
+const MAX_PER_UPLOAD = 10;
 
 const AlbumPage = () => {
   const { groupSlug, albumSlug } = useParams();
@@ -234,8 +234,10 @@ const AlbumPage = () => {
         >
           <p className="mb-1">Nenhuma foto neste álbum ainda.</p>
           <small className="text-muted d-block mb-2">
-            Clique em “Selecionar fotos” (máx. {MAX_PER_UPLOAD} por envio) ou
-            arraste aqui.
+            <RequireAccess nivelMinimo="graduado" requireEditor>
+              Clique em “Selecionar fotos” (máx. {MAX_PER_UPLOAD} por envio) ou
+              arraste aqui.
+            </RequireAccess>
           </small>
         </div>
       ) : (

@@ -19,9 +19,13 @@ import {
   deleteAlbum,
   uploadAlbumCover,
   updateAlbumTitle,
+  deleteAlbumCover,
 } from "../../services/eventos";
-import SmartCover from "../../components/SmartCover";
-import { coverThumbUrl, makeCoverVariants } from "../../utils/covers";
+import {
+  coverThumbUrl,
+  makeCoverVariants,
+  getVersionFromUrl,
+} from "../../utils/covers";
 
 const slugify = (s) =>
   String(s)
@@ -56,7 +60,7 @@ const AlbumGroup = () => {
   const [deletingAlbum, setDeletingAlbum] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // ---------- bootstrap com retry (mesmo padrão da listagem de grupos) ----------
+  // ---------- bootstrap com retry ----------
   const refresh = async () => {
     setLoading(true);
     setError(null);
@@ -104,7 +108,6 @@ const AlbumGroup = () => {
 
     let coverUrl = "";
     if (coverFile) {
-      // 🔥 gera @1x/@2x como nos grupos
       const { oneXFile, twoXFile } = await makeCoverVariants(coverFile);
       const [{ url: u1 }] = await Promise.all([
         uploadAlbumCover(group.slug, slug, oneXFile, "_cover@1x.jpg"),
@@ -139,8 +142,12 @@ const AlbumGroup = () => {
         );
       }
 
-      if (updated.newCoverFile) {
-        // 🔥 idem aqui: @1x/@2x
+      if (updated.removeCover) {
+        await deleteAlbumCover(group.slug, target.slug);
+        setAlbums((arr) =>
+          arr.map((a) => (a.slug === target.slug ? { ...a, coverUrl: "" } : a))
+        );
+      } else if (updated.newCoverFile) {
         const { oneXFile, twoXFile } = await makeCoverVariants(
           updated.newCoverFile
         );
@@ -290,90 +297,90 @@ const AlbumGroup = () => {
         </Card>
       ) : (
         <div className="d-flex flex-wrap gap-3 justify-content-center">
-          {albums.map((a) => (
-            // dentro do map(a => ...)
-            <figure
-              key={a.slug}
-              className="event-card"
-              onClick={() => openAlbum(a)}
-              role="button"
-              aria-label={`Abrir álbum ${a.title}`}
-            >
-              <div className="cards-eventos position-relative">
-                {a.coverUrl ? (
-                  <img
-                    src={coverThumbUrl({
-                      kind: "album",
-                      groupSlug: group.slug,
-                      albumSlug: a.slug,
-                      w: 350,
-                      h: 200,
-                      dpr: 1,
-                    })}
-                    srcSet={`${coverThumbUrl({
-                      kind: "album",
-                      groupSlug: group.slug,
-                      albumSlug: a.slug,
-                      w: 350,
-                      h: 200,
-                      dpr: 1,
-                    })} 1x, ${coverThumbUrl({
-                      kind: "album",
-                      groupSlug: group.slug,
-                      albumSlug: a.slug,
-                      w: 350,
-                      h: 200,
-                      dpr: 2,
-                    })} 2x`}
-                    alt={a.title}
-                    width={350}
-                    height={200}
-                    loading="lazy"
-                    decoding="async"
-                    className="cover-img"
-                  />
-                ) : (
-                  <div className="w-100 h-100 card-placeholder">
-                    capa do álbum
-                  </div>
-                )}
+          {albums.map((a) => {
+            const v = getVersionFromUrl(a.coverUrl || "");
+            const s1 = coverThumbUrl({
+              kind: "album",
+              groupSlug: group.slug,
+              albumSlug: a.slug,
+              w: 350,
+              h: 200,
+              dpr: 1,
+              v,
+            });
+            const s2 = coverThumbUrl({
+              kind: "album",
+              groupSlug: group.slug,
+              albumSlug: a.slug,
+              w: 350,
+              h: 200,
+              dpr: 2,
+              v,
+            });
 
-                <RequireAccess nivelMinimo="graduado" requireEditor>
-                  <button
-                    type="button"
-                    className="icon-btn trash-btn"
-                    title="Excluir álbum"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      askDeleteAlbum(a);
-                    }}
-                  >
-                    🗑️
-                  </button>
-                </RequireAccess>
-                <RequireAccess nivelMinimo="graduado" requireEditor>
-                  <button
-                    type="button"
-                    className="icon-btn edit-btn"
-                    title="Editar álbum"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      askEditAlbum(a);
-                    }}
-                  >
-                    ✏️
-                  </button>
-                </RequireAccess>
-              </div>
+            return (
+              <figure
+                key={a.slug}
+                className="event-card"
+                onClick={() => openAlbum(a)}
+                role="button"
+                aria-label={`Abrir álbum ${a.title}`}
+              >
+                <div className="cards-eventos position-relative">
+                  {a.coverUrl ? (
+                    <img
+                      src={s1}
+                      srcSet={`${s1} 1x, ${s2} 2x`}
+                      alt={a.title}
+                      width={350}
+                      height={200}
+                      loading="lazy"
+                      decoding="async"
+                      className="cover-img"
+                    />
+                  ) : (
+                    <div className="w-100 h-100 card-placeholder">
+                      capa do álbum
+                    </div>
+                  )}
 
-              <figcaption className="card-caption">
-                <div className="card-title">{a.title}</div>
-                <div className="card-meta">
-                  {a.totalPhotos ?? a.count ?? 0} fotos
+                  <RequireAccess nivelMinimo="graduado" requireEditor>
+                    <button
+                      type="button"
+                      className="icon-btn trash-btn"
+                      title="Excluir álbum"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        askDeleteAlbum(a);
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </RequireAccess>
+                  <RequireAccess nivelMinimo="graduado" requireEditor>
+                    <button
+                      type="button"
+                      className="icon-btn edit-btn"
+                      title="Editar álbum"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        askEditAlbum(a);
+                      }}
+                    >
+                      ✏️
+                    </button>
+                  </RequireAccess>
                 </div>
-              </figcaption>
-            </figure>
-          ))}
+
+                <figcaption className="card-caption">
+                  <div className="card-title">{a.title}</div>
+                  <div className="card-meta">
+                    {a.totalPhotos ?? a.count ?? 0} fotos
+                  </div>
+                </figcaption>
+              </figure>
+            );
+          })}
         </div>
       )}
 

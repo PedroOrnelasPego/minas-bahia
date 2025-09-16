@@ -40,6 +40,7 @@ const PainelAdmin = () => {
   const [certificadosUsuarios, setCertificadosUsuarios] = useState({});
   const [previewUrl, setPreviewUrl] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [previewIsPdf, setPreviewIsPdf] = useState(false);
 
   // ----------------- atualizações -----------------
 
@@ -55,11 +56,9 @@ const PainelAdmin = () => {
 
       // auto-downgrade: se ficou abaixo de Graduado -> força Leitor
       const now = (novoNivel || "").toLowerCase();
-      const ficouAbaixoGraduado =
-        rankNivel(now) < rankNivel("graduado");
+      const ficouAbaixoGraduado = rankNivel(now) < rankNivel("graduado");
 
-      const permissaoAtual =
-        dadosUsuarios[email]?.permissaoEventos || "leitor";
+      const permissaoAtual = dadosUsuarios[email]?.permissaoEventos || "leitor";
 
       if (ficouAbaixoGraduado && permissaoAtual !== "leitor") {
         await atualizarPermissaoEventos(email, "leitor", { silent: true });
@@ -169,8 +168,7 @@ const PainelAdmin = () => {
         const perfilSel = dadosUsuarios[user.email] || {};
         const nivel = (perfilSel.nivelAcesso || "aluno").toLowerCase();
         const permissaoEventos = perfilSel.permissaoEventos || "leitor";
-        const podeEditarPerm =
-          rankNivel(nivel) >= rankNivel("graduado");
+        const podeEditarPerm = rankNivel(nivel) >= rankNivel("graduado");
 
         return (
           <div
@@ -206,7 +204,9 @@ const PainelAdmin = () => {
                       >
                         <div style={{ width: 150, marginInline: "auto" }}>
                           <img
-                            src={`https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/foto-perfil.jpg?${Date.now()}`}
+                            src={`https://certificadoscapoeira.blob.core.windows.net/certificados/${
+                              user.email
+                            }/foto-perfil.jpg?${Date.now()}`}
                             alt="Foto de perfil"
                             className="rounded"
                             style={{
@@ -281,6 +281,78 @@ const PainelAdmin = () => {
                           <strong>Professor referência: </strong>
                           {perfilSel?.professorReferencia || "-"}
                         </p>
+                      </Col>
+                      <Col xs={12}>
+                        {Array.isArray(certificadosUsuarios[user.email]) &&
+                        certificadosUsuarios[user.email].length > 0 ? (
+                          <>
+                            <h5 className="mt-3">Certificados</h5>
+                            <ul className="list-unstyled">
+                              {certificadosUsuarios[user.email].map(
+                                ({ nome }) => {
+                                  const nomeArquivo =
+                                    typeof nome === "string"
+                                      ? nome.split("/").pop()
+                                      : "arquivo";
+                                  const ext = nomeArquivo
+                                    ?.split(".")
+                                    .pop()
+                                    ?.toLowerCase();
+                                  const isPdf = ext === "pdf";
+                                  const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/certificados/${nomeArquivo}`;
+
+                                  // label legível (remove timestamp do começo, se houver)
+                                  let label = nomeArquivo.replace(/^\d+-/, "");
+                                  try {
+                                    label = decodeURIComponent(label);
+                                  } catch (_) {
+                                    /* ignora */
+                                  }
+
+                                  return (
+                                    <li
+                                      key={nome}
+                                      className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
+                                    >
+                                      <span
+                                        className="text-truncate"
+                                        style={{ maxWidth: "60%" }}
+                                      >
+                                        {label}
+                                      </span>
+                                      <div className="d-flex gap-2">
+                                        <button
+                                          className="btn btn-sm btn-outline-primary"
+                                          onClick={() => {
+                                            setPreviewIsPdf(isPdf); // <—
+                                            setPreviewUrl(fullUrl); // não re-encode a URL
+                                            setShowPreview(true);
+                                          }}
+                                        >
+                                          {isPdf
+                                            ? "📄 Visualizar"
+                                            : "🔍 Visualizar"}
+                                        </button>
+                                        <button
+                                          className="btn btn-sm btn-outline-success"
+                                          onClick={() =>
+                                            handleDownload(fullUrl)
+                                          }
+                                        >
+                                          ⬇️ Download
+                                        </button>
+                                      </div>
+                                    </li>
+                                  );
+                                }
+                              )}
+                            </ul>
+                          </>
+                        ) : (
+                          <p className="text-muted mt-3 mb-0">
+                            Nenhum certificado enviado.
+                          </p>
+                        )}
                       </Col>
 
                       {/* CERTIFICADOS (seu bloco atual pode permanecer aqui, omitido por brevidade) */}
@@ -360,7 +432,7 @@ const PainelAdmin = () => {
           <Modal.Title>Visualizar Arquivo</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
-          {previewUrl.endsWith(".pdf") ? (
+          {previewIsPdf ? (
             <iframe
               src={previewUrl}
               style={{ width: "100%", height: "70vh" }}

@@ -1,4 +1,3 @@
-// src/services/eventos.js
 import http from "./http";
 
 /** GRUPOS */
@@ -16,12 +15,17 @@ export async function deleteGroup(groupSlug) {
   await http.delete(`/eventos/groups/${groupSlug}`);
 }
 
-export async function uploadGroupCover(groupSlug, file) {
+export async function uploadGroupCover(groupSlug, file, name) {
   const fd = new FormData();
   fd.append("cover", file);
-  const { data } = await http.post(`/eventos/groups/${groupSlug}/cover`, fd, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const qs = name ? `?name=${encodeURIComponent(name)}` : "";
+  const { data } = await http.post(
+    `/eventos/groups/${groupSlug}/cover${qs}`,
+    fd,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+    }
+  );
   return data; // { url }
 }
 
@@ -40,11 +44,12 @@ export async function deleteAlbum(groupSlug, albumSlug) {
   await http.delete(`/eventos/${groupSlug}/albums/${albumSlug}`);
 }
 
-export async function uploadAlbumCover(groupSlug, albumSlug, file) {
+export async function uploadAlbumCover(groupSlug, albumSlug, file, name) {
   const fd = new FormData();
   fd.append("cover", file);
+  const qs = name ? `?name=${encodeURIComponent(name)}` : "";
   const { data } = await http.post(
-    `/eventos/${groupSlug}/albums/${albumSlug}/cover`,
+    `/eventos/${groupSlug}/albums/${albumSlug}/cover${qs}`,
     fd,
     { headers: { "Content-Type": "multipart/form-data" } }
   );

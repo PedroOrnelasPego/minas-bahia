@@ -1,4 +1,3 @@
-// src/pages/PainelAdmin/PainelAdmin.jsx
 import { useEffect, useState } from "react";
 import { Container, Row, Col, Spinner, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
@@ -27,6 +26,14 @@ const rankNivel = (n) => {
   return i < 0 ? -1 : i;
 };
 
+// helpers para URLs de avatar
+const avatarUrl1x = (email) =>
+  `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil@1x.jpg?${Date.now()}`;
+const avatarUrl2x = (email) =>
+  `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil@2x.jpg?${Date.now()}`;
+const avatarUrlLegacy = (email) =>
+  `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil.jpg?${Date.now()}`;
+
 const PainelAdmin = () => {
   const { accounts } = useMsal();
   const navigate = useNavigate();
@@ -41,6 +48,10 @@ const PainelAdmin = () => {
   const [previewUrl, setPreviewUrl] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [previewIsPdf, setPreviewIsPdf] = useState(false);
+
+  // Modal dedicado ao avatar
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [avatarModalUrl, setAvatarModalUrl] = useState("");
 
   // ----------------- atualizações -----------------
 
@@ -170,6 +181,11 @@ const PainelAdmin = () => {
         const permissaoEventos = perfilSel.permissaoEventos || "leitor";
         const podeEditarPerm = rankNivel(nivel) >= rankNivel("graduado");
 
+        // URLs de avatar
+        const url1x = avatarUrl1x(user.email);
+        const url2x = avatarUrl2x(user.email);
+        const urlLegacy = avatarUrlLegacy(user.email);
+
         return (
           <div
             key={user.email}
@@ -204,9 +220,8 @@ const PainelAdmin = () => {
                       >
                         <div style={{ width: 150, marginInline: "auto" }}>
                           <img
-                            src={`https://certificadoscapoeira.blob.core.windows.net/certificados/${
-                              user.email
-                            }/foto-perfil.jpg?${Date.now()}`}
+                            src={url1x}
+                            srcSet={`${url1x} 1x, ${url2x} 2x`}
                             alt="Foto de perfil"
                             className="rounded"
                             style={{
@@ -215,10 +230,23 @@ const PainelAdmin = () => {
                               height: 200,
                               objectFit: "cover",
                               border: "2px solid #ccc",
+                              cursor: "zoom-in",
+                            }}
+                            onClick={(e) => {
+                              setAvatarModalUrl(url2x);
+                              setShowAvatarModal(true);
                             }}
                             onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src = fotoPadrao;
+                              // fallback: tenta legado .jpg; se falhar, padrão.
+                              const img = e.currentTarget;
+                              if (img.dataset.tryLegacy !== "1") {
+                                img.dataset.tryLegacy = "1";
+                                img.src = urlLegacy;
+                                img.removeAttribute("srcset");
+                              } else {
+                                img.onerror = null;
+                                img.src = fotoPadrao;
+                              }
                             }}
                           />
                         </div>
@@ -282,6 +310,7 @@ const PainelAdmin = () => {
                           {perfilSel?.professorReferencia || "-"}
                         </p>
                       </Col>
+
                       <Col xs={12}>
                         {Array.isArray(certificadosUsuarios[user.email]) &&
                         certificadosUsuarios[user.email].length > 0 ? (
@@ -324,8 +353,8 @@ const PainelAdmin = () => {
                                         <button
                                           className="btn btn-sm btn-outline-primary"
                                           onClick={() => {
-                                            setPreviewIsPdf(isPdf); // <—
-                                            setPreviewUrl(fullUrl); // não re-encode a URL
+                                            setPreviewIsPdf(isPdf);
+                                            setPreviewUrl(fullUrl);
                                             setShowPreview(true);
                                           }}
                                         >
@@ -354,8 +383,6 @@ const PainelAdmin = () => {
                           </p>
                         )}
                       </Col>
-
-                      {/* CERTIFICADOS (seu bloco atual pode permanecer aqui, omitido por brevidade) */}
                     </Row>
 
                     {/* RODAPÉ: nível + permissão (sempre embaixo) */}
@@ -421,7 +448,7 @@ const PainelAdmin = () => {
         );
       })}
 
-      {/* Preview de arquivo (inalterado) */}
+      {/* Preview de arquivo */}
       <Modal
         show={showPreview}
         onHide={() => setShowPreview(false)}
@@ -465,6 +492,43 @@ const PainelAdmin = () => {
             Fechar
           </button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Modal do Avatar (2x) */}
+      <Modal
+        show={showAvatarModal}
+        onHide={() => setShowAvatarModal(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Foto de perfil</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <img
+            src={avatarModalUrl}
+            alt="Foto de perfil @2x"
+            className="img-fluid"
+            style={{ maxHeight: "80vh" }}
+            onError={(e) => {
+              // se 2x falhar, tenta 1x; depois legado; depois padrão
+              const img = e.currentTarget;
+              const url = img.src || "";
+              const emailMatch = url.match(
+                /certificados\/([^/]+)\/foto-perfil/i
+              );
+              const email = emailMatch ? emailMatch[1] : "";
+              if (url.includes("@2x")) {
+                img.src = avatarUrl1x(email);
+              } else if (url.includes("@1x")) {
+                img.src = avatarUrlLegacy(email);
+              } else {
+                img.onerror = null;
+                img.src = fotoPadrao;
+              }
+            }}
+          />
+        </Modal.Body>
       </Modal>
     </Container>
   );

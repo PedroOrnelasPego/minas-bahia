@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
+import SmartCover from "../../components/SmartCover";
 
 const AlbumCard = ({ group, onOpen, onEdit, onDelete }) => {
   const cover = group.coverUrl || "";
@@ -7,15 +8,21 @@ const AlbumCard = ({ group, onOpen, onEdit, onDelete }) => {
   return (
     <div
       className="cards-eventos position-relative"
-      style={{ backgroundImage: cover ? `url(${cover})` : "none" }}
       onClick={() => onOpen && onOpen(group)}
+      role="button"
+      aria-label={`Abrir grupo ${group.title}`}
     >
-      {!cover && (
+      {cover ? (
+        <SmartCover
+          url={cover}
+          alt={group.title}
+          className="cover-img"
+        />
+      ) : (
         <div className="w-100 h-100 card-placeholder">capa do grupo</div>
       )}
 
       <RequireAccess nivelMinimo="graduado" requireEditor>
-        {/* Lixeira */}
         <button
           type="button"
           className="icon-btn trash-btn"
@@ -30,7 +37,6 @@ const AlbumCard = ({ group, onOpen, onEdit, onDelete }) => {
         </button>
       </RequireAccess>
 
-      {/* Lápis */}
       <RequireAccess nivelMinimo="graduado" requireEditor>
         <button
           type="button"
@@ -64,7 +70,7 @@ AlbumCard.propTypes = {
   }).isRequired,
   onOpen: PropTypes.func,
   onEdit: PropTypes.func,
-  onDelete: PropTypes.func, // << novo
+  onDelete: PropTypes.func,
 };
 
 export default AlbumCard;

@@ -16,6 +16,7 @@
     "@tailwindcss/vite": "^4.1.4",
     "axios": "^1.10.0",
     "bootstrap": "^5.3.3",
+    "pica": "^9.0.1",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.9",
     "react-dom": "^19.0.0",

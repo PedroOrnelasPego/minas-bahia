@@ -1,4 +1,3 @@
-// src/pages/Eventos/AlbumPage.jsx
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Container, Modal } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
@@ -7,7 +6,12 @@ import { listAlbums } from "../../services/eventos";
 import "./Eventos.scss";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const MAX_PER_UPLOAD = 10;
+// Tamanho VISUAL da miniatura (3:2). O servidor entrega 1x/2x com nitidez.
+const THUMB_W = 420;
+const THUMB_H = 280;
 
 const AlbumPage = () => {
   const { groupSlug, albumSlug } = useParams();
@@ -29,13 +33,13 @@ const AlbumPage = () => {
   const refresh = async () => {
     setLoading(true);
     try {
-      // 1) tenta pegar o título bonito da lista de álbuns
+      // pega o título
       const albums = await listAlbums(groupSlug);
       const meta = albums.find((a) => a.slug === albumSlug);
       if (meta?.title) setAlbumTitle(meta.title.trim());
-      else setAlbumTitle(albumSlug); // fallback enquanto carrega
+      else setAlbumTitle(albumSlug);
 
-      // 2) carrega as fotos; se o endpoint também devolver o title, usamos
+      // fotos
       const resp = await listPhotos(groupSlug, albumSlug);
       const arr = Array.isArray(resp) ? resp : resp.photos || [];
       setPhotos(arr);
@@ -58,7 +62,7 @@ const AlbumPage = () => {
     document.title = `${t} | ${groupSlug} | Eventos`;
   }, [albumTitle, groupSlug, albumSlug]);
 
-  // ===== Lightbox com proteção =====
+  // ===== Lightbox =====
   const total = photos.length;
   const goPrev = () =>
     setViewerIndex((i) => (total ? (i - 1 + total) % total : 0));
@@ -166,6 +170,14 @@ const AlbumPage = () => {
   };
   const closeViewer = () => setViewerOpen(false);
 
+  // ===== helper pra montar src/srcSet das thumbs do back =====
+  const thumbUrl = (name, w, h, dpr = 1) =>
+    `${API_URL}/eventos/thumb/${encodeURIComponent(
+      groupSlug
+    )}/${encodeURIComponent(albumSlug)}/${encodeURIComponent(
+      name
+    )}?w=${Math.round(w * dpr)}&h=${Math.round(h * dpr)}&fit=cover`;
+
   return (
     <Container className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
@@ -246,36 +258,56 @@ const AlbumPage = () => {
             <span className="text-muted">· {photos.length} fotos</span>
           </div>
 
-          <div className="album-grid">
-            {photos.map((p, idx) => (
-              <div
-                key={p.name}
-                className="photo-card"
-                title={p.displayName || p.name}
-                onClick={() => openViewer(idx)}
-              >
-                {/* preview vem da URL pública do blob */}
-                <img src={p.url} alt={p.displayName || p.name} />
-                <RequireAccess nivelMinimo="graduado" requireEditor>
-                  <button
-                    type="button"
-                    className="photo-del"
-                    title="Excluir"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeletePhoto(p.name);
+          {/* grade responsiva simples */}
+          <div className="flex flex-wrap gap-3 justify-content-center">
+            {photos.map((p, idx) => {
+              const src1x = thumbUrl(p.name, THUMB_W, THUMB_H, 1);
+              const src2x = thumbUrl(p.name, THUMB_W, THUMB_H, 2);
+              return (
+                <div
+                  key={p.name}
+                  className="photo-card"
+                  title={p.displayName || p.name}
+                  onClick={() => openViewer(idx)}
+                  style={{ height: 240, width: 400 }}
+                >
+                  <img
+                    src={src1x}
+                    srcSet={`${src1x} 1x, ${src2x} 2x`}
+                    sizes={`${THUMB_W}px`}
+                    alt={p.displayName || p.name}
+                    width={THUMB_W}
+                    height={THUMB_H}
+                    loading="lazy"
+                    decoding="async"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      imageRendering: "auto",
                     }}
-                  >
-                    🗑️
-                  </button>
-                </RequireAccess>
-              </div>
-            ))}
+                  />
+                  <RequireAccess nivelMinimo="graduado" requireEditor>
+                    <button
+                      type="button"
+                      className="photo-del"
+                      title="Excluir"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePhoto(p.name);
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </RequireAccess>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* LIGHTBOX (com checagens) */}
+      {/* LIGHTBOX — usa a foto original em resolução cheia */}
       <Modal show={viewerOpen} onHide={closeViewer} fullscreen centered>
         <Modal.Body className="p-0 d-flex align-items-center justify-content-center bg-black">
           {total > 0 && photos[viewerIndex] && (

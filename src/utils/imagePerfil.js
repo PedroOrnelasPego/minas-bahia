@@ -1,11 +1,13 @@
 // src/utils/imagePerfil.js
+import pica from "pica";
+
 export const AVATAR = {
-  aspect: 3 / 4,        // 3:4
-  width: 600,           // largura final salva
-  height: 800,          // altura final salva
-  thumbWidth: 150,      // opcional: miniatura
+  aspect: 3 / 4, // 3:4
+  width: 600, // largura final salva (se usar optimizeProfilePhoto)
+  height: 800, // altura final salva
+  thumbWidth: 150, // miniatura
   thumbHeight: 200,
-  quality: 0.82,        // 0..1
+  quality: 0.82, // 0..1
   mime: "image/jpeg",
 };
 
@@ -20,14 +22,16 @@ export function loadImage(src) {
   });
 }
 
-// desenha em canvas e retorna Blob
-export function drawToCanvasBlob(img, { w, h, sx = 0, sy = 0, sw, sh, mime, quality }) {
+// desenha em canvas e retorna Blob (resize simples)
+export function drawToCanvasBlob(
+  img,
+  { w, h, sx = 0, sy = 0, sw, sh, mime, quality }
+) {
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
-    // se vierem coordenadas de crop (sx, sy, sw, sh) usamos; senão encaixa full
     if (sw && sh) {
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
     } else {
@@ -42,16 +46,18 @@ export function drawToCanvasBlob(img, { w, h, sx = 0, sy = 0, sw, sh, mime, qual
 }
 
 /**
- * Otimiza uma imagem (File/Blob ou dataURL) para o padrão de avatar.
- * Se você quiser só redimensionar o RESULTADO do seu CropImageModal,
- * passe o File/Blob recortado e ele gera o final 600x800.
+ * Otimiza uma imagem (File/Blob ou dataURL) para o padrão de avatar 600x800
+ * (não usada no fluxo 1x/2x, mas deixei aqui caso queira).
  */
-export async function optimizeProfilePhoto(input, {
-  width = AVATAR.width,
-  height = AVATAR.height,
-  quality = AVATAR.quality,
-  mime = AVATAR.mime,
-} = {}) {
+export async function optimizeProfilePhoto(
+  input,
+  {
+    width = AVATAR.width,
+    height = AVATAR.height,
+    quality = AVATAR.quality,
+    mime = AVATAR.mime,
+  } = {}
+) {
   const img = await loadImage(input);
   const blob = await drawToCanvasBlob(img, {
     w: width,
@@ -63,15 +69,16 @@ export async function optimizeProfilePhoto(input, {
   return file;
 }
 
-/**
- * (Opcional) Gera thumbnail 150x200
- */
-export async function makeProfileThumb(input, {
-  width = AVATAR.thumbWidth,
-  height = AVATAR.thumbHeight,
-  quality = AVATAR.quality,
-  mime = AVATAR.mime,
-} = {}) {
+/** (Opcional) gera thumbnail 150x200 */
+export async function makeProfileThumb(
+  input,
+  {
+    width = AVATAR.thumbWidth,
+    height = AVATAR.thumbHeight,
+    quality = AVATAR.quality,
+    mime = AVATAR.mime,
+  } = {}
+) {
   const img = await loadImage(input);
   const blob = await drawToCanvasBlob(img, {
     w: width,
@@ -81,4 +88,40 @@ export async function makeProfileThumb(input, {
   });
   const file = new File([blob], "foto-perfil-thumb.jpg", { type: mime });
   return file;
+}
+
+/**
+ * NOVO: Gera duas versões com downscale de alta qualidade (pica):
+ *  - 150x200 (@1x)
+ *  - 300x400 (@2x)
+ */
+export async function makeAvatarVariants(
+  input,
+  {
+    oneX = { w: 150, h: 200 },
+    twoX = { w: 300, h: 400 },
+    mime = "image/jpeg",
+    quality = 0.82,
+  } = {}
+) {
+  const img = await loadImage(input);
+
+  // canvas origem
+  const src = document.createElement("canvas");
+  src.width = img.naturalWidth;
+  src.height = img.naturalHeight;
+  src.getContext("2d").drawImage(img, 0, 0);
+
+  async function resizeTo({ w, h }, suffix) {
+    const dst = document.createElement("canvas");
+    dst.width = w;
+    dst.height = h;
+    await pica().resize(src, dst, { quality: 3, alpha: false });
+    const blob = await pica().toBlob(dst, mime, quality);
+    return new File([blob], `foto-perfil${suffix}.jpg`, { type: mime });
+  }
+
+  const oneXFile = await resizeTo(oneX, "@1x");
+  const twoXFile = await resizeTo(twoX, "@2x");
+  return { oneXFile, twoXFile };
 }

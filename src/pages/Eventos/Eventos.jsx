@@ -1,6 +1,5 @@
-// src/pages/Eventos/Eventos.jsx
-import { useEffect, useState } from "react";
-import { Container, Button, Modal, Form } from "react-bootstrap";
+import { useEffect, useState, useMemo } from "react";
+import { Container, Button, Modal, Form, Placeholder } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import AlbumCard from "./AlbumCard";
 import EditGroupModal from "./EditGroupModal";
@@ -12,6 +11,7 @@ import {
   uploadGroupCover,
   updateGroupTitle,
 } from "../../services/eventos";
+import { makeCoverVariants } from "../../utils/covers";
 import "./Eventos.scss";
 
 // slug util
@@ -24,11 +24,15 @@ const slugify = (s) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+// helper
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const Eventos = () => {
   const navigate = useNavigate();
 
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -39,31 +43,51 @@ const Eventos = () => {
   const [deletingGroup, setDeletingGroup] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // --------- bootstrap com retry (corrige “só aparece depois de criar”) ----------
   const refresh = async () => {
     setLoading(true);
-    try {
-      const list = await listGroups();
-      setGroups(list || []);
-    } finally {
-      setLoading(false);
+    setError(null);
+
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const list = await listGroups();
+        setGroups(list || []);
+        setLoading(false);
+        setError(null);
+        return;
+      } catch (e) {
+        lastErr = e;
+        // aguarda um pouco (ex.: back subindo / DNS / proxy carregando)
+        await sleep(400 * (attempt + 1));
+      }
     }
+
+    setGroups([]); // garante estado consistente
+    setLoading(false);
+    setError(lastErr || new Error("Falha ao carregar"));
   };
 
   useEffect(() => {
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --------- ações ----------
   const handleCreateGroup = async () => {
     const title = newTitle.trim();
     if (!title) return;
     const slug = slugify(title);
 
+    // cria e recarrega lista
     await apiCreateGroup({ slug, title });
     setShowNewGroup(false);
     setNewTitle("");
+
+    // carrega novamente (usa o mesmo retry do refresh)
     await refresh();
 
-    // abre edição pro usuário já trocar capa
+    // abre edição pro usuário já trocar a capa
     const created = (groups || []).find((g) => g.slug === slug) || {
       slug,
       title,
@@ -99,7 +123,6 @@ const Eventos = () => {
       const nextTitle = (updated.title || "").trim();
       if (current && nextTitle && nextTitle !== current.title) {
         await updateGroupTitle(current.slug, nextTitle);
-        // atualiza UI local
         setGroups((gs) =>
           gs.map((g) =>
             g.slug === current.slug ? { ...g, title: nextTitle } : g
@@ -108,12 +131,15 @@ const Eventos = () => {
       }
 
       if (updated.newCoverFile) {
-        const { url } = await uploadGroupCover(
-          current.slug,
+        // gera @1x e @2x com Pica (utils/covers)
+        const { oneXFile, twoXFile } = await makeCoverVariants(
           updated.newCoverFile
         );
-        // cache-buster p/ aparecer sem F5
-        const coverUrl = `${url}?v=${Date.now()}`;
+        const [{ url: u1 }] = await Promise.all([
+          uploadGroupCover(current.slug, oneXFile, "_cover@1x.jpg"),
+          uploadGroupCover(current.slug, twoXFile, "_cover@2x.jpg"),
+        ]);
+        const coverUrl = `${u1}?v=${Date.now()}`;
         setGroups((gs) =>
           gs.map((g) => (g.slug === current.slug ? { ...g, coverUrl } : g))
         );
@@ -127,18 +153,58 @@ const Eventos = () => {
     }
   };
 
+  // --------- skeleton cards para um carregamento suave ----------
+  const SkeletonGrid = useMemo(() => {
+    const CardSkeleton = () => (
+      <div className="cards-eventos skeleton">
+        <div className="skeleton-shimmer" />
+        <div className="card-overlay-title">
+          <Placeholder animation="glow">
+            <Placeholder xs={6} />{" "}
+          </Placeholder>
+          <div className="card-sub">
+            <Placeholder animation="glow">
+              <Placeholder xs={3} />
+            </Placeholder>
+          </div>
+        </div>
+      </div>
+    );
+    return (
+      <div className="d-flex flex-wrap gap-3 items-center justify-content-center">
+        {Array.from({ length: 3 }, (_, i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }, []);
+
   return (
     <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h1 className="mb-0">Eventos (grupos)</h1>
+      <div className="d-flex align-items-center mb-10 position-relative">
+        <h1 className="mb-0 position-absolute start-50 translate-middle-x">
+          Eventos
+        </h1>
+
         <RequireAccess nivelMinimo="graduado" requireEditor>
-          <Button onClick={() => setShowNewGroup(true)}>+ Novo grupo</Button>
+          <Button className="ms-auto" onClick={() => setShowNewGroup(true)}>
+            + Novo grupo
+          </Button>
         </RequireAccess>
       </div>
 
+      {/* estados */}
       {loading ? (
+        <div className="p-2">{SkeletonGrid}</div>
+      ) : error ? (
         <div className="p-4 text-center border rounded bg-white">
-          Carregando…
+          <p className="mb-2">Não foi possível carregar os grupos agora.</p>
+          <small className="text-muted d-block mb-3">
+            {String(error?.message || "Erro de rede")}
+          </small>
+          <Button variant="primary" onClick={refresh}>
+            Tentar novamente
+          </Button>
         </div>
       ) : groups.length === 0 ? (
         <div className="p-4 text-center border rounded bg-white">
@@ -148,7 +214,7 @@ const Eventos = () => {
           </small>
         </div>
       ) : (
-        <div className="d-flex flex-wrap gap-4">
+        <div className="d-flex flex-wrap gap-3 justify-content-center">
           {groups.map((g) => (
             <AlbumCard
               key={g.slug}

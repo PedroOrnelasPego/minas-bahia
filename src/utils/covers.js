@@ -27,7 +27,6 @@ export async function resizeWithPica(input, { width, height, mime, quality }) {
   dst.width = width;
   dst.height = height;
 
-  // usa algoritmo de qualidade alta (Catmull-Rom / Lanczos)
   await pica.resize(img, dst, { quality: 3, alpha: false });
   const blob = await pica.toBlob(
     dst,
@@ -37,9 +36,7 @@ export async function resizeWithPica(input, { width, height, mime, quality }) {
   return blob;
 }
 
-/**
- * Gera duas variantes de cover: @1x e @2x
- */
+/** Gera duas variantes de cover: @1x e @2x */
 export async function makeCoverVariants(
   file,
   {
@@ -68,9 +65,6 @@ export async function makeCoverVariants(
   return { oneXFile, twoXFile };
 }
 
-/**
- * Helper pra usar image-set em background quando tivermos @1x.
- */
 export function bgImageSet(cover1x) {
   if (!cover1x || !cover1x.includes("@1x"))
     return { backgroundImage: cover1x ? `url(${cover1x})` : "none" };
@@ -82,21 +76,37 @@ export function bgImageSet(cover1x) {
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const coverThumbUrl = ({
+export function coverThumbUrl({
   kind,
   groupSlug,
   albumSlug,
-  w = 350,
-  h = 200,
+  w,
+  h,
   dpr = 1,
-}) => {
-  const pxW = Math.round(w * dpr);
-  const pxH = Math.round(h * dpr);
-  return kind === "group"
-    ? `${API_URL}/eventos/cover-thumb/group/${encodeURIComponent(
-        groupSlug
-      )}?w=${pxW}&h=${pxH}&fit=cover`
-    : `${API_URL}/eventos/cover-thumb/album/${encodeURIComponent(
-        groupSlug
-      )}/${encodeURIComponent(albumSlug)}?w=${pxW}&h=${pxH}&fit=cover`;
-};
+  fit = "cover",
+  v,
+}) {
+  const base =
+    kind === "group"
+      ? `${API_URL}/eventos/cover-thumb/group/${encodeURIComponent(groupSlug)}`
+      : `${API_URL}/eventos/cover-thumb/album/${encodeURIComponent(
+          groupSlug
+        )}/${encodeURIComponent(albumSlug)}`;
+
+  const qs = new URLSearchParams({
+    w: Math.round(w * dpr).toString(),
+    h: Math.round(h * dpr).toString(),
+    fit,
+  });
+  if (v) qs.set("v", String(v)); // cache-buster
+  return `${base}?${qs.toString()}`;
+}
+
+export function getVersionFromUrl(u) {
+  try {
+    return new URL(u, window.location.origin).searchParams.get("v");
+  } catch {
+    const m = String(u || "").match(/[?&]v=([^&]+)/);
+    return m?.[1] || null;
+  }
+}

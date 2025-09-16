@@ -1,18 +1,20 @@
-// AlbumCard.jsx
 import PropTypes from "prop-types";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
-import { coverThumbUrl } from "../../utils/covers";
+import { coverThumbUrl, getVersionFromUrl } from "../../utils/covers";
 
 const CARD_W = 350;
 const CARD_H = 200;
 
 const AlbumCard = ({ group, onOpen, onEdit, onDelete }) => {
+  // use o "v" da URL da capa (quando existir) para versionar as thumbs
+  const v = getVersionFromUrl(group.coverUrl || "");
   const src1x = coverThumbUrl({
     kind: "group",
     groupSlug: group.slug,
     w: CARD_W,
     h: CARD_H,
     dpr: 1,
+    v,
   });
   const src2x = coverThumbUrl({
     kind: "group",
@@ -20,6 +22,7 @@ const AlbumCard = ({ group, onOpen, onEdit, onDelete }) => {
     w: CARD_W,
     h: CARD_H,
     dpr: 2,
+    v,
   });
 
   return (

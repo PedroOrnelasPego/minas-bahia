@@ -10,6 +10,7 @@ import {
   deleteGroup as apiDeleteGroup,
   uploadGroupCover,
   updateGroupTitle,
+  deleteGroupCover,
 } from "../../services/eventos";
 import { makeCoverVariants } from "../../utils/covers";
 import "./Eventos.scss";
@@ -130,8 +131,12 @@ const Eventos = () => {
         );
       }
 
-      if (updated.newCoverFile) {
-        // gera @1x e @2x com Pica (utils/covers)
+      if (updated.removeCover) {
+        await deleteGroupCover(current.slug);
+        setGroups((gs) =>
+          gs.map((g) => (g.slug === current.slug ? { ...g, coverUrl: "" } : g))
+        );
+      } else if (updated.newCoverFile) {
         const { oneXFile, twoXFile } = await makeCoverVariants(
           updated.newCoverFile
         );

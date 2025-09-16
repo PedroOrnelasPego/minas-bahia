@@ -94,3 +94,10 @@ export async function updateAlbumTitle(groupSlug, albumSlug, title) {
   );
   return data;
 }
+
+export async function deleteGroupCover(groupSlug) {
+  await http.delete(`/eventos/groups/${groupSlug}/cover`);
+}
+export async function deleteAlbumCover(groupSlug, albumSlug) {
+  await http.delete(`/eventos/${groupSlug}/albums/${albumSlug}/cover`);
+}

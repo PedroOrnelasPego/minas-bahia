@@ -53,18 +53,7 @@
 
 /* Título sobre a imagem */
 .card-overlay-title {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 12px 14px;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.55) 100%
-  );
-  color: #fff;
-  font-weight: 600;
+  display: none;
 }
 .card-sub {
   font-size: 0.875rem;
@@ -203,4 +192,18 @@
   color: #fff;
   font-size: 14px;
   opacity: 0.9;
+}
+
+.card-caption {
+  margin-top: 6px;
+}
+.card-caption .card-title {
+  font-weight: 600;
+  color: #1f2328;
+  line-height: 1.25;
+}
+.card-caption .card-meta {
+  font-size: 0.9rem;
+  color: #667085;
+  margin-top: 2px;
 }

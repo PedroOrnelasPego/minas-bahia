@@ -209,9 +209,12 @@ const Eventos = () => {
       ) : groups.length === 0 ? (
         <div className="p-4 text-center border rounded bg-white">
           <p className="mb-1">Nenhum grupo ainda.</p>
-          <small className="text-muted">
-            Crie um grupo para organizar seus álbuns (ex.: “UAI Minas Bahia”…).
-          </small>
+          <RequireAccess nivelMinimo="graduado" requireEditor>
+            <small className="text-muted">
+              Crie um grupo para organizar seus álbuns (ex.: “UAI Minas
+              Bahia”…).
+            </small>
+          </RequireAccess>
         </div>
       ) : (
         <div className="d-flex flex-wrap gap-3 justify-content-center">

@@ -1,7 +1,8 @@
+// src/pages/Eventos/AlbumPage.jsx
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Container, Modal } from "react-bootstrap";
-import { useNavigate, useParams } from "react-router-dom";
-import { listPhotos, uploadPhotos, deletePhoto, listAlbums } from "../../services/eventos";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { listPhotos, uploadPhotos, deletePhoto } from "../../services/eventos";
 import "./Eventos.scss";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
 
@@ -12,8 +13,16 @@ const MAX_PER_UPLOAD = 10;
 const THUMB_W = 420;
 const THUMB_H = 280;
 
+// caches por grupo/álbum
+const photosKey = (g, a) => `eventos_photos_cache_v1:${g}:${a}`;
+const albumTitleKey = (g, a) => `eventos_album_title_v1:${g}:${a}`;
+
+// debounce só em DEV
+const DEV_STRICT_DEBOUNCE_MS = 30;
+
 const AlbumPage = () => {
   const { groupSlug, albumSlug } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -29,31 +38,130 @@ const AlbumPage = () => {
 
   const fileInputRef = useRef(null);
 
-  const refresh = async () => {
-    setLoading(true);
-    try {
-      // pega o título
-      const albums = await listAlbums(groupSlug);
-      const meta = albums.find((a) => a.slug === albumSlug);
-      if (meta?.title) setAlbumTitle(meta.title.trim());
-      else setAlbumTitle(albumSlug);
+  // cancelamento/concorrência
+  const abortRef = useRef(null);
+  const reqSeq = useRef(0);
 
-      // fotos
-      const resp = await listPhotos(groupSlug, albumSlug);
-      const arr = Array.isArray(resp) ? resp : resp.photos || [];
-      setPhotos(arr);
-      if (!Array.isArray(resp) && resp?.title?.trim()) {
-        setAlbumTitle(resp.title.trim());
+  // boot com state + cache instantâneo
+  useEffect(() => {
+    // 1) se veio com state do álbum, usa de cara
+    const fromState = location.state?.album;
+    if (fromState?.slug === albumSlug && fromState?.title) {
+      setAlbumTitle(fromState.title);
+      try {
+        sessionStorage.setItem(
+          albumTitleKey(groupSlug, albumSlug),
+          fromState.title
+        );
+      } catch {}
+    } else {
+      // 2) tenta cache do título
+      try {
+        const cachedTitle = sessionStorage.getItem(
+          albumTitleKey(groupSlug, albumSlug)
+        );
+        if (cachedTitle) setAlbumTitle(cachedTitle);
+        else setAlbumTitle(albumSlug);
+      } catch {
+        setAlbumTitle(albumSlug);
       }
-    } catch (e) {
-      console.error("Erro ao listar fotos:", e);
-    } finally {
-      setLoading(false);
     }
+
+    // fotos do cache
+    try {
+      const cachedPhotos = sessionStorage.getItem(
+        photosKey(groupSlug, albumSlug)
+      );
+      if (cachedPhotos) {
+        const arr = JSON.parse(cachedPhotos);
+        if (Array.isArray(arr)) {
+          setPhotos(arr);
+          setLoading(false);
+        }
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupSlug, albumSlug]);
+
+  const refresh = async () => {
+    // se já tem cache, não volta pro spinner pesado
+    if (!photos?.length) setLoading(true);
+    setWarnMsg("");
+    setInfoMsg("");
+
+    // aborta anterior
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const mySeq = ++reqSeq.current;
+
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        // >>> só chamo /photos (não preciso mais de /albums aqui)
+        const resp = await listPhotos(groupSlug, albumSlug, {
+          signal: controller.signal,
+        });
+
+        if (controller.signal.aborted) return;
+        if (mySeq !== reqSeq.current) return;
+
+        const arr = Array.isArray(resp) ? resp : resp.photos || [];
+        const titleFromApi =
+          !Array.isArray(resp) && resp?.title?.trim() ? resp.title.trim() : "";
+
+        const title =
+          titleFromApi ||
+          sessionStorage.getItem(albumTitleKey(groupSlug, albumSlug)) ||
+          albumSlug;
+
+        setPhotos(arr);
+        setAlbumTitle(title);
+        setLoading(false);
+
+        // cache
+        try {
+          sessionStorage.setItem(
+            photosKey(groupSlug, albumSlug),
+            JSON.stringify(arr)
+          );
+          sessionStorage.setItem(albumTitleKey(groupSlug, albumSlug), title);
+        } catch {}
+
+        return;
+      } catch (e) {
+        if (controller.signal.aborted || e?.code === "ERR_CANCELED") return;
+        lastErr = e;
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+      }
+    }
+
+    if (mySeq !== reqSeq.current) return;
+    setLoading(false);
+    console.error("Erro ao listar fotos:", lastErr);
   };
 
+  // monta/troca com debounce em DEV
   useEffect(() => {
-    refresh();
+    let cancelled = false;
+    let timerId = null;
+
+    const run = () => {
+      if (!cancelled) refresh();
+    };
+
+    if (import.meta.env?.DEV) {
+      timerId = setTimeout(run, DEV_STRICT_DEBOUNCE_MS);
+    } else {
+      run();
+    }
+
+    return () => {
+      cancelled = true;
+      if (timerId) clearTimeout(timerId);
+      if (abortRef.current) abortRef.current.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupSlug, albumSlug]);
 
   useEffect(() => {
@@ -169,7 +277,7 @@ const AlbumPage = () => {
   };
   const closeViewer = () => setViewerOpen(false);
 
-  // ===== helper pra montar src/srcSet das thumbs do back =====
+  // helper pra montar src/srcSet das thumbs do back
   const thumbUrl = (name, w, h, dpr = 1) =>
     `${API_URL}/eventos/thumb/${encodeURIComponent(
       groupSlug
@@ -235,7 +343,9 @@ const AlbumPage = () => {
       </div>
 
       {loading ? (
-        <div className="p-4 text-center border rounded bg-white">Carregando…</div>
+        <div className="p-4 text-center border rounded bg-white">
+          Carregando…
+        </div>
       ) : photos.length === 0 ? (
         <div
           className="p-4 text-center border rounded bg-white"
@@ -310,21 +420,35 @@ const AlbumPage = () => {
         <Modal.Body className="p-0 d-flex align-items-center justify-content-center bg-black">
           {total > 0 && photos[viewerIndex] && (
             <>
-              <button className="lightbox-nav left" onClick={goPrev} aria-label="Anterior">
+              <button
+                className="lightbox-nav left"
+                onClick={goPrev}
+                aria-label="Anterior"
+              >
                 ‹
               </button>
 
               <img
                 className="lightbox-img"
                 src={photos[viewerIndex].url}
-                alt={photos[viewerIndex].displayName || photos[viewerIndex].name}
+                alt={
+                  photos[viewerIndex].displayName || photos[viewerIndex].name
+                }
               />
 
-              <button className="lightbox-nav right" onClick={goNext} aria-label="Próxima">
+              <button
+                className="lightbox-nav right"
+                onClick={goNext}
+                aria-label="Próxima"
+              >
                 ›
               </button>
 
-              <button className="lightbox-close" onClick={closeViewer} aria-label="Fechar">
+              <button
+                className="lightbox-close"
+                onClick={closeViewer}
+                aria-label="Fechar"
+              >
                 ×
               </button>
 

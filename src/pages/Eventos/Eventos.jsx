@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { Container, Button, Modal, Form, Placeholder } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import AlbumCard from "./AlbumCard";
@@ -28,6 +28,12 @@ const slugify = (s) =>
 // helper
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// cache
+const GROUPS_CACHE_KEY = "eventos_groups_cache_v1";
+
+// debounce só em DEV p/ evitar 1ª request cancelada do StrictMode
+const DEV_STRICT_DEBOUNCE_MS = 30;
+
 const Eventos = () => {
   const navigate = useNavigate();
 
@@ -44,51 +50,93 @@ const Eventos = () => {
   const [deletingGroup, setDeletingGroup] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // --------- bootstrap com retry (corrige “só aparece depois de criar”) ----------
+  // cancelamento/concorrência
+  const abortRef = useRef(null);
+  const reqSeq = useRef(0);
+
+  // usa cache (se houver) para render instantânea
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem(GROUPS_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          setGroups(parsed);
+          setLoading(false);
+        }
+      }
+    } catch {}
+  }, []);
+
   const refresh = async () => {
-    setLoading(true);
     setError(null);
+    if (!groups?.length) setLoading(true);
+
+    // cancela anterior
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const mySeq = ++reqSeq.current;
 
     let lastErr = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const list = await listGroups();
+        const list = await listGroups({ signal: controller.signal });
+        if (mySeq !== reqSeq.current) return; // resposta antiga
         setGroups(list || []);
-        setLoading(false);
         setError(null);
+        try {
+          sessionStorage.setItem(GROUPS_CACHE_KEY, JSON.stringify(list || []));
+        } catch {}
+        setLoading(false);
         return;
       } catch (e) {
+        if (controller.signal.aborted || e?.code === "ERR_CANCELED") return;
         lastErr = e;
-        // aguarda um pouco (ex.: back subindo / DNS / proxy carregando)
         await sleep(400 * (attempt + 1));
       }
     }
 
-    setGroups([]); // garante estado consistente
+    if (mySeq !== reqSeq.current) return;
     setLoading(false);
     setError(lastErr || new Error("Falha ao carregar"));
   };
 
+  // monta com debounce em DEV
   useEffect(() => {
-    refresh();
+    let cancelled = false;
+    let timerId = null;
+
+    const run = () => {
+      if (!cancelled) refresh();
+    };
+
+    if (import.meta.env?.DEV) {
+      timerId = setTimeout(run, DEV_STRICT_DEBOUNCE_MS);
+    } else {
+      run();
+    }
+
+    return () => {
+      cancelled = true;
+      if (timerId) clearTimeout(timerId);
+      if (abortRef.current) abortRef.current.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --------- ações ----------
+  // ações
   const handleCreateGroup = async () => {
     const title = newTitle.trim();
     if (!title) return;
     const slug = slugify(title);
 
-    // cria e recarrega lista
     await apiCreateGroup({ slug, title });
     setShowNewGroup(false);
     setNewTitle("");
 
-    // carrega novamente (usa o mesmo retry do refresh)
     await refresh();
 
-    // abre edição pro usuário já trocar a capa
     const created = (groups || []).find((g) => g.slug === slug) || {
       slug,
       title,
@@ -98,7 +146,9 @@ const Eventos = () => {
     setShowEditGroup(true);
   };
 
-  const handleOpenGroup = (group) => navigate(`/eventos/${group.slug}`);
+  // 👉 agora passamos meta via state para evitar refetch de /groups na página de álbuns
+  const handleOpenGroup = (group) =>
+    navigate(`/eventos/${group.slug}`, { state: { groupMeta: group } });
 
   const handleOpenEdit = (group) => {
     setEditingGroup(group);
@@ -158,7 +208,7 @@ const Eventos = () => {
     }
   };
 
-  // --------- skeleton cards para um carregamento suave ----------
+  // skeleton
   const SkeletonGrid = useMemo(() => {
     const CardSkeleton = () => (
       <div className="cards-eventos skeleton">
@@ -186,12 +236,15 @@ const Eventos = () => {
 
   return (
     <Container className="py-4">
-      {/* HEADER: em telas menores o botão sobe e o título vai para baixo */}
+      {/* HEADER */}
       <div className="eventos-head mb-10">
         <h1 className="eventos-title">Eventos</h1>
 
         <RequireAccess nivelMinimo="graduado" requireEditor>
-          <Button className="btn-new-group" onClick={() => setShowNewGroup(true)}>
+          <Button
+            className="btn-new-group"
+            onClick={() => setShowNewGroup(true)}
+          >
             + Novo grupo
           </Button>
         </RequireAccess>
@@ -277,8 +330,7 @@ const Eventos = () => {
           <Modal.Title>Excluir grupo</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Tem certeza que deseja excluir <strong>{deletingGroup?.title}</strong>
-          ?
+          Tem certeza que deseja excluir <strong>{deletingGroup?.title}</strong>?
         </Modal.Body>
         <Modal.Footer>
           <Button

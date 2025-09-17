@@ -110,7 +110,7 @@ const MenuBar = () => {
               {isMestre && (
                 <Nav.Link
                   as={NavLink}
-                  to="/area-graduado/painel-admin"
+                  to="/painel-admin"
                   className="fw-bold mx-2"
                   onClick={handleClose}
                 >

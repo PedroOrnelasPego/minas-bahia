@@ -182,7 +182,9 @@ const AreaGraduado = () => {
       setTemFotoRemota(true);
       // força recarregar remoto @1x
       setFotoPreview(
-        `https://certificadoscapoeira.blob.core.windows.net/certificados/${userData.email}/foto-perfil@1x.jpg?${Date.now()}`
+        `https://certificadoscapoeira.blob.core.windows.net/certificados/${
+          userData.email
+        }/foto-perfil@1x.jpg?${Date.now()}`
       );
     } catch (e) {
       console.error(e);
@@ -342,56 +344,13 @@ const AreaGraduado = () => {
         <Col md={10} className="border p-3">
           <h5 className="text-center">Perfil</h5>
 
-          <div className="d-flex align-items-start mb-3 justify-content-between flex-wrap">
-            <div className="pe-3">
-              <p>
-                <strong>Nome: </strong> {perfil.nome || "-"}
-              </p>
-              <p>
-                <strong>Apelido: </strong> {perfil.apelido || "-"}
-              </p>
-              <p>
-                <strong>Corda: </strong>
-                {getCordaNome(perfil.corda) || "-"}
-              </p>
-              <p>
-                <strong>Gênero:</strong> {perfil.genero || "-"}
-              </p>
-              <p>
-                <strong>Raça/Cor:</strong> {perfil.racaCor || "-"}
-              </p>
-              <p>
-                <strong>Data de Nascimento e Idade: </strong>
-                {perfil.dataNascimento
-                  ? `${formatarData(perfil.dataNascimento)} | ${calcularIdade(
-                      perfil.dataNascimento
-                    )} anos`
-                  : "-"}
-              </p>
-              <p>
-                <strong>WhatsApp (pessoal):</strong> {perfil.whatsapp || "-"}
-              </p>
-              <p>
-                <strong>Contato de emergência / responsável:</strong>{" "}
-                {perfil.contatoEmergencia || "-"}
-              </p>
-              <p>
-                <strong>Endereço: </strong>
-                {perfil.endereco || "-"}
-              </p>
-              <p>
-                <strong>Local e horário de treino: </strong>
-                {perfil.localTreino || "-"} |{" "}
-                {getHorarioLabel(perfil.localTreino, perfil.horarioTreino) ||
-                  "-"}
-              </p>
-              <p>
-                <strong>Professor referência: </strong>
-                {perfil.professorReferencia || "-"}
-              </p>
-            </div>
-
-            <div className="d-flex flex-column align-items-center">
+          <Row className="align-items-start gy-3 gx-0">
+            {/* FOTO: à direita no md+, centralizada em cima no mobile */}
+            <Col
+              xs={12}
+              md={4}
+              className="order-1 order-md-2 d-flex flex-column align-items-center"
+            >
               {fotoCarregando ? (
                 <div
                   className="spinner-border text-secondary mb-3"
@@ -420,7 +379,9 @@ const AreaGraduado = () => {
                     imageRendering: "auto",
                     cursor: "zoom-in",
                   }}
-                  onClick={() => temFotoRemota || avatar1x ? openAvatarModal() : null}
+                  onClick={() =>
+                    temFotoRemota || avatar1x ? openAvatarModal() : null
+                  }
                 />
               )}
 
@@ -451,16 +412,68 @@ const AreaGraduado = () => {
                   Remover Foto
                 </button>
               )}
-            </div>
-          </div>
+            </Col>
+
+            {/* TEXTO: à esquerda no md+, abaixo da foto no mobile */}
+            <Col xs={12} md={8} className="order-2 order-md-1">
+              <div className="pe-md-3">
+                <p>
+                  <strong>Nome: </strong> {perfil.nome || "-"}
+                </p>
+                <p>
+                  <strong>Apelido: </strong> {perfil.apelido || "-"}
+                </p>
+                <p>
+                  <strong>Corda: </strong>
+                  {getCordaNome(perfil.corda) || "-"}
+                </p>
+                <p>
+                  <strong>Gênero:</strong> {perfil.genero || "-"}
+                </p>
+                <p>
+                  <strong>Raça/Cor:</strong> {perfil.racaCor || "-"}
+                </p>
+                <p>
+                  <strong>Data de Nascimento e Idade: </strong>
+                  {perfil.dataNascimento
+                    ? `${formatarData(perfil.dataNascimento)} | ${calcularIdade(
+                        perfil.dataNascimento
+                      )} anos`
+                    : "-"}
+                </p>
+                <p>
+                  <strong>WhatsApp (pessoal):</strong> {perfil.whatsapp || "-"}
+                </p>
+                <p>
+                  <strong>Contato de emergência / responsável:</strong>{" "}
+                  {perfil.contatoEmergencia || "-"}
+                </p>
+                <p>
+                  <strong>Endereço: </strong>
+                  {perfil.endereco || "-"}
+                </p>
+                <p>
+                  <strong>Local e horário de treino: </strong>
+                  {perfil.localTreino || "-"} |{" "}
+                  {getHorarioLabel(perfil.localTreino, perfil.horarioTreino) ||
+                    "-"}
+                </p>
+                <p>
+                  <strong>Professor referência: </strong>
+                  {perfil.professorReferencia || "-"}
+                </p>
+              </div>
+            </Col>
+          </Row>
         </Col>
       </Row>
 
-      {/* Arquivos Pessoais */}
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3">
-            <Certificados email={userData.email} />
+            <div className="grid-list-3">
+              <Certificados email={userData.email} />
+            </div>
           </Col>
         </Row>
       )}
@@ -471,7 +484,9 @@ const AreaGraduado = () => {
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Alunos</h5>
             <p>Área para documentos de download público</p>
-            <FileSection pasta="aluno" canUpload={isMestre} />
+            <div className="grid-list-3">
+              <FileSection pasta="aluno" canUpload={isMestre} />
+            </div>
           </Col>
         </Row>
       )}

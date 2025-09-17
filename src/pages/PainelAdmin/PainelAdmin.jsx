@@ -53,6 +53,9 @@ const PainelAdmin = () => {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarModalUrl, setAvatarModalUrl] = useState("");
 
+  // 👉 cache de quem NÃO tem avatar (evita re-buscas infinitas)
+  const [semAvatar, setSemAvatar] = useState({}); // { [email]: true }
+
   // ----------------- atualizações -----------------
 
   const atualizarNivel = async (email, novoNivel) => {
@@ -181,10 +184,12 @@ const PainelAdmin = () => {
         const permissaoEventos = perfilSel.permissaoEventos || "leitor";
         const podeEditarPerm = rankNivel(nivel) >= rankNivel("graduado");
 
-        // URLs de avatar
-        const url1x = avatarUrl1x(user.email);
-        const url2x = avatarUrl2x(user.email);
-        const urlLegacy = avatarUrlLegacy(user.email);
+        // se já sabemos que não tem avatar, usa direto o placeholder
+        const jaSemAvatar = !!semAvatar[user.email];
+
+        // URLs de avatar (mantive como estavam)
+        const url1x = jaSemAvatar ? fotoPadrao : avatarUrl1x(user.email);
+        const url2x = jaSemAvatar ? "" : avatarUrl2x(user.email);
 
         return (
           <div
@@ -221,7 +226,11 @@ const PainelAdmin = () => {
                         <div style={{ width: 150, marginInline: "auto" }}>
                           <img
                             src={url1x}
-                            srcSet={`${url1x} 1x, ${url2x} 2x`}
+                            srcSet={
+                              jaSemAvatar
+                                ? undefined
+                                : `${url1x} 1x, ${url2x} 2x`
+                            }
                             alt="Foto de perfil"
                             className="rounded"
                             style={{
@@ -232,21 +241,22 @@ const PainelAdmin = () => {
                               border: "2px solid #ccc",
                               cursor: "zoom-in",
                             }}
-                            onClick={(e) => {
-                              setAvatarModalUrl(url2x);
+                            onClick={() => {
+                              setAvatarModalUrl(
+                                jaSemAvatar ? fotoPadrao : url2x
+                              );
                               setShowAvatarModal(true);
                             }}
                             onError={(e) => {
-                              // fallback: tenta legado .jpg; se falhar, padrão.
+                              // 👉 primeira falha: marca e usa placeholder (sem novas tentativas)
+                              setSemAvatar((prev) => ({
+                                ...prev,
+                                [user.email]: true,
+                              }));
                               const img = e.currentTarget;
-                              if (img.dataset.tryLegacy !== "1") {
-                                img.dataset.tryLegacy = "1";
-                                img.src = urlLegacy;
-                                img.removeAttribute("srcset");
-                              } else {
-                                img.onerror = null;
-                                img.src = fotoPadrao;
-                              }
+                              img.onerror = null;
+                              img.removeAttribute("srcset");
+                              img.src = fotoPadrao;
                             }}
                           />
                         </div>
@@ -316,66 +326,71 @@ const PainelAdmin = () => {
                         certificadosUsuarios[user.email].length > 0 ? (
                           <>
                             <h5 className="mt-3">Certificados</h5>
-                            <ul className="list-unstyled">
-                              {certificadosUsuarios[user.email].map(
-                                ({ nome }) => {
-                                  const nomeArquivo =
-                                    typeof nome === "string"
-                                      ? nome.split("/").pop()
-                                      : "arquivo";
-                                  const ext = nomeArquivo
-                                    ?.split(".")
-                                    .pop()
-                                    ?.toLowerCase();
-                                  const isPdf = ext === "pdf";
-                                  const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/certificados/${nomeArquivo}`;
+                            <div className="grid-list-3">
+                              <ul className="list-unstyled">
+                                {certificadosUsuarios[user.email].map(
+                                  ({ nome }) => {
+                                    const nomeArquivo =
+                                      typeof nome === "string"
+                                        ? nome.split("/").pop()
+                                        : "arquivo";
+                                    const ext = nomeArquivo
+                                      ?.split(".")
+                                      .pop()
+                                      ?.toLowerCase();
+                                    const isPdf = ext === "pdf";
+                                    const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/certificados/${nomeArquivo}`;
 
-                                  // label legível (remove timestamp do começo, se houver)
-                                  let label = nomeArquivo.replace(/^\d+-/, "");
-                                  try {
-                                    label = decodeURIComponent(label);
-                                  } catch (_) {
-                                    /* ignora */
-                                  }
+                                    // label legível (remove timestamp do começo, se houver)
+                                    let label = nomeArquivo.replace(
+                                      /^\d+-/,
+                                      ""
+                                    );
+                                    try {
+                                      label = decodeURIComponent(label);
+                                    } catch (_) {
+                                      /* ignora */
+                                    }
 
-                                  return (
-                                    <li
-                                      key={nome}
-                                      className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
-                                    >
-                                      <span
-                                        className="text-truncate"
-                                        style={{ maxWidth: "60%" }}
+                                    return (
+                                      <li
+                                        key={nome}
+                                        className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
                                       >
-                                        {label}
-                                      </span>
-                                      <div className="d-flex gap-2">
-                                        <button
-                                          className="btn btn-sm btn-outline-primary"
-                                          onClick={() => {
-                                            setPreviewIsPdf(isPdf);
-                                            setPreviewUrl(fullUrl);
-                                            setShowPreview(true);
-                                          }}
+                                        <span
+                                          className="text-truncate"
+                                          style={{ maxWidth: "60%" }}
                                         >
-                                          {isPdf
-                                            ? "📄 Visualizar"
-                                            : "🔍 Visualizar"}
-                                        </button>
-                                        <button
-                                          className="btn btn-sm btn-outline-success"
-                                          onClick={() =>
-                                            handleDownload(fullUrl)
-                                          }
-                                        >
-                                          ⬇️ Download
-                                        </button>
-                                      </div>
-                                    </li>
-                                  );
-                                }
-                              )}
-                            </ul>
+                                          {label}
+                                        </span>
+                                        <div className="d-flex gap-2">
+                                          <button
+                                            className="btn btn-sm btn-outline-primary"
+                                            onClick={() => {
+                                              setPreviewIsPdf(isPdf);
+                                              setPreviewUrl(fullUrl);
+                                              setShowPreview(true);
+                                            }}
+                                          >
+                                            {isPdf
+                                              ? "📄 Visualizar"
+                                              : "🔍 Visualizar"}
+                                          </button>
+                                          <button
+                                            className="btn btn-sm btn-outline-success"
+                                            onClick={() =>
+                                              handleDownload(fullUrl)
+                                            }
+                                          >
+                                            ⬇️ Download
+                                          </button>
+                                        </div>
+                                      </li>
+                                    );
+                                  }
+                                )}
+                              </ul>
+                            </div>
                           </>
                         ) : (
                           <p className="text-muted mt-3 mb-0">
@@ -511,21 +526,9 @@ const PainelAdmin = () => {
             className="img-fluid"
             style={{ maxHeight: "80vh" }}
             onError={(e) => {
-              // se 2x falhar, tenta 1x; depois legado; depois padrão
-              const img = e.currentTarget;
-              const url = img.src || "";
-              const emailMatch = url.match(
-                /certificados\/([^/]+)\/foto-perfil/i
-              );
-              const email = emailMatch ? emailMatch[1] : "";
-              if (url.includes("@2x")) {
-                img.src = avatarUrl1x(email);
-              } else if (url.includes("@1x")) {
-                img.src = avatarUrlLegacy(email);
-              } else {
-                img.onerror = null;
-                img.src = fotoPadrao;
-              }
+              // se 2x/1x/legado falharam, cai para o placeholder
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = fotoPadrao;
             }}
           />
         </Modal.Body>

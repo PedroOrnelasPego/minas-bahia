@@ -1,3 +1,34 @@
-.graduacao{
-    padding-top: 60px;
+.graduacao {
+  padding-top: 60px;
+}
+
+/* Grid responsivo: 1 col no mobile, 2 no tablet, 3 no desktop */
+.grid-list-3 ul,
+.grid-list-3 .list-unstyled,
+.grid-list-3 .list-group {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.75rem 1rem; /* espaçamento entre cards */
+}
+
+@media (min-width: 768px) {
+  .grid-list-3 ul,
+  .grid-list-3 .list-unstyled,
+  .grid-list-3 .list-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 992px) {
+  .grid-list-3 ul,
+  .grid-list-3 .list-unstyled,
+  .grid-list-3 .list-group {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Remove os espaçamentos de <li> que viriam da lista original */
+.grid-list-3 li,
+.grid-list-3 .list-group-item {
+  margin-bottom: 0 !important;
 }

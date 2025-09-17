@@ -1,7 +1,7 @@
 {
   "name": "minas-bahia",
   "private": true,
-  "version": "3.0.0-rc01",
+  "version": "3.0.0-rc02",
   "type": "module",
   "scripts": {
     "dev": "vite",

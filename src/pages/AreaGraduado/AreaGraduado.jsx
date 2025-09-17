@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Container, Row, Col, Alert, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import {
   criarPerfil,
   buscarPerfil,
-  atualizarPerfil,
+  atualizarPerfil as apiAtualizarPerfil,
 } from "../../services/backend";
 import CadastroInicial from "../../components/CadastroInicial/CadastroInicial";
 import Certificados from "../../components/Certificados/Certificados";
@@ -21,17 +21,18 @@ import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { formatarData } from "../../utils/formatarData";
 import {
-  AVATAR,
-  optimizeProfilePhoto,
-  makeProfileThumb,
-  makeAvatarVariants, // <- IMPORTANTE
+  makeAvatarVariants, // gera @1x e @2x
 } from "../../utils/imagePerfil";
 import { setPerfilCache } from "../../utils/profileCache";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// evita 1º efeito duplicado no StrictMode (apenas DEV)
+const DEV_STRICT_DEBOUNCE_MS = 30;
+
 const AreaGraduado = () => {
   const { instance, accounts } = useMsal();
+
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({ nome: "", email: "" });
@@ -46,30 +47,33 @@ const AreaGraduado = () => {
     dataNascimento: "",
     nivelAcesso: "",
   });
+
   const [formEdit, setFormEdit] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCadastroInicial, setShowCadastroInicial] = useState(false);
+
+  // CEP helpers
   const [cep, setCep] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [logradouro, setLogradouro] = useState("");
   const [bairro, setBairro] = useState("");
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
+
+  // foto
   const [fotoPreview, setFotoPreview] = useState(null);
   const [temFotoRemota, setTemFotoRemota] = useState(false);
   const [cropModal, setCropModal] = useState(false);
   const [rawImage, setRawImage] = useState(null);
   const [fotoCarregando, setFotoCarregando] = useState(true);
-
-  // NOVO: arquivos prontos para upload
   const [avatar1x, setAvatar1x] = useState(null);
   const [avatar2x, setAvatar2x] = useState(null);
 
-  // MODAL de visualização da foto (2x)
+  // modal de zoom
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarModalUrl, setAvatarModalUrl] = useState(null);
 
-  // ===== Feedback (substitui window.alert) =====
+  // feedback
   const [feedback, setFeedback] = useState({
     show: false,
     variant: "danger",
@@ -80,17 +84,24 @@ const AreaGraduado = () => {
   const showSuccess = (message) =>
     setFeedback({ show: true, variant: "success", message });
   const hideFeedback = () =>
-    setFeedback((prev) => ({ ...prev, show: false, message: "" }));
+    setFeedback((p) => ({ ...p, show: false, message: "" }));
 
-  // helper: testa se existe
-  const testImage = (url) =>
+  // ==== Controle de concorrência / cancelamento ====
+  const abortRef = useRef(null);
+  const reqSeq = useRef(0);
+
+  // util: checa se imagem existe (com guarda por sequência)
+  const testImage = (url, mySeq) =>
     new Promise((resolve) => {
       const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
+      img.onload = () =>
+        mySeq === reqSeq.current ? resolve(true) : resolve(false);
+      img.onerror = () =>
+        mySeq === reqSeq.current ? resolve(false) : resolve(false);
       img.src = url;
     });
 
+  // ===== Boot / carregamento principal =====
   useEffect(() => {
     const account = accounts[0];
     if (!account) return;
@@ -98,41 +109,84 @@ const AreaGraduado = () => {
     setSession(account);
     setUserData({ nome: account.name, email: account.username });
 
-    buscarPerfil(account.username)
-      .then((perfilBuscado) => {
-        if (perfilBuscado) {
-          setPerfil(perfilBuscado);
-          setPerfilCache(account.username, perfilBuscado);
-        } else {
-          setShowCadastroInicial(true);
-        }
-      })
-      .catch(() => setShowCadastroInicial(true))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    let timer = null;
 
-    // tentar @1x; se não existir, tentar legado; senão, default
-    (async () => {
-      const base = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}`;
-      const url1x = `${base}/foto-perfil@1x.jpg?${Date.now()}`;
-      const urlLegacy = `${base}/foto-perfil.jpg?${Date.now()}`;
+    const run = async () => {
+      if (cancelled) return;
 
-      if (await testImage(url1x)) {
-        setFotoPreview(url1x);
-        setTemFotoRemota(true);
-      } else if (await testImage(urlLegacy)) {
-        setFotoPreview(urlLegacy); // sem srcSet nesse caso
-        setTemFotoRemota(true);
-      } else {
-        setFotoPreview(fotoPadrao);
-        setTemFotoRemota(false);
+      // cancela requisição anterior
+      if (abortRef.current) abortRef.current.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const mySeq = ++reqSeq.current;
+
+      try {
+        // Perfil e foto rodam em paralelo
+        const perfilPromise = (async () => {
+          try {
+            const p = await buscarPerfil(account.username, {
+              signal: controller.signal,
+            });
+            if (mySeq !== reqSeq.current) return;
+            if (p) {
+              setPerfil(p);
+              setPerfilCache(account.username, p);
+              setShowCadastroInicial(false);
+            } else {
+              setShowCadastroInicial(true);
+            }
+          } catch {
+            if (mySeq !== reqSeq.current) return;
+            setShowCadastroInicial(true);
+          }
+        })();
+
+        const fotoPromise = (async () => {
+          const base = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}`;
+          const url1x = `${base}/foto-perfil@1x.jpg?${Date.now()}`;
+          const urlLegacy = `${base}/foto-perfil.jpg?${Date.now()}`;
+
+          let url = fotoPadrao;
+          let hasRemote = false;
+
+          if (await testImage(url1x, mySeq)) {
+            url = url1x;
+            hasRemote = true;
+          } else if (await testImage(urlLegacy, mySeq)) {
+            url = urlLegacy;
+            hasRemote = true;
+          }
+
+          if (mySeq !== reqSeq.current) return;
+          setFotoPreview(url);
+          setTemFotoRemota(hasRemote);
+          setFotoCarregando(false);
+        })();
+
+        await Promise.allSettled([perfilPromise, fotoPromise]);
+      } finally {
+        if (mySeq === reqSeq.current) setLoading(false);
       }
-      setFotoCarregando(false);
-    })();
+    };
+
+    if (import.meta.env?.DEV) {
+      timer = setTimeout(run, DEV_STRICT_DEBOUNCE_MS);
+    } else {
+      run();
+    }
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      if (abortRef.current) abortRef.current.abort();
+    };
   }, [accounts]);
 
+  // ===== Foto: seleção / corte / upload =====
   const handleFotoChange = (e) => {
     hideFeedback();
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     const allowedTypes = ["image/png", "image/jpeg"];
     if (file && allowedTypes.includes(file.type)) {
       const reader = new FileReader();
@@ -152,7 +206,7 @@ const AreaGraduado = () => {
       const { oneXFile, twoXFile } = await makeAvatarVariants(croppedFile);
       setAvatar1x(oneXFile);
       setAvatar2x(twoXFile);
-      setFotoPreview(URL.createObjectURL(oneXFile)); // preview local rápido
+      setFotoPreview(URL.createObjectURL(oneXFile));
     } catch (err) {
       console.error(err);
       showError("Não foi possível processar a imagem.");
@@ -180,7 +234,6 @@ const AreaGraduado = () => {
       setAvatar1x(null);
       setAvatar2x(null);
       setTemFotoRemota(true);
-      // força recarregar remoto @1x
       setFotoPreview(
         `https://certificadoscapoeira.blob.core.windows.net/certificados/${
           userData.email
@@ -208,6 +261,7 @@ const AreaGraduado = () => {
     }
   };
 
+  // ===== Endereço / CEP =====
   const buscarEnderecoPorCep = async () => {
     hideFeedback();
     if (!cep) return;
@@ -243,14 +297,17 @@ const AreaGraduado = () => {
     }));
   };
 
+  // ===== Sair =====
   const handleSignOut = async () => {
     await instance.logoutRedirect();
   };
 
+  // ===== Permissões =====
   const nivelUsuario = nivelMap[perfil.nivelAcesso] ?? 0;
   const canAccess = (minLevel) => nivelUsuario >= minLevel;
   const isMestre = userData.email === "contato@capoeiraminasbahia.com.br";
 
+  // ===== Salvar Perfil =====
   const salvarPerfil = async () => {
     hideFeedback();
     const obrigatorios = [
@@ -277,7 +334,7 @@ const AreaGraduado = () => {
       id: userData.email,
       email: userData.email,
     };
-    await atualizarPerfil(userData.email, atualizado);
+    await apiAtualizarPerfil(userData.email, atualizado);
     setPerfil(atualizado);
     setShowEditModal(false);
     showSuccess("Perfil atualizado com sucesso!");
@@ -288,13 +345,11 @@ const AreaGraduado = () => {
   const isRemotePreview =
     typeof fotoPreview === "string" && fotoPreview.startsWith("http");
 
-  // abre modal com a imagem 2x, com fallbacks
   const openAvatarModal = () => {
     let url = fotoPreview;
     if (isRemotePreview && fotoPreview.includes("@1x")) {
       url = fotoPreview.replace("@1x", "@2x");
     } else if (!isRemotePreview && avatar2x) {
-      // preview local (antes do upload)
       url = URL.createObjectURL(avatar2x);
     }
     setAvatarModalUrl(url);
@@ -303,7 +358,6 @@ const AreaGraduado = () => {
 
   return (
     <Container fluid className="min-h-screen p-4">
-      {/* Feedback global */}
       {feedback.show && (
         <Alert
           variant={feedback.variant}
@@ -345,7 +399,6 @@ const AreaGraduado = () => {
           <h5 className="text-center">Perfil</h5>
 
           <Row className="align-items-start gy-3 gx-0">
-            {/* FOTO: à direita no md+, centralizada em cima no mobile */}
             <Col
               xs={12}
               md={4}
@@ -414,7 +467,6 @@ const AreaGraduado = () => {
               )}
             </Col>
 
-            {/* TEXTO: à esquerda no md+, abaixo da foto no mobile */}
             <Col xs={12} md={8} className="order-2 order-md-1">
               <div className="pe-md-3">
                 <p>
@@ -478,7 +530,6 @@ const AreaGraduado = () => {
         </Row>
       )}
 
-      {/* Arquivos para Alunos */}
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
@@ -490,8 +541,6 @@ const AreaGraduado = () => {
           </Col>
         </Row>
       )}
-
-      {/* ...demais seções inalteradas... */}
 
       <ModalEditarPerfil
         show={showEditModal}
@@ -540,7 +589,6 @@ const AreaGraduado = () => {
         />
       )}
 
-      {/* MODAL da foto de perfil (2x/fallback) */}
       <Modal
         show={showAvatarModal}
         onHide={() => setShowAvatarModal(false)}
@@ -557,14 +605,11 @@ const AreaGraduado = () => {
             className="img-fluid"
             style={{ maxHeight: "80vh" }}
             onError={(e) => {
-              // Fallback: se 2x falhar, tenta 1x; se falhar, legado; por fim, padrão.
               const img = e.currentTarget;
               const url = img.src || "";
-              if (url.includes("@2x")) {
-                img.src = url.replace("@2x", "@1x");
-              } else if (url.includes("@1x")) {
-                img.src = url.replace("@1x", "");
-              } else {
+              if (url.includes("@2x")) img.src = url.replace("@2x", "@1x");
+              else if (url.includes("@1x")) img.src = url.replace("@1x", "");
+              else {
                 img.onerror = null;
                 img.src = fotoPadrao;
               }

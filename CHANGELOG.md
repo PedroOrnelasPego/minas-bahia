@@ -12,5 +12,9 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 ### Removido
 ### Depreciado
 
+
+
 ### Alterado
+
 - Alterado cover para os albuns e grupos
+- Ajuste no layout do Painel Adm

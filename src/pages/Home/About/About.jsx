@@ -5,7 +5,7 @@ import "./About.scss"; // Importe a folha de estilo customizada
 const About = () => {
   return (
     <Container className="mt-3">
-      <div className="p-4">
+      <div className="p-2">
         <h1 className="text-center mb-4">Bem-vindos ao ICMBC</h1>
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-24">
           {/* Área do texto */}

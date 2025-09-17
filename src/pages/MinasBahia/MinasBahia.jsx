@@ -8,7 +8,7 @@ import data from "./data"; // Importando o array de fotos local
 
 const MinasBahia = () => {
   return (
-    <Container>
+    <Container className="text-justify">
       <h1 className="text-center mb-4">Capoeira Minas Bahia</h1>{" "}
       <div>
         <p>

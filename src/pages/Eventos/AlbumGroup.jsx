@@ -36,7 +36,6 @@ const slugify = (s) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-// helper
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const AlbumGroup = () => {
@@ -48,23 +47,19 @@ const AlbumGroup = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // novo álbum
   const [showNewAlbum, setShowNewAlbum] = useState(false);
   const [albumTitle, setAlbumTitle] = useState("");
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState("");
 
-  // editar/excluir
   const [editingAlbum, setEditingAlbum] = useState(null);
   const [showEditAlbum, setShowEditAlbum] = useState(false);
   const [deletingAlbum, setDeletingAlbum] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // ---------- bootstrap com retry ----------
   const refresh = async () => {
     setLoading(true);
     setError(null);
-
     let lastErr = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
@@ -81,7 +76,6 @@ const AlbumGroup = () => {
         await sleep(400 * (attempt + 1));
       }
     }
-
     setGroup(null);
     setAlbums([]);
     setLoading(false);
@@ -181,7 +175,6 @@ const AlbumGroup = () => {
 
   const openAlbum = (album) => navigate(`/eventos/${group.slug}/${album.slug}`);
 
-  // ---------- Skeleton (cards) ----------
   const SkeletonGrid = useMemo(() => {
     const CardSkeleton = () => (
       <Col xs={12} sm={6} md={4} lg={3}>
@@ -209,41 +202,27 @@ const AlbumGroup = () => {
     );
   }, []);
 
-  // ---------- Render ----------
+  /* ---------- Render ---------- */
+
   if (loading) {
     return (
       <Container className="py-4">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <Button variant="link" className="px-0 me-2" disabled>
-              ← Voltar
-            </Button>
-            <Placeholder as="h2" animation="glow" className="d-inline">
+        <div className="page-head">
+          <button type="button" className="page-back" disabled>
+            <i className="bi bi-arrow-left"></i> Voltar
+          </button>
+          <h2 className="page-title">
+            <Placeholder as="span" animation="glow">
               <Placeholder xs={6} />
             </Placeholder>
-          </div>
+          </h2>
           <RequireAccess nivelMinimo="graduado" requireEditor>
-            <Button disabled>+ Novo álbum</Button>
+            <Button className="page-cta" disabled>
+              + Novo álbum
+            </Button>
           </RequireAccess>
         </div>
-
-        <div className="d-flex flex-wrap gap-3 justify-content-center">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="cards-eventos skeleton">
-              <div className="skeleton-shimmer" />
-              <div className="card-overlay-title">
-                <Placeholder animation="glow">
-                  <Placeholder xs={6} />
-                </Placeholder>
-                <div className="card-sub">
-                  <Placeholder animation="glow">
-                    <Placeholder xs={3} />
-                  </Placeholder>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {SkeletonGrid}
       </Container>
     );
   }
@@ -251,6 +230,16 @@ const AlbumGroup = () => {
   if (error) {
     return (
       <Container className="py-4">
+        <div className="page-head">
+          <button
+            type="button"
+            className="page-back"
+            onClick={() => navigate("/eventos")}
+          >
+            <i className="bi bi-arrow-left"></i> Voltar
+          </button>
+          <h2 className="page-title">Erro</h2>
+        </div>
         <Card className="p-4 text-center">
           <p className="mb-2">Não foi possível carregar este grupo agora.</p>
           <small className="text-muted d-block mb-3">
@@ -265,29 +254,39 @@ const AlbumGroup = () => {
   if (!group) {
     return (
       <Container className="py-4">
-        <p className="text-muted">Grupo não encontrado.</p>
-        <Button variant="secondary" onClick={() => navigate("/eventos")}>
-          Voltar
-        </Button>
+        <div className="page-head">
+          <button
+            type="button"
+            className="page-back"
+            onClick={() => navigate("/eventos")}
+          >
+            <i className="bi bi-arrow-left"></i> Voltar
+          </button>
+          <h2 className="page-title">Grupo não encontrado</h2>
+        </div>
       </Container>
     );
   }
 
   return (
     <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <Button
-            variant="link"
-            className="px-0 me-2"
-            onClick={() => navigate("/eventos")}
-          >
-            ← Voltar
-          </Button>
-          <h2 className="d-inline">{group.title}</h2>
-        </div>
+      {/* ===== CABEÇALHO PADRÃO ===== */}
+      <div className="page-head">
+        <button
+          type="button"
+          className="page-back"
+          onClick={() => navigate("/eventos")}
+          aria-label="Voltar para grupos"
+        >
+          <i className="bi bi-arrow-left"></i> Voltar
+        </button>
+
+        <h2 className="page-title">{group.title}</h2>
+
         <RequireAccess nivelMinimo="graduado" requireEditor>
-          <Button onClick={() => setShowNewAlbum(true)}>+ Novo álbum</Button>
+          <Button className="page-cta" onClick={() => setShowNewAlbum(true)}>
+            + Novo álbum
+          </Button>
         </RequireAccess>
       </div>
 
@@ -343,7 +342,6 @@ const AlbumGroup = () => {
                       capa do álbum
                     </div>
                   )}
-
                   <RequireAccess nivelMinimo="graduado" requireEditor>
                     <button
                       type="button"

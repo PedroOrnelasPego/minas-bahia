@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Container, Modal } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
-import { listPhotos, uploadPhotos, deletePhoto } from "../../services/eventos";
-import { listAlbums } from "../../services/eventos";
+import { listPhotos, uploadPhotos, deletePhoto, listAlbums } from "../../services/eventos";
 import "./Eventos.scss";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
 
@@ -180,19 +179,20 @@ const AlbumPage = () => {
 
   return (
     <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <Button
-            variant="link"
-            className="px-0 me-2"
-            onClick={() => navigate(`/eventos/${groupSlug}`)}
-          >
-            ← Voltar
-          </Button>
-          <h2 className="d-inline">{albumTitle || albumSlug}</h2>
-        </div>
+      {/* ===== CABEÇALHO PADRÃO (Voltar | Título | Ações) ===== */}
+      <div className="page-head mb-3">
+        <button
+          type="button"
+          className="page-back"
+          onClick={() => navigate(`/eventos/${groupSlug}`)}
+          aria-label="Voltar para o grupo"
+        >
+          <i className="bi bi-arrow-left" /> Voltar
+        </button>
 
-        <div className="text-end">
+        <h2 className="page-title">{albumTitle || albumSlug}</h2>
+
+        <div className="page-cta">
           <input
             ref={fileInputRef}
             type="file"
@@ -235,9 +235,7 @@ const AlbumPage = () => {
       </div>
 
       {loading ? (
-        <div className="p-4 text-center border rounded bg-white">
-          Carregando…
-        </div>
+        <div className="p-4 text-center border rounded bg-white">Carregando…</div>
       ) : photos.length === 0 ? (
         <div
           className="p-4 text-center border rounded bg-white"
@@ -312,35 +310,21 @@ const AlbumPage = () => {
         <Modal.Body className="p-0 d-flex align-items-center justify-content-center bg-black">
           {total > 0 && photos[viewerIndex] && (
             <>
-              <button
-                className="lightbox-nav left"
-                onClick={goPrev}
-                aria-label="Anterior"
-              >
+              <button className="lightbox-nav left" onClick={goPrev} aria-label="Anterior">
                 ‹
               </button>
 
               <img
                 className="lightbox-img"
                 src={photos[viewerIndex].url}
-                alt={
-                  photos[viewerIndex].displayName || photos[viewerIndex].name
-                }
+                alt={photos[viewerIndex].displayName || photos[viewerIndex].name}
               />
 
-              <button
-                className="lightbox-nav right"
-                onClick={goNext}
-                aria-label="Próxima"
-              >
+              <button className="lightbox-nav right" onClick={goNext} aria-label="Próxima">
                 ›
               </button>
 
-              <button
-                className="lightbox-close"
-                onClick={closeViewer}
-                aria-label="Fechar"
-              >
+              <button className="lightbox-close" onClick={closeViewer} aria-label="Fechar">
                 ×
               </button>
 

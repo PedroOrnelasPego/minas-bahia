@@ -326,66 +326,71 @@ const PainelAdmin = () => {
                         certificadosUsuarios[user.email].length > 0 ? (
                           <>
                             <h5 className="mt-3">Certificados</h5>
-                            <ul className="list-unstyled">
-                              {certificadosUsuarios[user.email].map(
-                                ({ nome }) => {
-                                  const nomeArquivo =
-                                    typeof nome === "string"
-                                      ? nome.split("/").pop()
-                                      : "arquivo";
-                                  const ext = nomeArquivo
-                                    ?.split(".")
-                                    .pop()
-                                    ?.toLowerCase();
-                                  const isPdf = ext === "pdf";
-                                  const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/certificados/${nomeArquivo}`;
+                            <div className="grid-list-3">
+                              <ul className="list-unstyled">
+                                {certificadosUsuarios[user.email].map(
+                                  ({ nome }) => {
+                                    const nomeArquivo =
+                                      typeof nome === "string"
+                                        ? nome.split("/").pop()
+                                        : "arquivo";
+                                    const ext = nomeArquivo
+                                      ?.split(".")
+                                      .pop()
+                                      ?.toLowerCase();
+                                    const isPdf = ext === "pdf";
+                                    const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/certificados/${nomeArquivo}`;
 
-                                  // label legível (remove timestamp do começo, se houver)
-                                  let label = nomeArquivo.replace(/^\d+-/, "");
-                                  try {
-                                    label = decodeURIComponent(label);
-                                  } catch (_) {
-                                    /* ignora */
-                                  }
+                                    // label legível (remove timestamp do começo, se houver)
+                                    let label = nomeArquivo.replace(
+                                      /^\d+-/,
+                                      ""
+                                    );
+                                    try {
+                                      label = decodeURIComponent(label);
+                                    } catch (_) {
+                                      /* ignora */
+                                    }
 
-                                  return (
-                                    <li
-                                      key={nome}
-                                      className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
-                                    >
-                                      <span
-                                        className="text-truncate"
-                                        style={{ maxWidth: "60%" }}
+                                    return (
+                                      <li
+                                        key={nome}
+                                        className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
                                       >
-                                        {label}
-                                      </span>
-                                      <div className="d-flex gap-2">
-                                        <button
-                                          className="btn btn-sm btn-outline-primary"
-                                          onClick={() => {
-                                            setPreviewIsPdf(isPdf);
-                                            setPreviewUrl(fullUrl);
-                                            setShowPreview(true);
-                                          }}
+                                        <span
+                                          className="text-truncate"
+                                          style={{ maxWidth: "60%" }}
                                         >
-                                          {isPdf
-                                            ? "📄 Visualizar"
-                                            : "🔍 Visualizar"}
-                                        </button>
-                                        <button
-                                          className="btn btn-sm btn-outline-success"
-                                          onClick={() =>
-                                            handleDownload(fullUrl)
-                                          }
-                                        >
-                                          ⬇️ Download
-                                        </button>
-                                      </div>
-                                    </li>
-                                  );
-                                }
-                              )}
-                            </ul>
+                                          {label}
+                                        </span>
+                                        <div className="d-flex gap-2">
+                                          <button
+                                            className="btn btn-sm btn-outline-primary"
+                                            onClick={() => {
+                                              setPreviewIsPdf(isPdf);
+                                              setPreviewUrl(fullUrl);
+                                              setShowPreview(true);
+                                            }}
+                                          >
+                                            {isPdf
+                                              ? "📄 Visualizar"
+                                              : "🔍 Visualizar"}
+                                          </button>
+                                          <button
+                                            className="btn btn-sm btn-outline-success"
+                                            onClick={() =>
+                                              handleDownload(fullUrl)
+                                            }
+                                          >
+                                            ⬇️ Download
+                                          </button>
+                                        </div>
+                                      </li>
+                                    );
+                                  }
+                                )}
+                              </ul>
+                            </div>
                           </>
                         ) : (
                           <p className="text-muted mt-3 mb-0">

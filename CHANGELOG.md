@@ -19,7 +19,7 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Corrigido
 
-- Corrigido chamada duplicada na API
+- Corrigido chamada duplicada na API de eventos
 
 ## [3.0.0] (CHANGELOG.md#300) - 2025-09-17
 

@@ -1,8 +1,28 @@
+// src/services/eventos.js
 import http from "./http";
+import axios from "axios";
+
+// Helper: aplica abort compatível (signal ou CancelToken)
+function withAbort(config = {}, signal) {
+  if (!signal) return config;
+  const cfg = { ...config, signal };
+  // Fallback p/ Axios < 1 (CancelToken)
+  if (axios.CancelToken && !cfg.cancelToken) {
+    const src = axios.CancelToken.source();
+    cfg.cancelToken = src.token;
+    if (signal.aborted) {
+      src.cancel("aborted");
+    } else {
+      signal.addEventListener("abort", () => src.cancel("aborted"));
+    }
+  }
+  return cfg;
+}
 
 /** GRUPOS */
-export async function listGroups() {
-  const { data } = await http.get("/eventos/groups");
+export async function listGroups(opts = {}) {
+  const { signal } = opts;
+  const { data } = await http.get("/eventos/groups", withAbort({}, signal));
   return Array.isArray(data) ? data : data.groups || [];
 }
 
@@ -22,16 +42,18 @@ export async function uploadGroupCover(groupSlug, file, name) {
   const { data } = await http.post(
     `/eventos/groups/${groupSlug}/cover${qs}`,
     fd,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    }
+    { headers: { "Content-Type": "multipart/form-data" } }
   );
   return data; // { url }
 }
 
 /** ÁLBUNS */
-export async function listAlbums(groupSlug) {
-  const { data } = await http.get(`/eventos/${groupSlug}/albums`);
+export async function listAlbums(groupSlug, opts = {}) {
+  const { signal } = opts;
+  const { data } = await http.get(
+    `/eventos/${groupSlug}/albums`,
+    withAbort({}, signal)
+  );
   return Array.isArray(data) ? data : data.albums || [];
 }
 
@@ -57,8 +79,12 @@ export async function uploadAlbumCover(groupSlug, albumSlug, file, name) {
 }
 
 /** FOTOS */
-export async function listPhotos(groupSlug, albumSlug) {
-  const { data } = await http.get(`/eventos/${groupSlug}/${albumSlug}/photos`);
+export async function listPhotos(groupSlug, albumSlug, opts = {}) {
+  const { signal } = opts;
+  const { data } = await http.get(
+    `/eventos/${groupSlug}/${albumSlug}/photos`,
+    withAbort({}, signal)
+  );
   return Array.isArray(data) ? data : data.photos || [];
 }
 
@@ -80,9 +106,7 @@ export async function deletePhoto(groupSlug, albumSlug, name) {
 
 // grupos
 export async function updateGroupTitle(groupSlug, title) {
-  const { data } = await http.put(`/eventos/groups/${groupSlug}/title`, {
-    title,
-  });
+  const { data } = await http.put(`/eventos/groups/${groupSlug}/title`, { title });
   return data;
 }
 

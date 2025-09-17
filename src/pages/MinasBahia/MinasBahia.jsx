@@ -40,9 +40,9 @@ const MinasBahia = () => {
           com mais equidade.
         </p>
       </div>
-      <div className="flex justify-around flex-wrap">
-        <img className="max-h-64" src={selo} alt="" />
-        <img className="max-h-64" src={logo} alt="" />
+      <div className="flex justify-around  flex-wrap">
+        <img className="max-h-64 my-6" src={selo} alt="selo minas bahia" />
+        <img className="max-h-64 my-6" src={logo} alt="logo minas bahia" />
       </div>
       <div>
         <p className="mt-3">
@@ -65,8 +65,8 @@ const MinasBahia = () => {
           trabalhos e as atividades do grupo/coletivo Capoeira Minas Bahia.
         </p>
       </div>
-      <div className="mt-48 ">
-        <div className="mb-10">
+      <div className="mt-22">
+        <div className="mb-1">
           <h1 className="text-center">Sistema de Graduação</h1>
         </div>
         <div className="flex gap-5 flex-wrap justify-center">

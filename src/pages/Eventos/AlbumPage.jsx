@@ -1,6 +1,12 @@
-// src/pages/Eventos/AlbumPage.jsx
-import { useEffect, useRef, useState } from "react";
-import { Alert, Button, Container, Modal } from "react-bootstrap";
+import { useEffect, useRef, useState, useMemo } from "react";
+import {
+  Alert,
+  Button,
+  Container,
+  Modal,
+  Placeholder,
+  ProgressBar,
+} from "react-bootstrap";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { listPhotos, uploadPhotos, deletePhoto } from "../../services/eventos";
 import "./Eventos.scss";
@@ -8,7 +14,7 @@ import RequireAccess from "../../components/RequireAccess/RequireAccess";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const MAX_PER_UPLOAD = 10;
+const MAX_PER_UPLOAD = 25;
 // Tamanho VISUAL da miniatura (3:2). O servidor entrega 1x/2x com nitidez.
 const THUMB_W = 420;
 const THUMB_H = 280;
@@ -27,10 +33,15 @@ const AlbumPage = () => {
 
   const [loading, setLoading] = useState(true);
   const [photos, setPhotos] = useState([]); // [{name, displayName, url, ...}]
-  const [pending, setPending] = useState([]);
+  const [pending, setPending] = useState([]); // [{file, url, status: 'queued'|'uploading'|'done'|'error'}]
   const [warnMsg, setWarnMsg] = useState("");
   const [infoMsg, setInfoMsg] = useState("");
   const [albumTitle, setAlbumTitle] = useState("");
+
+  // envio / progresso
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadIndex, setUploadIndex] = useState(0); // 0..n-1 do pending
+  const [overallProgress, setOverallProgress] = useState(0); // 0..100
 
   // lightbox
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -41,6 +52,17 @@ const AlbumPage = () => {
   // cancelamento/concorrência
   const abortRef = useRef(null);
   const reqSeq = useRef(0);
+
+  // --- DEBUG FLAG: ?skeleton=1 ou localStorage 'debug:skeleton' === '1'
+  const forceSkeleton = useMemo(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.has("skeleton")) return true;
+      return localStorage.getItem("debug:skeleton") === "1";
+    } catch {
+      return false;
+    }
+  }, []);
 
   // boot com state + cache instantâneo
   useEffect(() => {
@@ -196,6 +218,13 @@ const AlbumPage = () => {
     fileInputRef.current?.click();
   };
 
+  // cria URL de preview e item de fila
+  const toPendingItem = (file) => ({
+    file,
+    url: URL.createObjectURL(file),
+    status: "queued", // 'queued' | 'uploading' | 'done' | 'error'
+  });
+
   const addFilesToPending = (fileList) => {
     const files = Array.from(fileList || []);
     if (!files.length) return;
@@ -210,7 +239,7 @@ const AlbumPage = () => {
     const allowed = files.slice(0, remaining);
     const ignored = files.length - allowed.length;
 
-    setPending((prev) => [...prev, ...allowed]);
+    setPending((prev) => [...prev, ...allowed.map(toPendingItem)]);
 
     if (ignored > 0) {
       setWarnMsg(`${ignored} arquivo(s) ignorado(s) por exceder o limite.`);
@@ -228,27 +257,91 @@ const AlbumPage = () => {
   };
 
   const removePending = (idx) => {
-    setPending((prev) => prev.filter((_, i) => i !== idx));
+    setPending((prev) => {
+      const item = prev[idx];
+      if (item?.url) URL.revokeObjectURL(item.url);
+      const next = prev.filter((_, i) => i !== idx);
+      const nextLen = Math.max(0, next.length);
+      setInfoMsg(
+        nextLen > 0 ? `Selecionados: ${nextLen}/${MAX_PER_UPLOAD}` : ""
+      );
+      return next;
+    });
     setWarnMsg("");
-    const nextLen = Math.max(0, pending.length - 1);
-    setInfoMsg(nextLen > 0 ? `Selecionados: ${nextLen}/${MAX_PER_UPLOAD}` : "");
   };
 
   const clearPending = () => {
-    setPending([]);
+    setPending((prev) => {
+      prev.forEach((p) => p?.url && URL.revokeObjectURL(p.url));
+      return [];
+    });
     setWarnMsg("");
     setInfoMsg("");
   };
 
+  // envio sequencial para mostrar status por item
   const handleSend = async () => {
-    if (pending.length === 0) return;
-    try {
-      await uploadPhotos(groupSlug, albumSlug, pending);
-      clearPending();
+    if (pending.length === 0 || isUploading) return;
+
+    setIsUploading(true);
+    setUploadIndex(0);
+    setOverallProgress(0);
+
+    let sent = 0;
+
+    for (let i = 0; i < pending.length; i++) {
+      setUploadIndex(i);
+      // marca como "uploading"
+      setPending((prev) =>
+        prev.map((it, idx) => (idx === i ? { ...it, status: "uploading" } : it))
+      );
+
+      try {
+        // usa a mesma API, porém 1 arquivo por vez p/ termos granularidade
+        await uploadPhotos(groupSlug, albumSlug, [pending[i].file]);
+
+        // sucesso → done
+        setPending((prev) =>
+          prev.map((it, idx) => (idx === i ? { ...it, status: "done" } : it))
+        );
+        sent += 1;
+      } catch (e) {
+        console.error("Erro ao enviar foto:", e);
+        // erro → marca e segue com as demais
+        setPending((prev) =>
+          prev.map((it, idx) => (idx === i ? { ...it, status: "error" } : it))
+        );
+      } finally {
+        // progresso global baseado nos itens concluídos (ok ou erro)
+        const pct = Math.round(((i + 1) / pending.length) * 100);
+        setOverallProgress(pct);
+      }
+    }
+
+    setIsUploading(false);
+
+    // remove do pending os que foram enviados com sucesso, mantém erros na fila
+    setPending((prev) => {
+      prev.forEach((p) => {
+        if (p.status === "done" && p.url) URL.revokeObjectURL(p.url);
+      });
+      const onlyErrors = prev.filter((p) => p.status !== "done");
+      const nextLen = Math.max(0, onlyErrors.length);
+      setInfoMsg(
+        nextLen > 0
+          ? `Restantes (com erro ou pendentes): ${nextLen}/${MAX_PER_UPLOAD}`
+          : ""
+      );
+      if (nextLen > 0) {
+        setWarnMsg("Alguns arquivos falharam. Tente reenviar os restantes.");
+      } else {
+        setWarnMsg("");
+      }
+      return onlyErrors;
+    });
+
+    if (sent > 0) {
       await refresh();
-    } catch (e) {
-      console.error("Erro ao enviar fotos:", e);
-      alert("Erro ao enviar fotos.");
     }
   };
 
@@ -285,6 +378,40 @@ const AlbumPage = () => {
       name
     )}?w=${Math.round(w * dpr)}&h=${Math.round(h * dpr)}&fit=cover`;
 
+  // ===== Skeleton no padrão dos cards =====
+  const SkeletonGrid = useMemo(() => {
+    const CardSkeleton = () => (
+      <div className="cards-eventos skeleton">
+        <div className="skeleton-shimmer" />
+        <div className="card-overlay-title">
+          <Placeholder animation="glow">
+            <Placeholder xs={6} />{" "}
+          </Placeholder>
+          <div className="card-sub">
+            <Placeholder animation="glow">
+              <Placeholder xs={3} />
+            </Placeholder>
+          </div>
+        </div>
+      </div>
+    );
+    return (
+      <div className="d-flex flex-wrap gap-3 items-center justify-content-center">
+        {Array.from({ length: 8 }, (_, i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }, []);
+
+  // limpa URLs de preview ao desmontar
+  useEffect(() => {
+    return () => {
+      pending.forEach((p) => p?.url && URL.revokeObjectURL(p.url));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <Container className="py-4">
       {/* ===== CABEÇALHO PADRÃO (Voltar | Título | Ações) ===== */}
@@ -312,24 +439,42 @@ const AlbumPage = () => {
 
           <RequireAccess nivelMinimo="graduado" requireEditor>
             <div className="d-flex flex-wrap gap-2 justify-content-end">
-              <Button variant="outline-primary" onClick={openPicker}>
+              <Button
+                variant="outline-primary"
+                onClick={openPicker}
+                disabled={isUploading || pending.length >= MAX_PER_UPLOAD}
+              >
                 + Selecionar fotos
               </Button>
-              <Button onClick={handleSend} disabled={pending.length === 0}>
-                Enviar{" "}
-                {pending.length > 0
-                  ? `(${pending.length}/${MAX_PER_UPLOAD})`
-                  : ""}
+              <Button
+                onClick={handleSend}
+                disabled={pending.length === 0 || isUploading}
+              >
+                {isUploading
+                  ? `Enviando (${Math.min(uploadIndex + 1, pending.length)}/${
+                      pending.length
+                    })`
+                  : `Enviar${
+                      pending.length
+                        ? ` (${pending.length}/${MAX_PER_UPLOAD})`
+                        : ""
+                    }`}
               </Button>
               <Button
                 variant="outline-secondary"
                 onClick={clearPending}
-                disabled={pending.length === 0}
+                disabled={pending.length === 0 || isUploading}
               >
                 Limpar seleção
               </Button>
             </div>
           </RequireAccess>
+
+          {isUploading && (
+            <div className="mt-2">
+              <ProgressBar now={overallProgress} animated striped />
+            </div>
+          )}
 
           {warnMsg && (
             <Alert variant="warning" className="py-1 px-2 mt-2 mb-0">
@@ -342,10 +487,74 @@ const AlbumPage = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="p-4 text-center border rounded bg-white">
-          Carregando…
+      {/* Lista de arquivos selecionados (pré-visualização) */}
+      {pending.length > 0 && (
+        <div
+          className="border rounded p-2 mb-3"
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+        >
+          <div className="d-flex flex-wrap gap-2 justify-content-center">
+            {pending.map((p, idx) => (
+              <div
+                key={idx}
+                className="photo-card"
+                style={{ width: 180, height: 120, position: "relative" }}
+                title={p.file.name}
+              >
+                <img
+                  src={p.url}
+                  alt={p.file.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+                {/* status overlay */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 6,
+                    bottom: 6,
+                    background: "rgba(0,0,0,.55)",
+                    color: "#fff",
+                    borderRadius: 6,
+                    padding: "2px 6px",
+                    fontSize: 12,
+                  }}
+                >
+                  {p.status === "queued" && "Fila"}
+                  {p.status === "uploading" && "Enviando…"}
+                  {p.status === "done" && "OK"}
+                  {p.status === "error" && "Erro"}
+                </div>
+
+                <button
+                  type="button"
+                  className="photo-del"
+                  title="Remover da seleção"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isUploading) return;
+                    removePending(idx);
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-2 text-center small text-muted">
+            {pending[uploadIndex]?.file?.name
+              ? `Atual: ${pending[uploadIndex].file.name} (${Math.round(
+                  pending[uploadIndex].file.size / 1024
+                )} KB)`
+              : null}
+          </div>
         </div>
+      )}
+
+      {/* GRID / SKELETON */}
+      {loading || forceSkeleton ? (
+        <div className="p-2">{SkeletonGrid}</div>
       ) : photos.length === 0 ? (
         <div
           className="p-4 text-center border rounded bg-white"

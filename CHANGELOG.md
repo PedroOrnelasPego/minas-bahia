@@ -17,9 +17,19 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 
 ==============
 
+## [4.0.0] (CHANGELOG.md#300) - 2025-09-17
+
+### Alterado
+
+- Novo input de fotos com load melhorado
+- Aceita agora 25 fotos por download
+
 ### Corrigido
 
 - Corrigido chamada duplicada na API de eventos
+- Carregamentos sem skeleton
+- Corrigido responsividade da home e dos cards parceiros
+- Corrigido imagem que ficava muito pequena na home
 
 ## [3.0.0] (CHANGELOG.md#300) - 2025-09-17
 

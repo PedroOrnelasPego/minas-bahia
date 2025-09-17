@@ -227,7 +227,7 @@ const Eventos = () => {
     );
     return (
       <div className="d-flex flex-wrap gap-3 items-center justify-content-center">
-        {Array.from({ length: 3 }, (_, i) => (
+        {Array.from({ length: 6 }, (_, i) => (
           <CardSkeleton key={i} />
         ))}
       </div>

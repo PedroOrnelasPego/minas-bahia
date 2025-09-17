@@ -25,22 +25,19 @@ const Parceiros = () => {
       <h1 className="">Parceiros</h1>
       <Carousel
         responsive={responsive}
-        infinite={true}
-        autoPlay={true}
+        infinite
+        autoPlay
         autoPlaySpeed={3000}
-        keyBoardControl={true}
+        keyBoardControl
         customTransition="all 0.5s"
         transitionDuration={500}
         removeArrowOnDeviceType={["tablet", "mobile"]}
+        itemClass="partner-item" // << novo
       >
-        {images.map((src, index) => (
-          <div key={index} className="carousel-item-wrapper">
+        {images.map((src, i) => (
+          <div key={i} className="carousel-item-wrapper">
             <Card className="card-carousel">
-              <img
-                src={src}
-                alt={`Slide ${index}`}
-                className="carousel-image"
-              />
+              <img src={src} alt={`Slide ${i}`} className="carousel-image" />
             </Card>
           </div>
         ))}

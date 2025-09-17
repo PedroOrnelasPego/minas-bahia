@@ -468,11 +468,12 @@ const AreaGraduado = () => {
         </Col>
       </Row>
 
-      {/* Arquivos Pessoais */}
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3">
-            <Certificados email={userData.email} />
+            <div className="grid-list-3">
+              <Certificados email={userData.email} />
+            </div>
           </Col>
         </Row>
       )}
@@ -483,7 +484,9 @@ const AreaGraduado = () => {
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Alunos</h5>
             <p>Área para documentos de download público</p>
-            <FileSection pasta="aluno" canUpload={isMestre} />
+            <div className="grid-list-3">
+              <FileSection pasta="aluno" canUpload={isMestre} />
+            </div>
           </Col>
         </Row>
       )}

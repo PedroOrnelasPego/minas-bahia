@@ -207,3 +207,104 @@
   color: #667085;
   margin-top: 2px;
 }
+
+/* ============================
+   HEADER RESPONSIVO DE EVENTOS
+   ============================ */
+.eventos-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;  /* permite quebrar linha */
+  gap: .75rem;
+}
+
+.eventos-head .eventos-title {
+  margin: 0;
+  position: absolute;   /* centralizado no desktop */
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.eventos-head .btn-new-group {
+  margin-left: auto;     /* fica à direita */
+}
+
+/* Mobile/SM: botão em cima, título embaixo */
+@media (max-width: 768px) {
+  .eventos-head .eventos-title {
+    position: static;
+    transform: none;
+    order: 2;          /* título depois */
+    width: 100%;
+    text-align: center;
+  }
+  .eventos-head .btn-new-group {
+    order: 1;          /* botão primeiro (em cima) */
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+/* ===== Page Head (Voltar | Título | CTA) ===== */
+.page-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;   /* permite quebrar */
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+
+/* Título central absoluto no desktop */
+.page-head .page-title {
+  margin: 0;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* CTA à direita */
+.page-head .page-cta {
+  margin-left: auto;
+}
+
+/* Link Voltar com seta via Bootstrap Icons */
+.page-head .page-back {
+  border: 0;
+  background: transparent;
+  color: #0d6efd;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+
+  /* um tico acima da linha do título, como pedido */
+  position: relative;
+  top: -2px;
+}
+.page-head .page-back:hover {
+  text-decoration: underline;
+}
+
+/* Responsivo: título “desgruda” do absoluto e centraliza em linha própria */
+@media (max-width: 768px) {
+  .page-head .page-title {
+    position: static;
+    transform: none;
+    width: 100%;
+    text-align: center;
+    order: 2;
+  }
+  .page-head .page-back {
+    order: 1;
+    top: 0; /* não precisa subir no mobile */
+  }
+  .page-head .page-cta {
+    order: 3;
+    margin-left: auto;
+  }
+}

@@ -42,7 +42,7 @@ export function AppRoutes() {
         }
       />
       <Route
-        path="/area-graduado/painel-admin"
+        path="/painel-admin"
         element={
           <ProtectedRoute>
             <PainelAdmin />

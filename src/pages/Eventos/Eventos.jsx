@@ -186,13 +186,12 @@ const Eventos = () => {
 
   return (
     <Container className="py-4">
-      <div className="d-flex align-items-center mb-10 position-relative">
-        <h1 className="mb-0 position-absolute start-50 translate-middle-x">
-          Eventos
-        </h1>
+      {/* HEADER: em telas menores o botão sobe e o título vai para baixo */}
+      <div className="eventos-head mb-10">
+        <h1 className="eventos-title">Eventos</h1>
 
         <RequireAccess nivelMinimo="graduado" requireEditor>
-          <Button className="ms-auto" onClick={() => setShowNewGroup(true)}>
+          <Button className="btn-new-group" onClick={() => setShowNewGroup(true)}>
             + Novo grupo
           </Button>
         </RequireAccess>

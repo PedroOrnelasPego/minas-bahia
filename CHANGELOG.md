@@ -4,8 +4,6 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)  
 e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 
-## [3.0.0] (CHANGELOG.md#110) - 2025-09-16
-## [Versão] - AAAA-MM-DD
 ### Adicionado
 ### Alterado
 ### Corrigido
@@ -13,6 +11,7 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 ### Depreciado
 
 
+## [3.0.0] (CHANGELOG.md#300) - 2025-09-17
 
 ### Alterado
 

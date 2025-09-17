@@ -1,18 +1,19 @@
 /* Define a largura padrão para telas pequenas */
 .about-image {
-    width: 500px;
+    width: 1500px;
   }
   
   /* Em telas maiores (por exemplo, a partir de 992px de largura) aumenta a largura */
-  @media (min-width: 992px) {
+  @media (max-width: 1195px) {
     .about-image {
-      width: 1200px;
+      width: 2200px;
     }
   }
 
-  @media (max-width: 992px) {
+  @media (max-width: 993px) {
     .about-image {
-      width: 300px;
+      width: 2200px;
+      
     }
   }
-  
+

@@ -7,7 +7,7 @@ const About = () => {
     <Container className="mt-3">
       <div className="p-2">
         <h1 className="text-center mb-4">Bem-vindos ao ICMBC</h1>
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-24">
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
           {/* Área do texto */}
           <div className="flex-grow-1">
             <p className="mb-3" style={{ textAlign: "justify" }}>
@@ -33,7 +33,7 @@ const About = () => {
             </p>
           </div>
           {/* Área da imagem */}
-          <div className="mt-4 mt-md-0">
+          <div className="mt-4 mt-md-0 text-center text-md-end">
             <img
               src={minas}
               alt="Logo do ICMBC"

@@ -3,11 +3,9 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import {
   Button,
   Card,
-  Col,
   Container,
   Form,
   Modal,
-  Row,
   Placeholder,
 } from "react-bootstrap";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -319,31 +317,30 @@ const AlbumGroup = () => {
       state: { group, album },
     });
 
-  // Skeleton
+  // ===== Skeleton (mesmo padrão da tela de grupos/Eventos) =====
   const SkeletonGrid = useMemo(() => {
     const CardSkeleton = () => (
-      <Col xs={12} sm={6} md={4} lg={3}>
-        <div className="cards-eventos skeleton">
-          <div className="skeleton-shimmer" />
-          <div className="card-overlay-title">
+      <div className="cards-eventos skeleton">
+        <div className="skeleton-shimmer" />
+        <div className="card-overlay-title">
+          <Placeholder animation="glow">
+            <Placeholder xs={6} />{" "}
+          </Placeholder>
+          <div className="card-sub">
             <Placeholder animation="glow">
-              <Placeholder xs={6} />
+              <Placeholder xs={3} />
             </Placeholder>
-            <div className="card-sub">
-              <Placeholder animation="glow">
-                <Placeholder xs={3} />
-              </Placeholder>
-            </div>
           </div>
         </div>
-      </Col>
+      </div>
     );
+
     return (
-      <Row className="g-3">
-        {Array.from({ length: 8 }, (_, i) => (
+      <div className="d-flex flex-wrap gap-3 items-center justify-content-center">
+        {Array.from({ length: 6 }, (_, i) => (
           <CardSkeleton key={i} />
         ))}
-      </Row>
+      </div>
     );
   }, []);
 
@@ -367,7 +364,7 @@ const AlbumGroup = () => {
             </Button>
           </RequireAccess>
         </div>
-        {SkeletonGrid}
+        <div className="p-2">{SkeletonGrid}</div>
       </Container>
     );
   }

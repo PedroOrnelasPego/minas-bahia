@@ -10,7 +10,7 @@ export const LOCAIS = {
       {
         value: "20-21h30-adultos",
         label: "20h às 21:30h - Adolescentes e adultos.",
-        professorLabel: "Costela, Paulista e Shaman",
+        professorLabel: "Mestre Costela, Paulista e Shaman",
       },
     ],
   },

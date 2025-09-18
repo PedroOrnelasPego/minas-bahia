@@ -186,10 +186,11 @@ const AlbumPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupSlug, albumSlug]);
 
-  useEffect(() => {
-    const t = albumTitle || albumSlug;
-    document.title = `${t} | ${groupSlug} | Eventos`;
-  }, [albumTitle, groupSlug, albumSlug]);
+  
+  //useEffect(() => {
+    //const t = albumTitle || albumSlug;
+    //document.title = `${t} | ${groupSlug} | Eventos`;
+  //}, [albumTitle, groupSlug, albumSlug]);
 
   // ===== Lightbox =====
   const total = photos.length;

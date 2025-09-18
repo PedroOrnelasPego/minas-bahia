@@ -51,18 +51,22 @@ const EditAlbumModal = ({ show, initial, onClose, onSave }) => {
       title: title.trim(),
       newCoverFile: removeCover ? null : coverFile || null,
       removeCover,
-      coverUrl: removeCover ? "" : (coverFile ? coverPreview : initial?.coverUrl || ""),
+      coverUrl: removeCover
+        ? ""
+        : coverFile
+        ? coverPreview
+        : initial?.coverUrl || "",
     });
   };
 
   const dirty =
-    title.trim() !== (initial?.title || "") ||
-    !!coverFile ||
-    removeCover;
+    title.trim() !== (initial?.title || "") || !!coverFile || removeCover;
 
   return (
     <Modal show={show} onHide={onClose} centered>
-      <Modal.Header closeButton><Modal.Title>Editar álbum</Modal.Title></Modal.Header>
+      <Modal.Header closeButton>
+        <Modal.Title>Editar álbum</Modal.Title>
+      </Modal.Header>
       <Modal.Body>
         <Form>
           <Form.Group className="mb-3">
@@ -71,7 +75,11 @@ const EditAlbumModal = ({ show, initial, onClose, onSave }) => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ex.: 2024"
+              disabled
             />
+            <Form.Text className="text-muted">
+              Edição de título desabilitado temporariamente
+            </Form.Text>
           </Form.Group>
 
           <Form.Group>
@@ -93,8 +101,11 @@ const EditAlbumModal = ({ show, initial, onClose, onSave }) => {
                     src={coverPreview}
                     alt="Prévia da capa"
                     style={{
-                      width: 180, height: 120, objectFit: "cover",
-                      borderRadius: 6, border: "1px solid #ddd"
+                      width: 180,
+                      height: 120,
+                      objectFit: "cover",
+                      borderRadius: 6,
+                      border: "1px solid #ddd",
                     }}
                   />
                   <Button
@@ -113,7 +124,9 @@ const EditAlbumModal = ({ show, initial, onClose, onSave }) => {
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+        <Button variant="secondary" onClick={onClose}>
+          Cancelar
+        </Button>
         <Button variant="primary" onClick={handleSave} disabled={!dirty}>
           Salvar
         </Button>

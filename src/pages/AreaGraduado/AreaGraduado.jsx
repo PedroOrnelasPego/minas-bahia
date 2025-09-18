@@ -30,6 +30,25 @@ const API_URL = import.meta.env.VITE_API_URL;
 // evita 1º efeito duplicado no StrictMode (apenas DEV)
 const DEV_STRICT_DEBOUNCE_MS = 30;
 
+/* ============================
+   Enum/labels de nível de acesso
+   ============================ */
+const NIVEL_LABELS = {
+  visitante: "Visitante",
+  aluno: "Aluno",
+  graduado: "Graduado",
+  monitor: "Monitor",
+  instrutor: "Instrutor",
+  professor: "Professor",
+  contramestre: "Contramestre",
+};
+
+function getNivelLabel(nivel) {
+  if (!nivel) return "";
+  const key = String(nivel).trim().toLowerCase();
+  return NIVEL_LABELS[key] || "";
+}
+
 const AreaGraduado = () => {
   const { instance, accounts } = useMsal();
 
@@ -45,7 +64,7 @@ const AreaGraduado = () => {
     numero: "",
     endereco: "",
     dataNascimento: "",
-    nivelAcesso: "",
+    nivelAcesso: "", // <- vem do backend e alimenta o label dinâmico
   });
 
   const [formEdit, setFormEdit] = useState(null);
@@ -356,6 +375,9 @@ const AreaGraduado = () => {
     setShowAvatarModal(true);
   };
 
+  // label dinâmico do nível
+  const nivelDisplay = getNivelLabel(perfil.nivelAcesso) || "-";
+
   return (
     <Container fluid className="min-h-screen p-4">
       {feedback.show && (
@@ -372,7 +394,7 @@ const AreaGraduado = () => {
       <Row className="mb-4">
         <Col className="bg-light p-3">
           <h4>
-            Graduado(a): {perfil.nome || userData.nome}
+            {nivelDisplay}(a): {perfil.nome || userData.nome}
             {perfil.apelido ? ` - ${perfil.apelido}` : ""}
           </h4>
         </Col>

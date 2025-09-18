@@ -1,3 +1,6 @@
+/* =========================
+   CARDS (capa de eventos)
+   ========================= */
 .cards-eventos {
   position: relative;
   width: 350px;
@@ -93,7 +96,59 @@
   right: 46px;
 } /* lixeira fica à esquerda do lápis */
 
-/* === GRADE DE FOTOS DO ÁLBUM === */
+/* =========================
+   CARD CONTAINER / TITLES
+   - impede o título extrapolar
+   ========================= */
+.event-card {
+  /* a figure que envolve o card + legenda */
+  width: 350px; /* mesma largura do .cards-eventos */
+  max-width: 100%;
+  display: inline-block; /* evita esticar numa linha flex */
+}
+
+.event-card .cards-eventos {
+  /* garante que a capa siga a largura do contêiner quando
+     a figure ficar fluida no mobile */
+  width: 350px;
+  max-width: 100%;
+}
+
+.card-caption {
+  margin-top: 6px;
+  width: 100%; /* mesma largura do .event-card */
+}
+
+.card-caption .card-title {
+  font-weight: 600;
+  color: #1f2328;
+  line-height: 1.25;
+  /* quebras garantidas */
+  white-space: normal;
+  overflow-wrap: anywhere; /* quebra em qualquer ponto se precisar */
+  word-break: break-word; /* fallback */
+}
+
+.card-caption .card-meta {
+  font-size: 0.9rem;
+  color: #667085;
+  margin-top: 2px;
+}
+
+/* Responsivo: em telas estreitas a figure vira fluida */
+@media (max-width: 420px) {
+  .event-card {
+    width: 100%;
+    max-width: 350px;
+  }
+  .event-card .cards-eventos {
+    width: 100%;
+  }
+}
+
+/* =========================
+   GRADE DE FOTOS DO ÁLBUM
+   ========================= */
 .album-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -131,7 +186,7 @@
   background: rgba(0, 0, 0, 0.75);
 }
 
-/* === LIGHTBOX === */
+/* ============ LIGHTBOX ============ */
 .lightbox-img {
   max-width: 92vw;
   max-height: 86vh;
@@ -194,40 +249,26 @@
   opacity: 0.9;
 }
 
-.card-caption {
-  margin-top: 6px;
-}
-.card-caption .card-title {
-  font-weight: 600;
-  color: #1f2328;
-  line-height: 1.25;
-}
-.card-caption .card-meta {
-  font-size: 0.9rem;
-  color: #667085;
-  margin-top: 2px;
-}
-
-/* ============================
+/* =========================
    HEADER RESPONSIVO DE EVENTOS
-   ============================ */
+   ========================= */
 .eventos-head {
   position: relative;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;  /* permite quebrar linha */
-  gap: .75rem;
+  flex-wrap: wrap; /* permite quebrar linha */
+  gap: 0.75rem;
 }
 
 .eventos-head .eventos-title {
   margin: 0;
-  position: absolute;   /* centralizado no desktop */
+  position: absolute; /* centralizado no desktop */
   left: 50%;
   transform: translateX(-50%);
 }
 
 .eventos-head .btn-new-group {
-  margin-left: auto;     /* fica à direita */
+  margin-left: auto; /* fica à direita */
 }
 
 /* Mobile/SM: botão em cima, título embaixo */
@@ -235,12 +276,12 @@
   .eventos-head .eventos-title {
     position: static;
     transform: none;
-    order: 2;          /* título depois */
+    order: 2; /* título depois */
     width: 100%;
     text-align: center;
   }
   .eventos-head .btn-new-group {
-    order: 1;          /* botão primeiro (em cima) */
+    order: 1; /* botão primeiro (em cima) */
     margin-left: 0;
     margin-right: 0;
   }
@@ -251,17 +292,18 @@
   position: relative;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;   /* permite quebrar */
-  gap: .75rem;
+  flex-wrap: wrap; /* permite quebrar */
+  gap: 0.75rem;
   margin-bottom: 1rem;
 }
 
-/* Título central absoluto no desktop */
+/* Título central – agora em linha própria por padrão */
 .page-head .page-title {
   margin: 0;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  width: 100%;
+  text-align: center;
+  position: static;
+  transform: none;
 }
 
 /* CTA à direita */
@@ -277,12 +319,10 @@
   padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
+  gap: 0.35rem;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
-
-  /* um tico acima da linha do título, como pedido */
   position: relative;
   top: -2px;
 }
@@ -290,7 +330,7 @@
   text-decoration: underline;
 }
 
-/* Responsivo: título “desgruda” do absoluto e centraliza em linha própria */
+/* Mobile */
 @media (max-width: 768px) {
   .page-head .page-title {
     position: static;
@@ -301,7 +341,7 @@
   }
   .page-head .page-back {
     order: 1;
-    top: 0; /* não precisa subir no mobile */
+    top: 0;
   }
   .page-head .page-cta {
     order: 3;

@@ -4,7 +4,7 @@ export const LOCAIS = {
     horarios: [
       {
         value: "19-20-criancas",
-        label: "19h às 20h - Crianças de 6 à 12 anos.",
+        label: "19h às 20h - Crianças de 6 a 12 anos.",
         professorLabel: "Shaman",
       },
       {

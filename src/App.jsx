@@ -6,6 +6,9 @@ import MenuEvento from "./components/MenuEvento";
 import WhatsAppButton from "./components/WhatsAppButton";
 import "./App.css";
 
+//Em baixo do TheFooter
+//<WhatsAppButton />
+
 function App() {
   return (
     <>
@@ -15,7 +18,6 @@ function App() {
       </Container>
       <MenuEvento />
       <TheFooter />
-      <WhatsAppButton />
     </>
   );
 }

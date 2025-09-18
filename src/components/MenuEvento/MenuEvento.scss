@@ -1,98 +1,79 @@
+/* container já existente */
 .floating-menu {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  z-index: 1000;
-  width: 200px;
+  position: fixed; /* supondo que já era fixed no seu CSS */
+  bottom: 24px;
+  left: 24px; /* mantenha como já está no projeto, se for outro canto ok */
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 
-.menu-evento-card {
-  cursor: pointer;
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: translateY(-5px);
-  }
-}
-
+/* Ícone flutuante existente (mantido) */
 .floating-button {
-  display: none;
-  background-color: #007bff;
-  color: white;
+  width: 48px;
+  height: 48px;
   border: none;
   border-radius: 50%;
-  width: 56px;
-  height: 56px;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  font-size: 22px;
   cursor: pointer;
-  z-index: 1001;
 }
 
-/* Breakpoints progressivos */
-@media (max-width: 1920px) {
-  .floating-menu {
-    left: 54px;
-    width: 200px;
+/* Balão azul (sem mudança aqui) */
+.event-balloon {
+  background: #0d6efd;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.2;
+  padding: 8px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+  user-select: none;
+  animation: fadeIn 0.35s ease-out;
+}
+
+/* AGORA: seta apontando para a ESQUERDA */
+.event-balloon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: -6px; /* seta do lado esquerdo */
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent #0d6efd transparent transparent;
+}
+
+/* Balão fica à DIREITA do botão */
+.floating-menu .event-balloon {
+  position: relative;
+  margin-left: 8px; /* antes era margin-right */
+  margin-right: 0;
+}
+
+/* garante a ordem: botão primeiro, balão depois */
+.floating-menu .floating-button {
+  order: 1;
+}
+.floating-menu .event-balloon {
+  order: 2;
+}
+
+/* restante igual */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (max-width: 1790px) {
-  .floating-menu {
-    left: 40px;
-    width: 160px;
-  }
-}
-
-@media (max-width: 1740px) {
-  .floating-menu {
-    left: 40px;
-    width: 130px;
-  }
-}
-
-@media (max-width: 1680px) {
-  .floating-menu {
-    left: 40px;
-    width: 100px;
-  }
-}
-
-/* Mobile: esconde cards e mostra botão redondo */
-@media (max-width: 1679px) {
-  .floating-menu {
-    left: 20px;
-    width: auto;
-    align-items: center;
-  }
-
-  .menu-evento-card {
+@media (max-width: 360px) {
+  .event-balloon {
     display: none;
-  }
-
-  .floating-button {
-    display: flex;
-  }
-}
-
-/* Corrige modal largo demais em telas grandes */
-.modal-evento-custom {
-  max-width: 500px;
-  margin: auto;
-}
-
-/* Alinha o botão "Fechar" à esquerda no mobile */
-.modal-footer-custom {
-  display: flex !important;
-  justify-content: flex-end !important;
-
-  @media (max-width: 767px) {
-    display: flex !important;
-    justify-content: flex-start !important;
   }
 }

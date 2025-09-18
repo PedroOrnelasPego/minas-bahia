@@ -17,6 +17,21 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 
 ==============
 
+### Alterado
+
+- Aba UAI! Minas Bahia agora justify
+- Nome seguido da graduação ou posição que ocupa
+- Remover provisorio do editar título
+- Título da aba agora nõa muda de acordo com o álbum
+
+### Corrigido
+
+- Corrigido ortografia
+- Corrigido layout quebrando em telas pequenas
+- Corrigido card de album/grupo com nome grande quebrando o card e o layout
+- Corrigido botão do whatsapp comentado
+
+
 ## [4.0.0] (CHANGELOG.md#300) - 2025-09-17
 
 ### Alterado

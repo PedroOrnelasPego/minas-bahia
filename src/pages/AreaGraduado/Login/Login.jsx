@@ -13,11 +13,11 @@ const Login = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto p-8 bg-white shadow-lg rounded-lg">
+    <div className="max-w-md mx-auto p-20 m-20 bg-white shadow-lg rounded-lg d-flex flex-column justify-center">
       <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
       <button
         onClick={handleMicrosoftLogin}
-        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700"
       >
         Entrar com Microsoft
       </button>

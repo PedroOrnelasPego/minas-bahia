@@ -1,3 +1,4 @@
+// src/components/CadastroInicial/CadastroInicial.jsx
 import { useState, useMemo } from "react";
 import { Modal, Button, Row, Col, Alert } from "react-bootstrap";
 import nomesCordas, {
@@ -30,6 +31,7 @@ const CadastroInicial = ({ show, onSave }) => {
     professorReferencia: "",
     endereco: "",
     numero: "",
+    inicioNoGrupo: "", // <-- NOVO (Q16)
     permissaoEventos: "leitor",
   });
 
@@ -41,11 +43,9 @@ const CadastroInicial = ({ show, onSave }) => {
   const [uf, setUf] = useState("");
   const [aceitouTermos, setAceitouTermos] = useState(false);
 
-  // validação + feedback visual
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
-  // feedback (substitui window.alert)
   const [feedback, setFeedback] = useState({
     show: false,
     variant: "danger",
@@ -69,6 +69,7 @@ const CadastroInicial = ({ show, onSave }) => {
     "professorReferencia",
     "endereco",
     "numero",
+    "inicioNoGrupo", // <-- NOVO é obrigatório
   ];
 
   const horariosDisponiveis = useMemo(
@@ -84,8 +85,6 @@ const CadastroInicial = ({ show, onSave }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // qualquer interação esconde feedback anterior
     if (feedback.show) hideFeedback();
 
     if (errors[name] && String(value).trim() !== "") {
@@ -225,7 +224,6 @@ const CadastroInicial = ({ show, onSave }) => {
         <Modal.Title>Complete seu Cadastro</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {/* Alert global de feedback */}
         {feedback.show && (
           <Alert
             variant={feedback.variant}
@@ -279,6 +277,20 @@ const CadastroInicial = ({ show, onSave }) => {
               ))}
             </select>
 
+            {/*Quando Iniciou */}
+            <small className="text-muted">
+              Quando iniciou seus treinos no Grupo de Capoeira Minas Bahia
+            </small>
+            <input
+              type="date"
+              name="inicioNoGrupo"
+              className={fc("inicioNoGrupo")}
+              placeholder="Insira a data (dd/MM/yyyy)"
+              value={form.inicioNoGrupo}
+              onChange={handleChange}
+            />
+
+            {/* Gênero */}
             <small className="text-muted">Gênero</small>
             <select
               name="genero"
@@ -293,6 +305,7 @@ const CadastroInicial = ({ show, onSave }) => {
               <option value="Prefere não informar">Prefere não informar</option>
             </select>
 
+            {/* Raça/Cor */}
             <small className="text-muted">Raça/Cor</small>
             <select
               name="racaCor"
@@ -309,6 +322,7 @@ const CadastroInicial = ({ show, onSave }) => {
               <option value="Prefere não informar">Prefere não informar</option>
             </select>
 
+            {/* Nascimento */}
             <small className="text-muted">Sua data de nascimento</small>
             <input
               name="dataNascimento"
@@ -319,7 +333,7 @@ const CadastroInicial = ({ show, onSave }) => {
               onChange={handleChange}
             />
 
-            {/* Telefones lado a lado (responsivo) */}
+            {/* Telefones */}
             <Row className="g-2">
               <Col md={6}>
                 <small className="text-muted">WhatsApp (pessoal)</small>
@@ -333,7 +347,7 @@ const CadastroInicial = ({ show, onSave }) => {
                 />
               </Col>
               <Col md={6}>
-                <small className="text-muted">Contato de emergência</small>
+                <small className="text-muted">Contato de emergência / responsável</small>
                 <input
                   name="contatoEmergencia"
                   className={fc("contatoEmergencia")}
@@ -364,7 +378,6 @@ const CadastroInicial = ({ show, onSave }) => {
               ))}
             </select>
 
-            {/* Dias do local (somente visual) */}
             {diasDoLocalTxt && (
               <div className="mb-2">
                 <small className="text-muted">Dias</small>
@@ -372,7 +385,7 @@ const CadastroInicial = ({ show, onSave }) => {
               </div>
             )}
 
-            {/* Horário dependente do local */}
+            {/* Horário */}
             <small className="text-muted">Horário de treino</small>
             <select
               name="horarioTreino"
@@ -393,7 +406,7 @@ const CadastroInicial = ({ show, onSave }) => {
               ))}
             </select>
 
-            {/* Professor referência (pré-setado e imutável) */}
+            {/* Professor referência */}
             <div className="mb-2">
               <small className="text-muted">Professor referência</small>
               <div
@@ -423,7 +436,7 @@ const CadastroInicial = ({ show, onSave }) => {
               </Button>
             </div>
 
-            {/* Campos de endereço exibidos/derivados do CEP */}
+            {/* Endereço derivados do CEP */}
             <input
               type="text"
               className={`form-control mb-2 ${

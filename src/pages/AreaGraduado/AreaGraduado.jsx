@@ -24,6 +24,8 @@ import {
   makeAvatarVariants, // gera @1x e @2x
 } from "../../utils/imagePerfil";
 import { setPerfilCache } from "../../utils/profileCache";
+import QuestionarioAluno from "../../components/QuestionarioAluno/QuestionarioAluno";
+import RequireAccess from "../../components/RequireAccess/RequireAccess";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -91,6 +93,9 @@ const AreaGraduado = () => {
   // modal de zoom
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarModalUrl, setAvatarModalUrl] = useState(null);
+
+  //Questionario Aluno
+  const [showQuestionarioAluno, setShowQuestionarioAluno] = useState(false);
 
   // feedback
   const [feedback, setFeedback] = useState({
@@ -326,6 +331,12 @@ const AreaGraduado = () => {
   const canAccess = (minLevel) => nivelUsuario >= minLevel;
   const isMestre = userData.email === "contato@capoeiraminasbahia.com.br";
 
+  useEffect(() => {
+    const ehAlunoOuMais = (nivelMap[perfil.nivelAcesso] ?? 0) >= 1;
+    const jaRespondeu = Boolean(perfil?.questionarios?.aluno);
+    if (ehAlunoOuMais && !jaRespondeu) setShowQuestionarioAluno(true);
+  }, [perfil.nivelAcesso, perfil?.questionarios]);
+
   // ===== Salvar Perfil =====
   const salvarPerfil = async () => {
     hideFeedback();
@@ -357,6 +368,24 @@ const AreaGraduado = () => {
     setPerfil(atualizado);
     setShowEditModal(false);
     showSuccess("Perfil atualizado com sucesso!");
+  };
+
+  const salvarQuestionarioAluno = async (respostas) => {
+    const payload = {
+      questionarios: {
+        ...(perfil.questionarios || {}),
+        aluno: { ...respostas }, // sem createdAt
+      },
+    };
+    try {
+      await apiAtualizarPerfil(userData.email, payload);
+      setPerfil((prev) => ({ ...prev, questionarios: payload.questionarios }));
+      setShowQuestionarioAluno(false);
+      showSuccess("Questionário do aluno salvo com sucesso!");
+    } catch (e) {
+      console.error(e);
+      showError("Não foi possível salvar o questionário do aluno.");
+    }
   };
 
   if (loading) return <p>Carregando...</p>;
@@ -412,6 +441,15 @@ const AreaGraduado = () => {
           >
             Editar Perfil
           </button>
+          <RequireAccess nivelMinimo="aluno">
+            <button
+              className="btn btn-secondary"
+              disabled={!canAccess(1)}
+              onClick={() => setShowQuestionarioAluno(true)}
+            >
+              Editar Questionário
+            </button>
+          </RequireAccess>
           <button onClick={handleSignOut} className="btn btn-danger">
             Sair
           </button>
@@ -588,10 +626,12 @@ const AreaGraduado = () => {
         <CadastroInicial
           show={showCadastroInicial}
           onSave={async (dados) => {
+            // >>> createdAt AGORA FICA NO PRIMEIRO CADASTRO
             const perfilFinal = {
               ...dados,
               id: userData.email,
               email: userData.email,
+              createdAt: new Date().toISOString(), // << aqui
             };
             await criarPerfil(perfilFinal);
             setPerfil(perfilFinal);
@@ -639,6 +679,21 @@ const AreaGraduado = () => {
           />
         </Modal.Body>
       </Modal>
+
+      {showQuestionarioAluno && (
+        <QuestionarioAluno
+          show={showQuestionarioAluno}
+          initialData={perfil?.questionarios?.aluno || null}
+          onSave={salvarQuestionarioAluno}
+          // se foi aberto manualmente, permite cancelar;
+          // se foi aberto automaticamente (1ª vez), usuário não verá o botão cancelar (onCancel undefined)
+          onCancel={
+            perfil?.questionarios?.aluno
+              ? () => setShowQuestionarioAluno(false)
+              : undefined
+          }
+        />
+      )}
     </Container>
   );
 };

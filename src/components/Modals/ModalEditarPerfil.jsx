@@ -297,7 +297,7 @@ const ModalEditarPerfil = ({
                 />
               </Col>
               <Col md={6}>
-                <small className="text-muted">Contato de emergência</small>
+                <small className="text-muted">Contato de emergência / responsável</small>
                 <input
                   name="contatoEmergencia"
                   className={fc("contatoEmergencia")}

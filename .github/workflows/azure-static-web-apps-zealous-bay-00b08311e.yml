@@ -16,6 +16,8 @@ jobs:
     name: Build and Deploy Job
     env:
       VITE_API_URL: "https://portal-capoeira-backend-b4hucqbpbfd3aubd.brazilsouth-01.azurewebsites.net"
+      VITE_GOOGLE_CLIENT_ID: "682547488468-223fh2c6u5m96ie3hm39cogpfc2di3rk.apps.googleusercontent.com"
+
     steps:
       - uses: actions/checkout@v3
         with:

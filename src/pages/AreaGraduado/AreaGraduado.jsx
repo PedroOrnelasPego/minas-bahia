@@ -20,21 +20,19 @@ import { getHorarioLabel } from "../../helpers/agendaTreino";
 import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { formatarData } from "../../utils/formatarData";
-import {
-  makeAvatarVariants, // gera @1x e @2x
-} from "../../utils/imagePerfil";
+import { makeAvatarVariants } from "../../utils/imagePerfil";
 import { setPerfilCache } from "../../utils/profileCache";
 import QuestionarioAluno from "../../components/QuestionarioAluno/QuestionarioAluno";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
+import {
+  getAuthEmail,
+  getAuthProvider,
+  signOutUnified,
+} from "../../auth/session";
 
 const API_URL = import.meta.env.VITE_API_URL;
-
-// evita 1º efeito duplicado no StrictMode (apenas DEV)
 const DEV_STRICT_DEBOUNCE_MS = 30;
 
-/* ============================
-   Enum/labels de nível de acesso
-   ============================ */
 const NIVEL_LABELS = {
   visitante: "Visitante",
   aluno: "Aluno",
@@ -43,6 +41,7 @@ const NIVEL_LABELS = {
   instrutor: "Instrutor",
   professor: "Professor",
   contramestre: "Contramestre",
+  mestre: "Mestre",
 };
 
 function getNivelLabel(nivel) {
@@ -51,10 +50,38 @@ function getNivelLabel(nivel) {
   return NIVEL_LABELS[key] || "";
 }
 
-const AreaGraduado = () => {
-  const { instance, accounts } = useMsal();
+/** Campos obrigatórios do seu cadastro inicial */
+const REQUIRED_FIELDS = [
+  "nome",
+  "corda",
+  "genero",
+  "racaCor",
+  "dataNascimento",
+  "whatsapp",
+  "contatoEmergencia",
+  "localTreino",
+  "horarioTreino",
+  "professorReferencia",
+  "endereco",
+  "numero",
+  "inicioNoGrupo",
+];
 
-  const [session, setSession] = useState(null);
+/** Retorna true se o perfil estiver faltando algo (ou não aceitou termos) */
+function isPerfilIncompleto(p) {
+  if (!p) return true;
+  if (!p.aceitouTermos) return true;
+  for (const k of REQUIRED_FIELDS) {
+    const v = p?.[k];
+    if (v === undefined || v === null) return true;
+    if (typeof v === "string" && v.trim() === "") return true;
+  }
+  return false;
+}
+
+const AreaGraduado = () => {
+  const { instance } = useMsal();
+
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({ nome: "", email: "" });
   const [perfil, setPerfil] = useState({
@@ -66,14 +93,13 @@ const AreaGraduado = () => {
     numero: "",
     endereco: "",
     dataNascimento: "",
-    nivelAcesso: "", // <- vem do backend e alimenta o label dinâmico
+    nivelAcesso: "",
   });
 
   const [formEdit, setFormEdit] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCadastroInicial, setShowCadastroInicial] = useState(false);
 
-  // CEP helpers
   const [cep, setCep] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [logradouro, setLogradouro] = useState("");
@@ -81,7 +107,6 @@ const AreaGraduado = () => {
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
 
-  // foto
   const [fotoPreview, setFotoPreview] = useState(null);
   const [temFotoRemota, setTemFotoRemota] = useState(false);
   const [cropModal, setCropModal] = useState(false);
@@ -90,14 +115,11 @@ const AreaGraduado = () => {
   const [avatar1x, setAvatar1x] = useState(null);
   const [avatar2x, setAvatar2x] = useState(null);
 
-  // modal de zoom
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarModalUrl, setAvatarModalUrl] = useState(null);
 
-  //Questionario Aluno
   const [showQuestionarioAluno, setShowQuestionarioAluno] = useState(false);
 
-  // feedback
   const [feedback, setFeedback] = useState({
     show: false,
     variant: "danger",
@@ -110,11 +132,9 @@ const AreaGraduado = () => {
   const hideFeedback = () =>
     setFeedback((p) => ({ ...p, show: false, message: "" }));
 
-  // ==== Controle de concorrência / cancelamento ====
   const abortRef = useRef(null);
   const reqSeq = useRef(0);
 
-  // util: checa se imagem existe (com guarda por sequência)
   const testImage = (url, mySeq) =>
     new Promise((resolve) => {
       const img = new Image();
@@ -127,11 +147,15 @@ const AreaGraduado = () => {
 
   // ===== Boot / carregamento principal =====
   useEffect(() => {
-    const account = accounts[0];
-    if (!account) return;
+    const email = getAuthEmail();
+    if (!email) return; // ProtectedRoute já barra
 
-    setSession(account);
-    setUserData({ nome: account.name, email: account.username });
+    const provider = getAuthProvider();
+    const msalAcc = instance.getActiveAccount?.();
+    setUserData({
+      nome: provider === "microsoft" ? msalAcc?.name || "" : "",
+      email,
+    });
 
     let cancelled = false;
     let timer = null;
@@ -139,24 +163,21 @@ const AreaGraduado = () => {
     const run = async () => {
       if (cancelled) return;
 
-      // cancela requisição anterior
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
       abortRef.current = controller;
       const mySeq = ++reqSeq.current;
 
       try {
-        // Perfil e foto rodam em paralelo
         const perfilPromise = (async () => {
           try {
-            const p = await buscarPerfil(account.username, {
-              signal: controller.signal,
-            });
+            const p = await buscarPerfil(email, { signal: controller.signal });
             if (mySeq !== reqSeq.current) return;
             if (p) {
               setPerfil(p);
-              setPerfilCache(account.username, p);
-              setShowCadastroInicial(false);
+              setPerfilCache(email, p);
+              // 👇 abre cadastro inicial se perfil EXISTIR mas estiver incompleto
+              setShowCadastroInicial(isPerfilIncompleto(p));
             } else {
               setShowCadastroInicial(true);
             }
@@ -167,7 +188,7 @@ const AreaGraduado = () => {
         })();
 
         const fotoPromise = (async () => {
-          const base = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}`;
+          const base = `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}`;
           const url1x = `${base}/foto-perfil@1x.jpg?${Date.now()}`;
           const urlLegacy = `${base}/foto-perfil.jpg?${Date.now()}`;
 
@@ -205,7 +226,7 @@ const AreaGraduado = () => {
       if (timer) clearTimeout(timer);
       if (abortRef.current) abortRef.current.abort();
     };
-  }, [accounts]);
+  }, [instance]);
 
   // ===== Foto: seleção / corte / upload =====
   const handleFotoChange = (e) => {
@@ -259,9 +280,7 @@ const AreaGraduado = () => {
       setAvatar2x(null);
       setTemFotoRemota(true);
       setFotoPreview(
-        `https://certificadoscapoeira.blob.core.windows.net/certificados/${
-          userData.email
-        }/foto-perfil@1x.jpg?${Date.now()}`
+        `https://certificadoscapoeira.blob.core.windows.net/certificados/${userData.email}/foto-perfil@1x.jpg?${Date.now()}`
       );
     } catch (e) {
       console.error(e);
@@ -321,9 +340,9 @@ const AreaGraduado = () => {
     }));
   };
 
-  // ===== Sair =====
+  // ===== Sair (unificado) =====
   const handleSignOut = async () => {
-    await instance.logoutRedirect();
+    await signOutUnified();
   };
 
   // ===== Permissões =====
@@ -374,7 +393,7 @@ const AreaGraduado = () => {
     const payload = {
       questionarios: {
         ...(perfil.questionarios || {}),
-        aluno: { ...respostas }, // sem createdAt
+        aluno: { ...respostas },
       },
     };
     try {
@@ -404,7 +423,6 @@ const AreaGraduado = () => {
     setShowAvatarModal(true);
   };
 
-  // label dinâmico do nível
   const nivelDisplay = getNivelLabel(perfil.nivelAcesso) || "-";
 
   return (
@@ -580,7 +598,7 @@ const AreaGraduado = () => {
         </Col>
       </Row>
 
-      {canAccess(1) && (
+      {nivelMap[perfil.nivelAcesso] >= 1 && (
         <Row className="mt-4">
           <Col md={12} className="border p-3">
             <div className="grid-list-3">
@@ -590,13 +608,16 @@ const AreaGraduado = () => {
         </Row>
       )}
 
-      {canAccess(1) && (
+      {nivelMap[perfil.nivelAcesso] >= 1 && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Alunos</h5>
             <p>Área para documentos de download público</p>
             <div className="grid-list-3">
-              <FileSection pasta="aluno" canUpload={isMestre} />
+              <FileSection
+                pasta="aluno"
+                canUpload={isMestre}
+              />
             </div>
           </Col>
         </Row>
@@ -626,12 +647,12 @@ const AreaGraduado = () => {
         <CadastroInicial
           show={showCadastroInicial}
           onSave={async (dados) => {
-            // >>> createdAt AGORA FICA NO PRIMEIRO CADASTRO
             const perfilFinal = {
               ...dados,
               id: userData.email,
               email: userData.email,
-              createdAt: new Date().toISOString(), // << aqui
+              createdAt: new Date().toISOString(),
+              aceitouTermos: true,
             };
             await criarPerfil(perfilFinal);
             setPerfil(perfilFinal);
@@ -685,8 +706,6 @@ const AreaGraduado = () => {
           show={showQuestionarioAluno}
           initialData={perfil?.questionarios?.aluno || null}
           onSave={salvarQuestionarioAluno}
-          // se foi aberto manualmente, permite cancelar;
-          // se foi aberto automaticamente (1ª vez), usuário não verá o botão cancelar (onCancel undefined)
           onCancel={
             perfil?.questionarios?.aluno
               ? () => setShowQuestionarioAluno(false)

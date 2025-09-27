@@ -1,5 +1,5 @@
 import { Container } from "react-bootstrap";
-import logo from "../../assets/logo/icmbc.png";
+import logo from "../../assets/logo/teste-black.png";
 import selo from "../../assets/logo/logoMbc.png";
 import alunoInfantil from "../../assets/graduacao/aluno-infantil.png";
 import alunoAdulto from "../../assets/graduacao/aluno-adulto.png";
@@ -8,7 +8,7 @@ import data from "./data"; // Importando o array de fotos local
 
 const MinasBahia = () => {
   return (
-    <Container>
+    <Container className="text-justify">
       <h1 className="text-center mb-4">Capoeira Minas Bahia</h1>{" "}
       <div>
         <p>
@@ -40,9 +40,9 @@ const MinasBahia = () => {
           com mais equidade.
         </p>
       </div>
-      <div className="flex justify-around flex-wrap">
-        <img className="max-h-64" src={selo} alt="" />
-        <img className="max-h-64" src={logo} alt="" />
+      <div className="flex justify-around  flex-wrap">
+        <img className="max-h-64 my-6" src={selo} alt="selo minas bahia" />
+        <img className="max-h-64 my-6" src={logo} alt="logo minas bahia" />
       </div>
       <div>
         <p className="mt-3">
@@ -65,8 +65,8 @@ const MinasBahia = () => {
           trabalhos e as atividades do grupo/coletivo Capoeira Minas Bahia.
         </p>
       </div>
-      <div className="mt-48 ">
-        <div className="mb-10">
+      <div className="mt-22">
+        <div className="mb-1">
           <h1 className="text-center">Sistema de Graduação</h1>
         </div>
         <div className="flex gap-5 flex-wrap justify-center">

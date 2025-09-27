@@ -1,0 +1,606 @@
+// src/pages/Eventos/AlbumGroup.jsx
+import { useEffect, useMemo, useState, useRef } from "react";
+import {
+  Button,
+  Card,
+  Container,
+  Form,
+  Modal,
+  Placeholder,
+} from "react-bootstrap";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import RequireAccess from "../../components/RequireAccess/RequireAccess";
+import EditAlbumModal from "./EditAlbumModal";
+import {
+  listGroups,
+  listAlbums,
+  createAlbum,
+  deleteAlbum,
+  uploadAlbumCover,
+  updateAlbumTitle,
+  deleteAlbumCover,
+} from "../../services/eventos";
+import {
+  coverThumbUrl,
+  makeCoverVariants,
+  getVersionFromUrl,
+} from "../../utils/covers";
+
+const slugify = (s) =>
+  String(s)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// caches por grupo
+const GROUPS_CACHE_KEY = "eventos_groups_cache_v1";
+const albumsKey = (g) => `eventos_albums_cache_v1:${g}`;
+const groupMetaKey = (g) => `eventos_group_meta_v1:${g}`;
+
+// debounce só em DEV
+const DEV_STRICT_DEBOUNCE_MS = 30;
+
+const AlbumGroup = () => {
+  const { groupSlug } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [group, setGroup] = useState(null);
+  const [albums, setAlbums] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [showNewAlbum, setShowNewAlbum] = useState(false);
+  const [albumTitle, setAlbumTitle] = useState("");
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreview, setCoverPreview] = useState("");
+
+  const [editingAlbum, setEditingAlbum] = useState(null);
+  const [showEditAlbum, setShowEditAlbum] = useState(false);
+  const [deletingAlbum, setDeletingAlbum] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // cancelamento/concorrência
+  const abortRef = useRef(null);
+  const reqSeq = useRef(0);
+
+  // boot com state + cache
+  useEffect(() => {
+    // 1) veio da tela anterior com state? usa já
+    const fromState = location.state?.group;
+    if (fromState?.slug === groupSlug) {
+      setGroup(fromState);
+      try {
+        sessionStorage.setItem(
+          groupMetaKey(groupSlug),
+          JSON.stringify(fromState)
+        );
+      } catch {}
+    } else {
+      // 2) tenta cache específico do grupo
+      try {
+        const cachedGroup = sessionStorage.getItem(groupMetaKey(groupSlug));
+        if (cachedGroup) {
+          const g = JSON.parse(cachedGroup);
+          if (g?.slug) setGroup(g);
+          else setGroup({ slug: groupSlug, title: groupSlug });
+        } else {
+          // 3) tenta lista de grupos cacheada
+          const list = JSON.parse(
+            sessionStorage.getItem(GROUPS_CACHE_KEY) || "[]"
+          );
+          const g = list.find((x) => x.slug === groupSlug);
+          setGroup(g || { slug: groupSlug, title: groupSlug });
+          if (g) {
+            sessionStorage.setItem(groupMetaKey(groupSlug), JSON.stringify(g));
+          }
+        }
+      } catch {
+        setGroup({ slug: groupSlug, title: groupSlug });
+      }
+    }
+
+    // álbuns do cache
+    try {
+      const cachedAlbums = sessionStorage.getItem(albumsKey(groupSlug));
+      if (cachedAlbums) {
+        const parsed = JSON.parse(cachedAlbums);
+        if (Array.isArray(parsed)) {
+          setAlbums(parsed);
+          setLoading(false);
+        }
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupSlug]);
+
+  const refresh = async () => {
+    setError(null);
+    if (!albums?.length) setLoading(true);
+
+    // cancela anterior
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const mySeq = ++reqSeq.current;
+
+    const haveGroupMeta = !!(group?.title && group?.slug);
+
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        // Só chama /groups se eu NÃO tiver meta do grupo
+        const promises = [listAlbums(groupSlug, { signal: controller.signal })];
+        if (!haveGroupMeta)
+          promises.push(listGroups({ signal: controller.signal }));
+
+        const results = await Promise.all(promises);
+        if (controller.signal.aborted) return;
+        if (mySeq !== reqSeq.current) return;
+
+        const albumsList = results[0] || [];
+        setAlbums(albumsList);
+
+        if (!haveGroupMeta) {
+          const gList = results[1] || [];
+          const g = (gList || []).find((x) => x.slug === groupSlug) || {
+            slug: groupSlug,
+            title: groupSlug,
+          };
+          setGroup(g);
+          try {
+            sessionStorage.setItem(groupMetaKey(groupSlug), JSON.stringify(g));
+            if (Array.isArray(gList))
+              sessionStorage.setItem(GROUPS_CACHE_KEY, JSON.stringify(gList));
+          } catch {}
+        }
+
+        setLoading(false);
+        try {
+          sessionStorage.setItem(
+            albumsKey(groupSlug),
+            JSON.stringify(albumsList)
+          );
+        } catch {}
+        return;
+      } catch (e) {
+        if (controller.signal.aborted || e?.code === "ERR_CANCELED") return;
+        lastErr = e;
+        await sleep(400 * (attempt + 1));
+      }
+    }
+
+    if (mySeq !== reqSeq.current) return;
+    setLoading(false);
+    setError(lastErr || new Error("Falha ao carregar"));
+  };
+
+  // monta/troca com debounce em DEV
+  useEffect(() => {
+    let cancelled = false;
+    let timerId = null;
+
+    const run = () => {
+      if (!cancelled) refresh();
+    };
+
+    if (import.meta.env?.DEV) {
+      timerId = setTimeout(run, DEV_STRICT_DEBOUNCE_MS);
+    } else {
+      run();
+    }
+
+    return () => {
+      cancelled = true;
+      if (timerId) clearTimeout(timerId);
+      if (abortRef.current) abortRef.current.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupSlug, group?.title]);
+
+  const onCoverChange = (e) => {
+    const f = e.target.files?.[0] || null;
+    setCoverFile(f);
+    setCoverPreview(f ? URL.createObjectURL(f) : "");
+  };
+
+  const handleCreateAlbum = async () => {
+    const title = albumTitle.trim();
+    if (!title) return;
+
+    const slug = slugify(title);
+    await createAlbum(group.slug, { slug, title });
+
+    let coverUrl = "";
+    if (coverFile) {
+      const { oneXFile, twoXFile } = await makeCoverVariants(coverFile);
+      const [{ url: u1 }] = await Promise.all([
+        uploadAlbumCover(group.slug, slug, oneXFile, "_cover@1x.jpg"),
+        uploadAlbumCover(group.slug, slug, twoXFile, "_cover@2x.jpg"),
+      ]);
+      coverUrl = `${u1}?v=${Date.now()}`;
+    }
+
+    setAlbums((arr) => {
+      const next = [...arr, { slug, title, coverUrl, count: 0 }];
+      try {
+        sessionStorage.setItem(albumsKey(group.slug), JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    setShowNewAlbum(false);
+    setAlbumTitle("");
+    setCoverFile(null);
+    setCoverPreview("");
+  };
+
+  const askEditAlbum = (album) => {
+    setEditingAlbum(album);
+    setShowEditAlbum(true);
+  };
+
+  const saveEditedAlbum = async (updated) => {
+    const target = editingAlbum;
+    try {
+      const nextTitle = (updated.title || "").trim();
+      if (nextTitle && nextTitle !== target.title) {
+        await updateAlbumTitle(group.slug, target.slug, nextTitle);
+        setAlbums((arr) => {
+          const next = arr.map((a) =>
+            a.slug === target.slug ? { ...a, title: nextTitle } : a
+          );
+          try {
+            sessionStorage.setItem(albumsKey(group.slug), JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      }
+
+      if (updated.removeCover) {
+        await deleteAlbumCover(group.slug, target.slug);
+        setAlbums((arr) => {
+          const next = arr.map((a) =>
+            a.slug === target.slug ? { ...a, coverUrl: "" } : a
+          );
+          try {
+            sessionStorage.setItem(albumsKey(group.slug), JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      } else if (updated.newCoverFile) {
+        const { oneXFile, twoXFile } = await makeCoverVariants(
+          updated.newCoverFile
+        );
+        const [{ url: u1 }] = await Promise.all([
+          uploadAlbumCover(group.slug, target.slug, oneXFile, "_cover@1x.jpg"),
+          uploadAlbumCover(group.slug, target.slug, twoXFile, "_cover@2x.jpg"),
+        ]);
+        const coverUrl = `${u1}?v=${Date.now()}`;
+        setAlbums((arr) => {
+          const next = arr.map((a) =>
+            a.slug === target.slug ? { ...a, coverUrl } : a
+          );
+          try {
+            sessionStorage.setItem(albumsKey(group.slug), JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      }
+    } finally {
+      setShowEditAlbum(false);
+      setEditingAlbum(null);
+    }
+  };
+
+  const askDeleteAlbum = (album) => {
+    setDeletingAlbum(album);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAlbum = async () => {
+    if (!deletingAlbum) return;
+    await deleteAlbum(group.slug, deletingAlbum.slug);
+    setShowDeleteModal(false);
+    setDeletingAlbum(null);
+    await refresh();
+  };
+
+  // >>> passa group + album no state para a página de fotos (evita refetch de /albums)
+  const openAlbum = (album) =>
+    navigate(`/eventos/${group.slug}/${album.slug}`, {
+      state: { group, album },
+    });
+
+  // ===== Skeleton (mesmo padrão da tela de grupos/Eventos) =====
+  const SkeletonGrid = useMemo(() => {
+    const CardSkeleton = () => (
+      <div className="cards-eventos skeleton">
+        <div className="skeleton-shimmer" />
+        <div className="card-overlay-title">
+          <Placeholder animation="glow">
+            <Placeholder xs={6} />{" "}
+          </Placeholder>
+          <div className="card-sub">
+            <Placeholder animation="glow">
+              <Placeholder xs={3} />
+            </Placeholder>
+          </div>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="d-flex flex-wrap gap-3 items-center justify-content-center">
+        {Array.from({ length: 6 }, (_, i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }, []);
+
+  /* ---------- Render ---------- */
+
+  if (loading) {
+    return (
+      <Container className="py-4">
+        <div className="page-head">
+          <button type="button" className="page-back" disabled>
+            <i className="bi bi-arrow-left"></i> Voltar
+          </button>
+          <h2 className="page-title">
+            <Placeholder as="span" animation="glow">
+              <Placeholder xs={6} />
+            </Placeholder>
+          </h2>
+          <RequireAccess nivelMinimo="graduado" requireEditor>
+            <Button className="page-cta" disabled>
+              + Novo álbum
+            </Button>
+          </RequireAccess>
+        </div>
+        <div className="p-2">{SkeletonGrid}</div>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="py-4">
+        <div className="page-head">
+          <button
+            type="button"
+            className="page-back"
+            onClick={() => navigate("/eventos")}
+          >
+            <i className="bi bi-arrow-left"></i> Voltar
+          </button>
+          <h2 className="page-title">Erro</h2>
+        </div>
+        <Card className="p-4 text-center">
+          <p className="mb-2">Não foi possível carregar este grupo agora.</p>
+          <small className="text-muted d-block mb-3">
+            {String(error?.message || "Erro de rede")}
+          </small>
+          <Button onClick={refresh}>Tentar novamente</Button>
+        </Card>
+      </Container>
+    );
+  }
+
+  if (!group) {
+    return (
+      <Container className="py-4">
+        <div className="page-head">
+          <button
+            type="button"
+            className="page-back"
+            onClick={() => navigate("/eventos")}
+          >
+            <i className="bi bi-arrow-left"></i> Voltar
+          </button>
+          <h2 className="page-title">Grupo não encontrado</h2>
+        </div>
+      </Container>
+    );
+  }
+
+  return (
+    <Container className="py-4">
+      {/* ===== CABEÇALHO ===== */}
+      <div className="page-head">
+        <button
+          type="button"
+          className="page-back"
+          onClick={() => navigate("/eventos")}
+          aria-label="Voltar para grupos"
+        >
+          <i className="bi bi-arrow-left"></i> Voltar
+        </button>
+
+        <h2 className="page-title">{group.title}</h2>
+
+        <RequireAccess nivelMinimo="graduado" requireEditor>
+          <Button className="page-cta" onClick={() => setShowNewAlbum(true)}>
+            + Novo álbum
+          </Button>
+        </RequireAccess>
+      </div>
+
+      {albums.length === 0 ? (
+        <Card className="p-4 text-center">
+          <p className="mb-1">Nenhum álbum neste grupo ainda.</p>
+        </Card>
+      ) : (
+        <div className="d-flex flex-wrap gap-3 justify-content-center">
+          {albums.map((a) => {
+            const v = getVersionFromUrl(a.coverUrl || "");
+            const s1 = coverThumbUrl({
+              kind: "album",
+              groupSlug: group.slug,
+              albumSlug: a.slug,
+              w: 350,
+              h: 200,
+              dpr: 1,
+              v,
+            });
+            const s2 = coverThumbUrl({
+              kind: "album",
+              groupSlug: group.slug,
+              albumSlug: a.slug,
+              w: 350,
+              h: 200,
+              dpr: 2,
+              v,
+            });
+
+            return (
+              <figure
+                key={a.slug}
+                className="event-card"
+                onClick={() => openAlbum(a)}
+                role="button"
+                aria-label={`Abrir álbum ${a.title}`}
+              >
+                <div className="cards-eventos position-relative">
+                  {a.coverUrl ? (
+                    <img
+                      src={s1}
+                      srcSet={`${s1} 1x, ${s2} 2x`}
+                      alt={a.title}
+                      width={350}
+                      height={200}
+                      loading="lazy"
+                      decoding="async"
+                      className="cover-img"
+                    />
+                  ) : (
+                    <div className="w-100 h-100 card-placeholder">
+                      capa do álbum
+                    </div>
+                  )}
+                  <RequireAccess nivelMinimo="graduado" requireEditor>
+                    <button
+                      type="button"
+                      className="icon-btn trash-btn"
+                      title="Excluir álbum"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        askDeleteAlbum(a);
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </RequireAccess>
+                  <RequireAccess nivelMinimo="graduado" requireEditor>
+                    <button
+                      type="button"
+                      className="icon-btn edit-btn"
+                      title="Editar álbum"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        askEditAlbum(a);
+                      }}
+                    >
+                      ✏️
+                    </button>
+                  </RequireAccess>
+                </div>
+
+                <figcaption className="card-caption">
+                  <div className="card-title">{a.title}</div>
+                  <div className="card-meta">
+                    {a.totalPhotos ?? a.count ?? 0} fotos
+                  </div>
+                </figcaption>
+              </figure>
+            );
+          })}
+        </div>
+      )}
+
+      {/* novo álbum */}
+      <Modal show={showNewAlbum} onHide={() => setShowNewAlbum(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Novo álbum</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Título do álbum</Form.Label>
+            <Form.Control
+              value={albumTitle}
+              onChange={(e) => setAlbumTitle(e.target.value)}
+              placeholder='Ex.: "Batizado 2024"'
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Imagem de capa</Form.Label>
+            <Form.Control
+              type="file"
+              accept="image/*"
+              onChange={onCoverChange}
+            />
+            {coverPreview && (
+              <div className="mt-2">
+                <img
+                  src={coverPreview}
+                  alt="Capa"
+                  style={{
+                    width: 240,
+                    height: 160,
+                    objectFit: "cover",
+                    border: "1px solid #ddd",
+                    borderRadius: 6,
+                  }}
+                />
+              </div>
+            )}
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowNewAlbum(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleCreateAlbum} disabled={!albumTitle.trim()}>
+            Criar álbum
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <EditAlbumModal
+        show={showEditAlbum}
+        initial={editingAlbum}
+        onClose={() => setShowEditAlbum(false)}
+        onSave={saveEditedAlbum}
+      />
+
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Excluir álbum</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Excluir <strong>{deletingAlbum?.title}</strong>?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={confirmDeleteAlbum}>
+            Excluir
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </Container>
+  );
+};
+
+export default AlbumGroup;

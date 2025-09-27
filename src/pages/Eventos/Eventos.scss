@@ -1,30 +1,350 @@
+/* =========================
+   CARDS (capa de eventos)
+   ========================= */
 .cards-eventos {
-  // background-image: url("../../assets/uai23/batizado.jpg");
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  width: 200px !important;
-  height: 300px !important;
-  border: none !important;
-  box-shadow: rgba(0, 0, 0, 0.1294117647) 1px 2px 11px 2px !important;
-  transition: transform 0.3s ease !important;
-  cursor: pointer !important;
+  position: relative;
+  width: 350px;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f2f2f2;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
 
-  &:hover {
-    transform: translateY(-5px); // efeito de flutuação
+/* imagem de capa dos cards (usada pelo SmartCover) */
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Skeleton */
+.cards-eventos.skeleton {
+  background: #eee;
+}
+.cards-eventos .skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
   }
-
-  .card-eventos-title {
-    background: rgba(255, 255, 255, 0.13);
-    border-radius: 16px;
-    padding: 2px 8px;
-    box-shadow: 0 4px 30px #00000088;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    color: #fff;
+  to {
+    transform: translateX(100%);
   }
 }
 
-a {
-  text-decoration: none !important;
+/* Se usar <img class="cover-img" /> ou <img/> dentro do card */
+.cards-eventos > img,
+.cards-eventos .cover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* garante que não estica */
+  display: block;
+}
+
+/* Título sobre a imagem */
+.card-overlay-title {
+  display: none;
+}
+.card-sub {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+/* Placeholder quando não há capa */
+.card-placeholder {
+  position: absolute;
+  inset: 0;
+  background: #f2f2f2;
+  color: #777;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Botões de ação */
+.icon-btn {
+  position: absolute;
+  top: 10px;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 8px;
+  line-height: 1;
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+.edit-btn {
+  right: 10px;
+}
+.trash-btn {
+  right: 46px;
+} /* lixeira fica à esquerda do lápis */
+
+/* =========================
+   CARD CONTAINER / TITLES
+   - impede o título extrapolar
+   ========================= */
+.event-card {
+  /* a figure que envolve o card + legenda */
+  width: 350px; /* mesma largura do .cards-eventos */
+  max-width: 100%;
+  display: inline-block; /* evita esticar numa linha flex */
+}
+
+.event-card .cards-eventos {
+  /* garante que a capa siga a largura do contêiner quando
+     a figure ficar fluida no mobile */
+  width: 350px;
+  max-width: 100%;
+}
+
+.card-caption {
+  margin-top: 6px;
+  width: 100%; /* mesma largura do .event-card */
+}
+
+.card-caption .card-title {
+  font-weight: 600;
+  color: #1f2328;
+  line-height: 1.25;
+  /* quebras garantidas */
+  white-space: normal;
+  overflow-wrap: anywhere; /* quebra em qualquer ponto se precisar */
+  word-break: break-word; /* fallback */
+}
+
+.card-caption .card-meta {
+  font-size: 0.9rem;
+  color: #667085;
+  margin-top: 2px;
+}
+
+/* Responsivo: em telas estreitas a figure vira fluida */
+@media (max-width: 420px) {
+  .event-card {
+    width: 100%;
+    max-width: 350px;
+  }
+  .event-card .cards-eventos {
+    width: 100%;
+  }
+}
+
+/* =========================
+   GRADE DE FOTOS DO ÁLBUM
+   ========================= */
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.photo-card {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f5f5;
+  border: 1px solid #e9e9e9;
+}
+
+.photo-card img {
+  display: block;
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.photo-del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: none;
+  background: rgba(0, 0, 0, 0.096);
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  line-height: 1;
+  cursor: pointer;
+}
+.photo-del:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+/* ============ LIGHTBOX ============ */
+.lightbox-img {
+  max-width: 92vw;
+  max-height: 86vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 48px;
+  line-height: 1;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  cursor: pointer;
+  user-select: none;
+}
+.lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.lightbox-nav.left {
+  left: 24px;
+}
+.lightbox-nav.right {
+  right: 24px;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.lightbox-caption {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #fff;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* =========================
+   HEADER RESPONSIVO DE EVENTOS
+   ========================= */
+.eventos-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap; /* permite quebrar linha */
+  gap: 0.75rem;
+}
+
+.eventos-head .eventos-title {
+  margin: 0;
+  position: absolute; /* centralizado no desktop */
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.eventos-head .btn-new-group {
+  margin-left: auto; /* fica à direita */
+}
+
+/* Mobile/SM: botão em cima, título embaixo */
+@media (max-width: 768px) {
+  .eventos-head .eventos-title {
+    position: static;
+    transform: none;
+    order: 2; /* título depois */
+    width: 100%;
+    text-align: center;
+  }
+  .eventos-head .btn-new-group {
+    order: 1; /* botão primeiro (em cima) */
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+/* ===== Page Head (Voltar | Título | CTA) ===== */
+.page-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap; /* permite quebrar */
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* Título central – agora em linha própria por padrão */
+.page-head .page-title {
+  margin: 0;
+  width: 100%;
+  text-align: center;
+  position: static;
+  transform: none;
+}
+
+/* CTA à direita */
+.page-head .page-cta {
+  margin-left: auto;
+}
+
+/* Link Voltar com seta via Bootstrap Icons */
+.page-head .page-back {
+  border: 0;
+  background: transparent;
+  color: #0d6efd;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  position: relative;
+  top: -2px;
+}
+.page-head .page-back:hover {
+  text-decoration: underline;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .page-head .page-title {
+    position: static;
+    transform: none;
+    width: 100%;
+    text-align: center;
+    order: 2;
+  }
+  .page-head .page-back {
+    order: 1;
+    top: 0;
+  }
+  .page-head .page-cta {
+    order: 3;
+    margin-left: auto;
+  }
 }

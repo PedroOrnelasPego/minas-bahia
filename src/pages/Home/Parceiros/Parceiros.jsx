@@ -5,6 +5,7 @@ import "./Parceiros.scss";
 import teste1 from "../../../assets/parceiros/alanson.png";
 import teste2 from "../../../assets/parceiros/implantar.png";
 import teste3 from "../../../assets/parceiros/rede.png";
+import teste4 from "../../../assets/parceiros/mineires.png";
 import { Card } from "react-bootstrap";
 
 const responsive = {
@@ -14,7 +15,7 @@ const responsive = {
   mobile: { breakpoint: { max: 464, min: 0 }, items: 1 },
 };
 
-const images = [teste1, teste2, teste3, teste1, teste2, teste3];
+const images = [teste1, teste2, teste3, teste4, teste1, teste2, teste3, teste4];
 
 const Parceiros = () => {
   return (
@@ -25,22 +26,19 @@ const Parceiros = () => {
       <h1 className="">Parceiros</h1>
       <Carousel
         responsive={responsive}
-        infinite={true}
-        autoPlay={true}
+        infinite
+        autoPlay
         autoPlaySpeed={3000}
-        keyBoardControl={true}
+        keyBoardControl
         customTransition="all 0.5s"
         transitionDuration={500}
         removeArrowOnDeviceType={["tablet", "mobile"]}
+        itemClass="partner-item" // << novo
       >
-        {images.map((src, index) => (
-          <div key={index} className="carousel-item-wrapper">
+        {images.map((src, i) => (
+          <div key={i} className="carousel-item-wrapper">
             <Card className="card-carousel">
-              <img
-                src={src}
-                alt={`Slide ${index}`}
-                className="carousel-image"
-              />
+              <img src={src} alt={`Slide ${i}`} className="carousel-image" />
             </Card>
           </div>
         ))}

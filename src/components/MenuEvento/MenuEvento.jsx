@@ -1,52 +1,50 @@
-import { useState } from "react";
-import { Card, Modal, Button } from "react-bootstrap";
+import { useState, useEffect } from "react";
+import { Modal, Button } from "react-bootstrap";
 import eventsData from "./data";
 import "./MenuEvento.scss";
 
 const MenuEvento = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showBalloon, setShowBalloon] = useState(false);
 
-  const handleClick = (eventData) => {
-    setSelectedEvent(eventData);
-  };
+  const handleClick = (eventData) => setSelectedEvent(eventData);
+  const handleClose = () => setSelectedEvent(null);
 
-  const handleClose = () => {
-    setSelectedEvent(null);
-  };
+  // Balão “Veja nossos próximos eventos”
+  useEffect(() => {
+    const showTimer = setTimeout(() => setShowBalloon(true), 4000);   // aparece após 4s
+    const hideTimer = setTimeout(() => setShowBalloon(false), 12000); // some aos 12s
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, []);
+
+  // escolhe 1 evento (o primeiro da lista) para abrir ao clicar no ícone
+  const defaultEvent = eventsData?.[0] ?? null;
 
   return (
     <>
       <div className="floating-menu">
-        {/* Card visível por padrão, ocultado via CSS em tela pequena */}
-        {eventsData.map((event, index) => (
-          <div key={index} className="menu-evento-card" onClick={() => handleClick(event)}>
-            <Card className="mb-3 w-100">
-              <Card.Img variant="top" src={event.img} alt={event.title} />
-              <Card.Body className="p-2">
-                <Card.Title className="text-sm font-bold">Próximo Evento: {event.title}</Card.Title>
-                <Card.Text className="text-xs">{event.date}</Card.Text>
-              </Card.Body>
-            </Card>
+        {/* Removido o card grande: fica sempre só o ícone */}
+        {showBalloon && (
+          <div className="event-balloon" role="status">
+            Veja nossos próximos eventos
           </div>
-        ))}
+        )}
 
-        {/* Botão flutuante visível apenas em telas menores */}
         <button
           className="floating-button"
-          onClick={() => handleClick(eventsData[0])}
-          aria-label="Abrir evento"
+          onClick={() => defaultEvent && handleClick(defaultEvent)}
+          aria-label="Abrir próximos eventos"
+          title="Próximos eventos"
         >
           📅
         </button>
       </div>
 
       {selectedEvent && (
-        <Modal
-          show
-          onHide={handleClose}
-          centered
-          dialogClassName="modal-evento-custom"
-        >
+        <Modal show onHide={handleClose} centered dialogClassName="modal-evento-custom">
           <Modal.Header closeButton>
             <Modal.Title>{selectedEvent.title}</Modal.Title>
           </Modal.Header>

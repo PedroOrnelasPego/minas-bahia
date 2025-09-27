@@ -4,13 +4,13 @@ export const LOCAIS = {
     horarios: [
       {
         value: "19-20-criancas",
-        label: "19h às 20h - Crianças de 6 à 12 anos.",
+        label: "19h às 20h - Crianças de 6 a 12 anos.",
         professorLabel: "Shaman",
       },
       {
         value: "20-21h30-adultos",
         label: "20h às 21:30h - Adolescentes e adultos.",
-        professorLabel: "Costela, Paulista e Shaman",
+        professorLabel: "Mestre Costela, Paulista e Shaman",
       },
     ],
   },

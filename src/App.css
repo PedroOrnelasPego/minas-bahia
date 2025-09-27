@@ -1,3 +1,60 @@
-.graduacao{
-    padding-top: 60px;
+/* Layout base para sticky footer via flexbox */
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* ocupa toda a altura da viewport */
+}
+
+/* O main expande para empurrar o footer para baixo */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* (opcional) evita que algo coverta o footer quando usar position:fixed no conteúdo */
+main > * {
+  min-width: 0;
+}
+
+
+
+.graduacao {
+  padding-top: 60px;
+}
+
+/* Grid responsivo: 1 col no mobile, 2 no tablet, 3 no desktop */
+.grid-list-3 ul,
+.grid-list-3 .list-unstyled,
+.grid-list-3 .list-group {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.75rem 1rem; /* espaçamento entre cards */
+}
+
+@media (min-width: 768px) {
+  .grid-list-3 ul,
+  .grid-list-3 .list-unstyled,
+  .grid-list-3 .list-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 992px) {
+  .grid-list-3 ul,
+  .grid-list-3 .list-unstyled,
+  .grid-list-3 .list-group {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Remove os espaçamentos de <li> que viriam da lista original */
+.grid-list-3 li,
+.grid-list-3 .list-group-item {
+  margin-bottom: 0 !important;
 }

@@ -1,3 +1,4 @@
+// src/components/Modals/ModalEditarPerfil.jsx
 import { useMemo, useState } from "react";
 import { Modal, Button, Row, Col, Alert } from "react-bootstrap";
 import PropTypes from "prop-types";
@@ -23,15 +24,14 @@ const ModalEditarPerfil = ({
   salvarPerfil,
   cep,
   setCep,
-  buscarEnderecoPorCep, // vem do pai e já atualiza logradouro/bairro/cidade/uf
-  handleNumeroChange,   // vem do pai e já atualiza numero/endereco no form
+  buscarEnderecoPorCep,
+  handleNumeroChange,
   logradouro,
   bairro,
   cidade,
   uf,
   buscandoCep,
 }) => {
-  // estados de validação/feedback (iguais ao cadastro)
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [feedback, setFeedback] = useState({
@@ -44,7 +44,6 @@ const ModalEditarPerfil = ({
   const hideFeedback = () =>
     setFeedback((prev) => ({ ...prev, show: false, message: "" }));
 
-  // campos obrigatórios (sem “aceitouTermos”)
   const obrigatorios = [
     "nome",
     "corda",
@@ -60,7 +59,6 @@ const ModalEditarPerfil = ({
     "numero",
   ];
 
-  // dependentes do local
   const horariosDisponiveis = useMemo(
     () => getHorariosDoLocal(formEdit?.localTreino),
     [formEdit?.localTreino]
@@ -70,16 +68,12 @@ const ModalEditarPerfil = ({
     [formEdit?.localTreino]
   );
 
-  // helper de classe com erro (igual cadastro)
   const fc = (name) => `form-control mb-2 ${errors[name] ? "is-invalid" : ""}`;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // qualquer interação esconde feedback
     if (feedback.show) hideFeedback();
 
-    // limpa erro do campo se preencher
     if (errors[name] && String(value).trim() !== "") {
       setErrors((prev) => {
         const next = { ...prev };
@@ -88,12 +82,10 @@ const ModalEditarPerfil = ({
       });
     }
 
-    // máscaras
     if (name === "whatsapp" || name === "contatoEmergencia") {
       return setFormEdit({ ...formEdit, [name]: maskPhoneBR(value) });
     }
 
-    // reset encadeado local -> horário -> professor (e limpa erros relacionados)
     if (name === "localTreino") {
       setErrors((prev) => {
         const next = { ...prev };
@@ -110,7 +102,6 @@ const ModalEditarPerfil = ({
       });
     }
 
-    // ao escolher horário, setar professor automaticamente e limpar erros
     if (name === "horarioTreino") {
       setErrors((prev) => {
         const next = { ...prev };
@@ -128,12 +119,10 @@ const ModalEditarPerfil = ({
     setFormEdit({ ...formEdit, [name]: value });
   };
 
-  // wrapper para número: chama o handler do pai e também cuida de erros locais
   const handleNumeroLocal = (e) => {
     const numero = e.target.value;
-    handleNumeroChange(e); // atualiza formEdit no pai
+    handleNumeroChange(e);
 
-    // limpeza de erros “numero” e “endereco” (derivado)
     if (errors.numero && String(numero).trim() !== "") {
       setErrors((prev) => {
         const next = { ...prev };
@@ -153,13 +142,11 @@ const ModalEditarPerfil = ({
     }
   };
 
-  // wrapper do CEP: mantém UX do cadastro (feedback e limpeza)
   const buscarCepLocal = async () => {
     if (!cep) return;
     hideFeedback();
     try {
-      await buscarEnderecoPorCep(); // pai já popula logradouro/bairro/cidade/uf e possivelmente endereco
-      // se endereço ficou completo, limpa erro
+      await buscarEnderecoPorCep();
       const enderecoAtual = formEdit?.endereco || "";
       if (errors.endereco && enderecoAtual.trim() !== "") {
         setErrors((prev) => {
@@ -169,7 +156,6 @@ const ModalEditarPerfil = ({
         });
       }
     } catch (e) {
-      // caso o pai dispare erro via throw (se aplicável)
       showError(e?.message || "Erro ao buscar o CEP.");
     }
   };
@@ -186,7 +172,6 @@ const ModalEditarPerfil = ({
       return;
     }
 
-    // segue o fluxo igual ao cadastro (trim básico antes de salvar)
     const atualizado = {
       ...formEdit,
       nome: (formEdit?.nome || "").trim(),
@@ -207,7 +192,6 @@ const ModalEditarPerfil = ({
         <Modal.Title>Editar Perfil</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {/* Alert global (igual ao cadastro) */}
         {feedback.show && (
           <Alert
             variant={feedback.variant}
@@ -220,7 +204,7 @@ const ModalEditarPerfil = ({
         )}
 
         <Row className="g-3">
-          {/* Coluna Esquerda: dados pessoais */}
+          {/* Coluna Esquerda */}
           <Col md={6}>
             <small className="text-muted">Nome completo</small>
             <input
@@ -239,6 +223,26 @@ const ModalEditarPerfil = ({
               value={formEdit?.apelido || ""}
               onChange={handleChange}
             />
+
+            <small className="text-muted">Graduação (corda)</small>
+            <select
+              name="corda"
+              className={fc("corda")}
+              value={formEdit?.corda || ""}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Selecione</option>
+              {gruposCordas.map((g) => (
+                <optgroup key={g.key} label={g.label}>
+                  {listarCordasPorGrupo(g.key).map((slug) => (
+                    <option key={slug} value={slug}>
+                      {nomesCordas[slug]}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
 
             <small className="text-muted">Gênero</small>
             <select
@@ -280,7 +284,6 @@ const ModalEditarPerfil = ({
               onChange={handleChange}
             />
 
-            {/* Telefones lado a lado (responsivo) */}
             <Row className="g-2">
               <Col md={6}>
                 <small className="text-muted">WhatsApp (pessoal)</small>
@@ -294,7 +297,7 @@ const ModalEditarPerfil = ({
                 />
               </Col>
               <Col md={6}>
-                <small className="text-muted">Contato de emergência</small>
+                <small className="text-muted">Contato de emergência / responsável</small>
                 <input
                   name="contatoEmergencia"
                   className={fc("contatoEmergencia")}
@@ -307,7 +310,7 @@ const ModalEditarPerfil = ({
             </Row>
           </Col>
 
-          {/* Coluna Direita: local/horário/prof + CEP + endereço (igual ao cadastro) */}
+          {/* Coluna Direita */}
           <Col md={6}>
             <small className="text-muted">Local de treino</small>
             <select
@@ -365,7 +368,6 @@ const ModalEditarPerfil = ({
               </div>
             </div>
 
-            {/* CEP — placeholders iguais ao cadastro */}
             <small className="text-muted">
               Digite seu CEP e clique em Buscar
             </small>
@@ -383,31 +385,38 @@ const ModalEditarPerfil = ({
               </Button>
             </div>
 
-            {/* Endereço (derivado do CEP) — mesmos placeholders/erros visuais */}
             <input
               type="text"
-              className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""}`}
+              className={`form-control mb-2 ${
+                errors.endereco ? "is-invalid" : ""
+              }`}
               placeholder="Rua (preenchida pelo CEP)"
               value={logradouro}
               disabled
             />
             <input
               type="text"
-              className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""}`}
+              className={`form-control mb-2 ${
+                errors.endereco ? "is-invalid" : ""
+              }`}
               placeholder="Bairro (preenchido pelo CEP)"
               value={bairro}
               disabled
             />
             <input
               type="text"
-              className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""}`}
+              className={`form-control mb-2 ${
+                errors.endereco ? "is-invalid" : ""
+              }`}
               placeholder="Cidade (preenchida pelo CEP)"
               value={cidade}
               disabled
             />
             <input
               type="text"
-              className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""}`}
+              className={`form-control mb-2 ${
+                errors.endereco ? "is-invalid" : ""
+              }`}
               placeholder="UF (preenchida pelo CEP)"
               value={uf}
               disabled

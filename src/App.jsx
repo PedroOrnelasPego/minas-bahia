@@ -6,16 +6,20 @@ import MenuEvento from "./components/MenuEvento";
 import WhatsAppButton from "./components/WhatsAppButton";
 import "./App.css";
 
+//Em baixo do TheFooter
+//<WhatsAppButton />
+
 function App() {
   return (
     <>
       <MenuBar />
-      <Container className="border shadow-lg p-4 bg-white my-5">
-        <AppRoutes />
-      </Container>
-      <MenuEvento />
+      <main>
+        <Container style={{ minHeight: "50vh" }} className="border shadow-lg p-4 bg-white my-5 d-flex flex-column justify-center">
+          <AppRoutes />
+        </Container>
+        <MenuEvento />
+      </main>
       <TheFooter />
-      <WhatsAppButton />
     </>
   );
 }

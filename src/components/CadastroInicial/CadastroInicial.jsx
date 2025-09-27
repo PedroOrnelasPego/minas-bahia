@@ -1,5 +1,4 @@
-// src/components/CadastroInicial/CadastroInicial.jsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Modal, Button, Row, Col, Alert } from "react-bootstrap";
 import nomesCordas, {
   gruposCordas,
@@ -16,6 +15,29 @@ import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { validateRequiredFields } from "../../utils/validate";
 
+/* ================== Constantes fora do componente (evita recriação) ================== */
+const OBRIGATORIOS = [
+  "nome",
+  "corda",
+  "genero",
+  "racaCor",
+  "dataNascimento",
+  "whatsapp",
+  "contatoEmergencia",
+  "localTreino",
+  "horarioTreino",
+  "professorReferencia",
+  "endereco",
+  "numero",
+  "inicioNoGrupo",
+];
+
+const cepCache = new Map();
+const fcClass = (errors, name) =>
+  `form-control mb-2 ${errors[name] ? "is-invalid" : ""}`;
+
+/* ===================================================================================== */
+
 const CadastroInicial = ({ show, onSave }) => {
   const [form, setForm] = useState({
     nome: "",
@@ -31,7 +53,7 @@ const CadastroInicial = ({ show, onSave }) => {
     professorReferencia: "",
     endereco: "",
     numero: "",
-    inicioNoGrupo: "", // <-- NOVO (Q16)
+    inicioNoGrupo: "",
     permissaoEventos: "leitor",
   });
 
@@ -51,26 +73,14 @@ const CadastroInicial = ({ show, onSave }) => {
     variant: "danger",
     message: "",
   });
-  const showError = (message) =>
-    setFeedback({ show: true, variant: "danger", message });
-  const hideFeedback = () =>
-    setFeedback((prev) => ({ ...prev, show: false, message: "" }));
-
-  const obrigatorios = [
-    "nome",
-    "corda",
-    "genero",
-    "racaCor",
-    "dataNascimento",
-    "whatsapp",
-    "contatoEmergencia",
-    "localTreino",
-    "horarioTreino",
-    "professorReferencia",
-    "endereco",
-    "numero",
-    "inicioNoGrupo", // <-- NOVO é obrigatório
-  ];
+  const showError = useCallback(
+    (message) => setFeedback({ show: true, variant: "danger", message }),
+    []
+  );
+  const hideFeedback = useCallback(
+    () => setFeedback((prev) => ({ ...prev, show: false, message: "" })),
+    []
+  );
 
   const horariosDisponiveis = useMemo(
     () => getHorariosDoLocal(form.localTreino),
@@ -81,63 +91,81 @@ const CadastroInicial = ({ show, onSave }) => {
     [form.localTreino]
   );
 
-  const fc = (name) => `form-control mb-2 ${errors[name] ? "is-invalid" : ""}`;
+  const fc = useCallback((name) => fcClass(errors, name), [errors]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (feedback.show) hideFeedback();
-
-    if (errors[name] && String(value).trim() !== "") {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
+  // Evita deixar preview de CEP desatualizado quando fechar modal
+  useEffect(() => {
+    if (!show) {
+      setCep("");
+      setBuscandoCep(false);
+      setLogradouro("");
+      setBairro("");
+      setCidade("");
+      setUf("");
+      setErrors({});
+      setSubmitted(false);
+      hideFeedback();
     }
+  }, [show, hideFeedback]);
 
-    if (name === "whatsapp" || name === "contatoEmergencia") {
-      return setForm((prev) => ({ ...prev, [name]: maskPhoneBR(value) }));
-    }
+  const handleChange = useCallback(
+    (e) => {
+      const { name, value } = e.target;
+      if (feedback.show) hideFeedback();
 
-    if (name === "localTreino") {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next.localTreino;
-        delete next.horarioTreino;
-        delete next.professorReferencia;
-        return next;
-      });
-      return setForm((prev) => ({
-        ...prev,
-        localTreino: value,
-        horarioTreino: "",
-        professorReferencia: "",
-      }));
-    }
+      // limpa erro daquele campo numa passada só
+      if (errors[name] && String(value).trim() !== "") {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next[name];
+          return next;
+        });
+      }
 
-    if (name === "horarioTreino") {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next.horarioTreino;
-        delete next.professorReferencia;
-        return next;
-      });
-      return setForm((prev) => ({
-        ...prev,
-        horarioTreino: value,
-        professorReferencia: getProfessorLabel(prev.localTreino, value),
-      }));
-    }
+      if (name === "whatsapp" || name === "contatoEmergencia") {
+        setForm((prev) => ({ ...prev, [name]: maskPhoneBR(value) }));
+        return;
+      }
 
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
+      if (name === "localTreino") {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.localTreino;
+          delete next.horarioTreino;
+          delete next.professorReferencia;
+          return next;
+        });
+        setForm((prev) => ({
+          ...prev,
+          localTreino: value,
+          horarioTreino: "",
+          professorReferencia: "",
+        }));
+        return;
+      }
 
-  const buscarEnderecoPorCep = async () => {
-    if (!cep) return;
-    setBuscandoCep(true);
-    hideFeedback();
-    try {
-      const data = await buscarCep(cep);
+      if (name === "horarioTreino") {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.horarioTreino;
+          delete next.professorReferencia;
+          return next;
+        });
+        setForm((prev) => ({
+          ...prev,
+          horarioTreino: value,
+          professorReferencia: getProfessorLabel(prev.localTreino, value),
+        }));
+        return;
+      }
+
+      setForm((prev) => ({ ...prev, [name]: value }));
+    },
+    [errors, feedback.show, hideFeedback]
+  );
+
+  const preencherEndereco = useCallback(
+    (data) => {
       setLogradouro(data.logradouro);
       setBairro(data.bairro);
       setCidade(data.cidade);
@@ -146,6 +174,7 @@ const CadastroInicial = ({ show, onSave }) => {
       if (form.numero) {
         const endereco = buildFullAddress({ ...data, numero: form.numero });
         setForm((prev) => ({ ...prev, endereco }));
+
         if (errors.endereco && endereco.trim() !== "") {
           setErrors((prev) => {
             const next = { ...prev };
@@ -154,42 +183,66 @@ const CadastroInicial = ({ show, onSave }) => {
           });
         }
       }
+    },
+    [errors.endereco, form.numero]
+  );
+
+  const buscarEnderecoPorCep = useCallback(async () => {
+    const c = (cep || "").replace(/\D/g, "");
+    if (c.length < 8) return;
+
+    hideFeedback();
+
+    // cache simples para evitar requisições repetidas
+    if (cepCache.has(c)) {
+      preencherEndereco(cepCache.get(c));
+      return;
+    }
+
+    setBuscandoCep(true);
+    try {
+      const data = await buscarCep(c);
+      cepCache.set(c, data);
+      preencherEndereco(data);
     } catch (e) {
-      showError(e.message || "Erro ao buscar o CEP.");
+      showError(e?.message || "Erro ao buscar o CEP.");
     } finally {
       setBuscandoCep(false);
     }
-  };
+  }, [cep, preencherEndereco, hideFeedback, showError]);
 
-  const handleNumeroChange = (e) => {
-    const numero = e.target.value;
-    const endereco = logradouro
-      ? buildFullAddress({ logradouro, numero, bairro, cidade, uf })
-      : "";
+  const handleNumeroChange = useCallback(
+    (e) => {
+      const numero = e.target.value;
+      const endereco = logradouro
+        ? buildFullAddress({ logradouro, numero, bairro, cidade, uf })
+        : "";
 
-    setForm((prev) => ({ ...prev, numero, endereco }));
+      setForm((prev) => ({ ...prev, numero, endereco }));
 
-    if (errors.numero && String(numero).trim() !== "") {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next.numero;
-        return next;
-      });
-    }
-    if (errors.endereco && endereco.trim() !== "") {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next.endereco;
-        return next;
-      });
-    }
-  };
+      if (errors.numero && String(numero).trim() !== "") {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.numero;
+          return next;
+        });
+      }
+      if (errors.endereco && endereco.trim() !== "") {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.endereco;
+          return next;
+        });
+      }
+    },
+    [logradouro, bairro, cidade, uf, errors.numero, errors.endereco]
+  );
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     setSubmitted(true);
     hideFeedback();
 
-    const newErrors = validateRequiredFields(form, obrigatorios);
+    const newErrors = validateRequiredFields(form, OBRIGATORIOS);
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
@@ -216,7 +269,7 @@ const CadastroInicial = ({ show, onSave }) => {
       aceitouTermos: true,
       nivelAcesso: "visitante",
     });
-  };
+  }, [form, hideFeedback, aceitouTermos, onSave, showError]);
 
   return (
     <Modal show={show} centered size="xl" backdrop="static">
@@ -245,6 +298,8 @@ const CadastroInicial = ({ show, onSave }) => {
               placeholder="Nome"
               value={form.nome}
               onChange={handleChange}
+              autoComplete="name"
+              enterKeyHint="next"
             />
 
             <small className="text-muted">Apelido</small>
@@ -254,6 +309,8 @@ const CadastroInicial = ({ show, onSave }) => {
               placeholder="Apelido (opcional)"
               value={form.apelido}
               onChange={handleChange}
+              autoComplete="nickname"
+              enterKeyHint="next"
             />
 
             {/* Graduação */}
@@ -277,7 +334,7 @@ const CadastroInicial = ({ show, onSave }) => {
               ))}
             </select>
 
-            {/*Quando Iniciou */}
+            {/* Quando Iniciou */}
             <small className="text-muted">
               Quando iniciou seus treinos no Grupo de Capoeira Minas Bahia
             </small>
@@ -288,6 +345,8 @@ const CadastroInicial = ({ show, onSave }) => {
               placeholder="Insira a data (dd/MM/yyyy)"
               value={form.inicioNoGrupo}
               onChange={handleChange}
+              autoComplete="bday"
+              enterKeyHint="next"
             />
 
             {/* Gênero */}
@@ -331,6 +390,8 @@ const CadastroInicial = ({ show, onSave }) => {
               type="date"
               value={form.dataNascimento}
               onChange={handleChange}
+              autoComplete="bday"
+              enterKeyHint="next"
             />
 
             {/* Telefones */}
@@ -344,10 +405,13 @@ const CadastroInicial = ({ show, onSave }) => {
                   inputMode="numeric"
                   value={form.whatsapp}
                   onChange={handleChange}
+                  autoComplete="tel"
                 />
               </Col>
               <Col md={6}>
-                <small className="text-muted">Contato de emergência / responsável</small>
+                <small className="text-muted">
+                  Contato de emergência / responsável
+                </small>
                 <input
                   name="contatoEmergencia"
                   className={fc("contatoEmergencia")}
@@ -355,6 +419,7 @@ const CadastroInicial = ({ show, onSave }) => {
                   inputMode="numeric"
                   value={form.contatoEmergencia}
                   onChange={handleChange}
+                  autoComplete="tel-national"
                 />
               </Col>
             </Row>
@@ -430,6 +495,8 @@ const CadastroInicial = ({ show, onSave }) => {
                 value={cep}
                 onChange={(e) => setCep(e.target.value)}
                 inputMode="numeric"
+                autoComplete="postal-code"
+                enterKeyHint="search"
               />
               <Button onClick={buscarEnderecoPorCep} disabled={buscandoCep}>
                 {buscandoCep ? "Buscando..." : "Buscar"}
@@ -445,6 +512,7 @@ const CadastroInicial = ({ show, onSave }) => {
               placeholder="Rua (preenchida pelo CEP)"
               value={logradouro}
               disabled
+              readOnly
             />
             <input
               type="text"
@@ -454,6 +522,7 @@ const CadastroInicial = ({ show, onSave }) => {
               placeholder="Bairro (preenchido pelo CEP)"
               value={bairro}
               disabled
+              readOnly
             />
             <input
               type="text"
@@ -463,6 +532,7 @@ const CadastroInicial = ({ show, onSave }) => {
               placeholder="Cidade (preenchida pelo CEP)"
               value={cidade}
               disabled
+              readOnly
             />
             <input
               type="text"
@@ -472,6 +542,7 @@ const CadastroInicial = ({ show, onSave }) => {
               placeholder="UF (preenchida pelo CEP)"
               value={uf}
               disabled
+              readOnly
             />
 
             <small className="text-muted">Número do seu endereço</small>
@@ -482,6 +553,8 @@ const CadastroInicial = ({ show, onSave }) => {
               name="numero"
               value={form.numero}
               onChange={handleNumeroChange}
+              inputMode="numeric"
+              enterKeyHint="done"
             />
 
             <div className="form-check mt-3">

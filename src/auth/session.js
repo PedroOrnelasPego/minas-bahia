@@ -2,6 +2,8 @@
 import { msalInstance } from "../auth/msalInstance";
 
 const GOOGLE_KEY = "app_google_email";
+// usar sessionStorage reduz persistência; troque para localStorage se quiser "lembrar"
+const STORE = window.localStorage;
 
 function cleanEmail(v) {
   if (!v) return null;
@@ -13,18 +15,20 @@ function cleanEmail(v) {
 }
 
 export function getAuthEmail() {
+  // ⚠️ apenas hint de sessão (front). Backend deve validar tokens sempre.
   const active = msalInstance.getActiveAccount();
   const msalAccount = active || (msalInstance.getAllAccounts?.()[0] ?? null);
   const msalEmail = cleanEmail(msalAccount?.username);
   if (msalEmail) return msalEmail;
 
-  const g = cleanEmail(localStorage.getItem(GOOGLE_KEY));
+  const g = cleanEmail(STORE.getItem(GOOGLE_KEY));
   if (g) return g;
 
   return null;
 }
 
 export function isAuthenticated() {
+  // ⚠️ NÃO use isto para autorização de servidor. Só UX no front.
   return !!getAuthEmail();
 }
 
@@ -32,32 +36,40 @@ export function getAuthProvider() {
   const active = msalInstance.getActiveAccount();
   const msalAccount = active || (msalInstance.getAllAccounts?.()[0] ?? null);
   if (cleanEmail(msalAccount?.username)) return "microsoft";
-  if (cleanEmail(localStorage.getItem(GOOGLE_KEY))) return "google";
+  if (cleanEmail(STORE.getItem(GOOGLE_KEY))) return "google";
   return null;
 }
 
 export function setGoogleSession(email) {
   const e = cleanEmail(email);
-  if (e) localStorage.setItem(GOOGLE_KEY, e);
+  if (e) STORE.setItem(GOOGLE_KEY, e);
+}
+
+export function clearHints() {
+  STORE.removeItem(GOOGLE_KEY);
 }
 
 export async function signOutUnified() {
   const provider = getAuthProvider();
 
+  const loginHash = "#/area-graduado/login";
+  const postLogout = `${window.location.origin}/${loginHash}`;
+
   if (provider === "microsoft") {
+    clearHints();
+    // volta direto para a tela de login (hash incluso)
     await msalInstance.logoutRedirect({
-      postLogoutRedirectUri: window.location.origin, // volta para origem
+      postLogoutRedirectUri: postLogout,
     });
-    // Ao voltar, deixamos o usuário na tela de login via hash:
-    window.location.hash = "#/area-graduado/login";
-    return;
+    return; // a navegação acontece via redirect acima
   }
 
   if (provider === "google") {
-    localStorage.removeItem(GOOGLE_KEY);
-    window.location.hash = "#/area-graduado/login";
+    clearHints();
+    // substitui histórico para evitar "voltar" cair em telas protegidas
+    window.location.replace(loginHash);
     return;
   }
 
-  window.location.hash = "#/area-graduado/login";
+  window.location.replace(loginHash);
 }

@@ -1,29 +1,20 @@
-import { useMsal } from "@azure/msal-react";
-import { useEffect, useState } from "react";
+// src/components/ProtectedRoute/index.jsx
 import { Navigate } from "react-router-dom";
+import { useMsal } from "@azure/msal-react";
+import { isAuthenticated } from "../../auth/session";
 
-const ProtectedRoute = ({ children }) => {
-  const { instance, accounts } = useMsal();
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+export default function ProtectedRoute({ children }) {
+  const { inProgress } = useMsal(); // "none", "login", "acquireToken", etc.
 
-  useEffect(() => {
-    const active = instance.getActiveAccount();
+  // Enquanto o MSAL está iniciando/interagindo, ainda não decidimos nada.
+  if (inProgress && inProgress !== "none") {
+    return null; // ou um <div>Carregando...</div> se quiser
+  }
 
-    if (active) {
-      setIsAuthenticated(true);
-    } else if (accounts?.length > 0) {
-      instance.setActiveAccount(accounts[0]);
-      setIsAuthenticated(true);
-    }
-    setCheckingAuth(false);
-  }, [accounts, instance]);
-
-  if (checkingAuth) return <p>Verificando autenticação...</p>;
-
-  if (!isAuthenticated) return <Navigate to="/area-graduado/login" replace />;
+  // Usa seu mecanismo atual de sessão (Google/MSAL via AuthProvider)
+  if (!isAuthenticated()) {
+    return <Navigate to="/area-graduado/login" replace />;
+  }
 
   return children;
-};
-
-export default ProtectedRoute;
+}

@@ -1,3 +1,4 @@
+// src/pages/AreaGraduado/AreaGraduado.jsx
 import { useEffect, useRef, useState } from "react";
 import { Container, Row, Col, Alert, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
@@ -20,21 +21,20 @@ import { getHorarioLabel } from "../../helpers/agendaTreino";
 import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { formatarData } from "../../utils/formatarData";
-import {
-  makeAvatarVariants, // gera @1x e @2x
-} from "../../utils/imagePerfil";
+import { makeAvatarVariants } from "../../utils/imagePerfil";
 import { setPerfilCache } from "../../utils/profileCache";
 import QuestionarioAluno from "../../components/QuestionarioAluno/QuestionarioAluno";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
+import {
+  getAuthEmail,
+  getAuthProvider,
+  signOutUnified,
+} from "../../auth/session";
+import Loading from "../../components/Loading/Loading";
 
 const API_URL = import.meta.env.VITE_API_URL;
-
-// evita 1º efeito duplicado no StrictMode (apenas DEV)
 const DEV_STRICT_DEBOUNCE_MS = 30;
 
-/* ============================
-   Enum/labels de nível de acesso
-   ============================ */
 const NIVEL_LABELS = {
   visitante: "Visitante",
   aluno: "Aluno",
@@ -43,6 +43,7 @@ const NIVEL_LABELS = {
   instrutor: "Instrutor",
   professor: "Professor",
   contramestre: "Contramestre",
+  mestre: "Mestre",
 };
 
 function getNivelLabel(nivel) {
@@ -51,10 +52,38 @@ function getNivelLabel(nivel) {
   return NIVEL_LABELS[key] || "";
 }
 
-const AreaGraduado = () => {
-  const { instance, accounts } = useMsal();
+/** Campos obrigatórios do seu cadastro inicial */
+const REQUIRED_FIELDS = [
+  "nome",
+  "corda",
+  "genero",
+  "racaCor",
+  "dataNascimento",
+  "whatsapp",
+  "contatoEmergencia",
+  "localTreino",
+  "horarioTreino",
+  "professorReferencia",
+  "endereco",
+  "numero",
+  "inicioNoGrupo",
+];
 
-  const [session, setSession] = useState(null);
+/** Retorna true se o perfil estiver faltando algo (ou não aceitou termos) */
+function isPerfilIncompleto(p) {
+  if (!p) return true;
+  if (!p.aceitouTermos) return true;
+  for (const k of REQUIRED_FIELDS) {
+    const v = p?.[k];
+    if (v === undefined || v === null) return true;
+    if (typeof v === "string" && v.trim() === "") return true;
+  }
+  return false;
+}
+
+const AreaGraduado = () => {
+  const { instance } = useMsal();
+
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({ nome: "", email: "" });
   const [perfil, setPerfil] = useState({
@@ -66,14 +95,13 @@ const AreaGraduado = () => {
     numero: "",
     endereco: "",
     dataNascimento: "",
-    nivelAcesso: "", // <- vem do backend e alimenta o label dinâmico
+    nivelAcesso: "",
   });
 
   const [formEdit, setFormEdit] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCadastroInicial, setShowCadastroInicial] = useState(false);
 
-  // CEP helpers
   const [cep, setCep] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [logradouro, setLogradouro] = useState("");
@@ -81,7 +109,6 @@ const AreaGraduado = () => {
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
 
-  // foto
   const [fotoPreview, setFotoPreview] = useState(null);
   const [temFotoRemota, setTemFotoRemota] = useState(false);
   const [cropModal, setCropModal] = useState(false);
@@ -90,14 +117,11 @@ const AreaGraduado = () => {
   const [avatar1x, setAvatar1x] = useState(null);
   const [avatar2x, setAvatar2x] = useState(null);
 
-  // modal de zoom
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarModalUrl, setAvatarModalUrl] = useState(null);
 
-  //Questionario Aluno
   const [showQuestionarioAluno, setShowQuestionarioAluno] = useState(false);
 
-  // feedback
   const [feedback, setFeedback] = useState({
     show: false,
     variant: "danger",
@@ -110,11 +134,12 @@ const AreaGraduado = () => {
   const hideFeedback = () =>
     setFeedback((p) => ({ ...p, show: false, message: "" }));
 
-  // ==== Controle de concorrência / cancelamento ====
+  // NEW: acordeon do questionário na Área Graduado
+  const [questionarioOpen, setQuestionarioOpen] = useState(false);
+
   const abortRef = useRef(null);
   const reqSeq = useRef(0);
 
-  // util: checa se imagem existe (com guarda por sequência)
   const testImage = (url, mySeq) =>
     new Promise((resolve) => {
       const img = new Image();
@@ -127,11 +152,15 @@ const AreaGraduado = () => {
 
   // ===== Boot / carregamento principal =====
   useEffect(() => {
-    const account = accounts[0];
-    if (!account) return;
+    const email = getAuthEmail();
+    if (!email) return; // ProtectedRoute já barra
 
-    setSession(account);
-    setUserData({ nome: account.name, email: account.username });
+    const provider = getAuthProvider();
+    const msalAcc = instance.getActiveAccount?.();
+    setUserData({
+      nome: provider === "microsoft" ? msalAcc?.name || "" : "",
+      email,
+    });
 
     let cancelled = false;
     let timer = null;
@@ -139,24 +168,21 @@ const AreaGraduado = () => {
     const run = async () => {
       if (cancelled) return;
 
-      // cancela requisição anterior
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
       abortRef.current = controller;
       const mySeq = ++reqSeq.current;
 
       try {
-        // Perfil e foto rodam em paralelo
         const perfilPromise = (async () => {
           try {
-            const p = await buscarPerfil(account.username, {
-              signal: controller.signal,
-            });
+            const p = await buscarPerfil(email, { signal: controller.signal });
             if (mySeq !== reqSeq.current) return;
             if (p) {
               setPerfil(p);
-              setPerfilCache(account.username, p);
-              setShowCadastroInicial(false);
+              setPerfilCache(email, p);
+              // 👇 abre cadastro inicial se perfil EXISTIR mas estiver incompleto
+              setShowCadastroInicial(isPerfilIncompleto(p));
             } else {
               setShowCadastroInicial(true);
             }
@@ -167,7 +193,7 @@ const AreaGraduado = () => {
         })();
 
         const fotoPromise = (async () => {
-          const base = `https://certificadoscapoeira.blob.core.windows.net/certificados/${account.username}`;
+          const base = `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}`;
           const url1x = `${base}/foto-perfil@1x.jpg?${Date.now()}`;
           const urlLegacy = `${base}/foto-perfil.jpg?${Date.now()}`;
 
@@ -205,7 +231,7 @@ const AreaGraduado = () => {
       if (timer) clearTimeout(timer);
       if (abortRef.current) abortRef.current.abort();
     };
-  }, [accounts]);
+  }, [instance]);
 
   // ===== Foto: seleção / corte / upload =====
   const handleFotoChange = (e) => {
@@ -321,9 +347,9 @@ const AreaGraduado = () => {
     }));
   };
 
-  // ===== Sair =====
+  // ===== Sair (unificado) =====
   const handleSignOut = async () => {
-    await instance.logoutRedirect();
+    await signOutUnified();
   };
 
   // ===== Permissões =====
@@ -374,7 +400,7 @@ const AreaGraduado = () => {
     const payload = {
       questionarios: {
         ...(perfil.questionarios || {}),
-        aluno: { ...respostas }, // sem createdAt
+        aluno: { ...respostas },
       },
     };
     try {
@@ -388,7 +414,8 @@ const AreaGraduado = () => {
     }
   };
 
-  if (loading) return <p>Carregando...</p>;
+  if (loading)
+    return <Loading variant="block" size="md" message="Carregando dados..." />;
 
   const isRemotePreview =
     typeof fotoPreview === "string" && fotoPreview.startsWith("http");
@@ -404,8 +431,11 @@ const AreaGraduado = () => {
     setShowAvatarModal(true);
   };
 
-  // label dinâmico do nível
   const nivelDisplay = getNivelLabel(perfil.nivelAcesso) || "-";
+  const podeEditarQuestionario = !!perfil?.podeEditarQuestionario;
+
+  // helper local para exibir booleanos do questionário
+  const b = (v) => (v === true ? "Sim" : v === false ? "Não" : "-");
 
   return (
     <Container fluid className="min-h-screen p-4">
@@ -444,7 +474,14 @@ const AreaGraduado = () => {
           <RequireAccess nivelMinimo="aluno">
             <button
               className="btn btn-secondary"
-              disabled={!canAccess(1)}
+              disabled={!canAccess(1) || !podeEditarQuestionario}
+              title={
+                !canAccess(1)
+                  ? "Disponível apenas para nível 'Aluno' ou superior"
+                  : !podeEditarQuestionario
+                  ? "Edição desativada pelo Mestre no Painel Admin"
+                  : ""
+              }
               onClick={() => setShowQuestionarioAluno(true)}
             >
               Editar Questionário
@@ -469,7 +506,11 @@ const AreaGraduado = () => {
                   className="spinner-border text-secondary mb-3"
                   role="status"
                 >
-                  <span className="visually-hidden">Carregando...</span>
+                  <Loading
+                    variant="block"
+                    size="md"
+                    message="Carregando dados..."
+                  />
                 </div>
               ) : (
                 <img
@@ -574,6 +615,112 @@ const AreaGraduado = () => {
                   <strong>Professor referência: </strong>
                   {perfil.professorReferencia || "-"}
                 </p>
+
+                {/* ===== Acordeon do Questionário ===== */}
+                <div className="border rounded mt-3">
+                  <button
+                    className="w-100 text-start bg-white border-0 px-3 py-2 d-flex justify-content-between align-items-center"
+                    onClick={() => setQuestionarioOpen((v) => !v)}
+                    aria-expanded={questionarioOpen}
+                    aria-controls="q-aluno-area"
+                    style={{ cursor: "pointer" }}
+                    title="Ver respostas do questionário"
+                  >
+                    <span className="fw-semibold">Questionário</span>
+                    <span>{questionarioOpen ? "▲" : "▼"}</span>
+                  </button>
+
+                  {questionarioOpen && (
+                    <div id="q-aluno-area" className="px-3 pb-3">
+                      {(() => {
+                        const q = (perfil.questionarios || {}).aluno || {};
+                        return (
+                          <div className="row g-2 pt-2">
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>Problema de saúde: </strong>
+                                {b(q.problemaSaude)}
+                              </p>
+                            </div>
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Se sim, qual problema de saúde você possui?:{" "}
+                                </strong>
+                                {q.problemaSaudeDetalhe || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>Já praticou capoeira antes?: </strong>
+                                {b(q.praticouCapoeira)}
+                              </p>
+                            </div>
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Se sim, em qual grupo? Com quem
+                                  (mestre/professor)? Por quanto tempo?:{" "}
+                                </strong>
+                                {q.historicoCapoeira || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Pratica ou já praticou outro esporte/atividade
+                                  cultural?:{" "}
+                                </strong>
+                                {b(q.outroEsporte)}
+                              </p>
+                            </div>
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Se sim, qual atividade e durante quanto
+                                  tempo?:{" "}
+                                </strong>
+                                {q.outroEsporteDetalhe || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Já ficou algum tempo sem treinar capoeira? Por
+                                  quanto tempo? Qual o motivo?:{" "}
+                                </strong>
+                                {q.hiatoSemTreinar || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Quais os seus objetivos com a capoeira?:{" "}
+                                </strong>
+                                {q.objetivosCapoeira || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-0">
+                                <strong>
+                                  Sugestões para o ICMBC (Ponto de Cultura)
+                                  crescer de forma positiva?:{" "}
+                                </strong>
+                                {q.sugestoesPontoDeCultura || "-"}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+                {/* ===== fim acordeon ===== */}
               </div>
             </Col>
           </Row>
@@ -602,6 +749,8 @@ const AreaGraduado = () => {
         </Row>
       )}
 
+      {/* demais seções... iguais ao seu código */}
+
       <ModalEditarPerfil
         show={showEditModal}
         onHide={() => {
@@ -626,12 +775,12 @@ const AreaGraduado = () => {
         <CadastroInicial
           show={showCadastroInicial}
           onSave={async (dados) => {
-            // >>> createdAt AGORA FICA NO PRIMEIRO CADASTRO
             const perfilFinal = {
               ...dados,
               id: userData.email,
               email: userData.email,
-              createdAt: new Date().toISOString(), // << aqui
+              createdAt: new Date().toISOString(),
+              aceitouTermos: true,
             };
             await criarPerfil(perfilFinal);
             setPerfil(perfilFinal);
@@ -685,8 +834,6 @@ const AreaGraduado = () => {
           show={showQuestionarioAluno}
           initialData={perfil?.questionarios?.aluno || null}
           onSave={salvarQuestionarioAluno}
-          // se foi aberto manualmente, permite cancelar;
-          // se foi aberto automaticamente (1ª vez), usuário não verá o botão cancelar (onCancel undefined)
           onCancel={
             perfil?.questionarios?.aluno
               ? () => setShowQuestionarioAluno(false)

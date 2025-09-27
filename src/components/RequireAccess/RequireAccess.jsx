@@ -1,6 +1,5 @@
-// src/components/RequireAccess/RequireAccess.jsx
-import { useMsal } from "@azure/msal-react";
 import PropTypes from "prop-types";
+import { getAuthEmail } from "../../auth/session";
 import { getPerfilCache } from "../../utils/profileCache";
 
 const NIVEIS = [
@@ -21,18 +20,18 @@ const rankNivel = (n) => {
 
 /**
  * Exibe children somente se:
- *  - usuário estiver logado (MSAL)
+ *  - usuário estiver logado (Google ou Microsoft)
  *  - nível do perfil >= nivelMinimo
  *  - se requireEditor = true, então perfil.permissaoEventos === "editor"
  */
-const RequireAccess = ({ nivelMinimo = "graduado", requireEditor = false, children }) => {
-  const { accounts } = useMsal();
-  const account = accounts?.[0];
-  const logado = !!account;
+const RequireAccess = ({
+  nivelMinimo = "graduado",
+  requireEditor = false,
+  children,
+}) => {
+  const email = getAuthEmail();
+  if (!email) return null;
 
-  if (!logado) return null;
-
-  const email = account.username;
   const perfil = getPerfilCache(email) || {};
   const nivelUsuario = perfil?.nivelAcesso || "visitante";
   const ehEditor = (perfil?.permissaoEventos || "leitor") === "editor";

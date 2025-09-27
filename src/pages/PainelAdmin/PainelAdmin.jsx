@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, Row, Col, Spinner, Modal } from "react-bootstrap";
+import { Container, Row, Col, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import calcularIdade from "../../utils/calcularIdade";
@@ -8,6 +8,7 @@ import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import { getCordaNome } from "../../constants/nomesCordas";
 import { getHorarioLabel } from "../../helpers/agendaTreino";
 import { formatarData } from "../../utils/formatarData";
+import Loading from "../../components/Loading/Loading";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -43,8 +44,11 @@ const PainelAdmin = () => {
   const [usuarioExpandido, setUsuarioExpandido] = useState(null);
   const [dadosUsuarios, setDadosUsuarios] = useState({});
   const [carregando, setCarregando] = useState(false);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(true);
 
   const [certificadosUsuarios, setCertificadosUsuarios] = useState({});
+  const [certsLoading, setCertsLoading] = useState(null); // email em carregamento
+
   const [previewUrl, setPreviewUrl] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [previewIsPdf, setPreviewIsPdf] = useState(false);
@@ -55,6 +59,9 @@ const PainelAdmin = () => {
 
   // 👉 cache de quem NÃO tem avatar (evita re-buscas infinitas)
   const [semAvatar, setSemAvatar] = useState({}); // { [email]: true }
+
+  // 👉 estado do acordeon do questionário por usuário
+  const [questionarioOpen, setQuestionarioOpen] = useState({});
 
   // ----------------- atualizações -----------------
 
@@ -68,14 +75,24 @@ const PainelAdmin = () => {
         [email]: { ...prev[email], nivelAcesso: novoNivel },
       }));
 
-      // auto-downgrade: se ficou abaixo de Graduado -> força Leitor
       const now = (novoNivel || "").toLowerCase();
-      const ficouAbaixoGraduado = rankNivel(now) < rankNivel("graduado");
 
-      const permissaoAtual = dadosUsuarios[email]?.permissaoEventos || "leitor";
+      // 1) Abaixo de Graduado -> força "Leitor"
+      const ficouAbaixoGraduado = rankNivel(now) < rankNivel("graduado");
+      const permissaoAtual = (
+        dadosUsuarios[email]?.permissaoEventos || "leitor"
+      ).toLowerCase();
 
       if (ficouAbaixoGraduado && permissaoAtual !== "leitor") {
         await atualizarPermissaoEventos(email, "leitor", { silent: true });
+      }
+
+      // 2) Abaixo de Aluno -> desativa edição do Questionário
+      const ficouAbaixoAluno = rankNivel(now) < rankNivel("aluno");
+      const podeEditarAtual = !!dadosUsuarios[email]?.podeEditarQuestionario;
+
+      if (ficouAbaixoAluno && podeEditarAtual) {
+        await atualizarPermissaoQuestionario(email, false, { silent: true });
       }
 
       alert("Nível atualizado com sucesso.");
@@ -101,6 +118,26 @@ const PainelAdmin = () => {
     }
   };
 
+  const atualizarPermissaoQuestionario = async (
+    email,
+    habilitado,
+    opts = {}
+  ) => {
+    const { silent = false } = opts;
+    try {
+      await axios.put(`${API_URL}/perfil/${email}`, {
+        podeEditarQuestionario: !!habilitado,
+      });
+      setDadosUsuarios((prev) => ({
+        ...prev,
+        [email]: { ...prev[email], podeEditarQuestionario: !!habilitado },
+      }));
+      if (!silent) alert("Permissão para editar questionário atualizada.");
+    } catch {
+      if (!silent) alert("Erro ao atualizar a permissão do questionário.");
+    }
+  };
+
   // ----------------- bootstrap -----------------
 
   useEffect(() => {
@@ -111,10 +148,13 @@ const PainelAdmin = () => {
     }
     const fetchUsuarios = async () => {
       try {
+        setLoadingUsuarios(true);
         const res = await axios.get(`${API_URL}/perfil`);
-        setUsuarios(res.data);
+        setUsuarios(res.data || []);
       } catch {
         alert("Erro ao buscar usuários.");
+      } finally {
+        setLoadingUsuarios(false);
       }
     };
     fetchUsuarios();
@@ -144,6 +184,7 @@ const PainelAdmin = () => {
 
   const listarCertificados = async (email) => {
     try {
+      setCertsLoading(email);
       const res = await axios.get(`${API_URL}/upload?email=${email}`);
       setCertificadosUsuarios((prev) => ({
         ...prev,
@@ -151,6 +192,8 @@ const PainelAdmin = () => {
       }));
     } catch {
       alert(`Erro ao listar arquivos de ${email}`);
+    } finally {
+      setCertsLoading(null);
     }
   };
 
@@ -174,6 +217,14 @@ const PainelAdmin = () => {
 
   // ----------------- render -----------------
 
+  if (loadingUsuarios) {
+    return (
+      <Container className="py-5">
+        <Loading variant="block" size="md" message="Carregando usuários..." />
+      </Container>
+    );
+  }
+
   return (
     <Container className="py-4">
       <h2 className="mb-4 text-center">Painel Administrativo</h2>
@@ -182,6 +233,7 @@ const PainelAdmin = () => {
         const perfilSel = dadosUsuarios[user.email] || {};
         const nivel = (perfilSel.nivelAcesso || "aluno").toLowerCase();
         const permissaoEventos = perfilSel.permissaoEventos || "leitor";
+        const podeEditarQuest = rankNivel(nivel) >= rankNivel("aluno");
         const podeEditarPerm = rankNivel(nivel) >= rankNivel("graduado");
 
         // se já sabemos que não tem avatar, usa direto o placeholder
@@ -210,10 +262,11 @@ const PainelAdmin = () => {
             {usuarioExpandido === user.email && (
               <div className="mt-3">
                 {carregando && !dadosUsuarios[user.email] ? (
-                  <div className="text-center my-3">
-                    <Spinner animation="border" variant="primary" />
-                    <p className="mt-2">Carregando dados...</p>
-                  </div>
+                  <Loading
+                    variant="block"
+                    size="sm"
+                    message="Carregando dados do usuário..."
+                  />
                 ) : (
                   <>
                     <Row className="g-3 align-items-start">
@@ -322,8 +375,14 @@ const PainelAdmin = () => {
                       </Col>
 
                       <Col xs={12}>
-                        {Array.isArray(certificadosUsuarios[user.email]) &&
-                        certificadosUsuarios[user.email].length > 0 ? (
+                        {certsLoading === user.email ? (
+                          <Loading
+                            variant="block"
+                            size="sm"
+                            message="Carregando certificados..."
+                          />
+                        ) : Array.isArray(certificadosUsuarios[user.email]) &&
+                          certificadosUsuarios[user.email].length > 0 ? (
                           <>
                             <h5 className="mt-3">Certificados</h5>
                             <div className="grid-list-3">
@@ -398,6 +457,134 @@ const PainelAdmin = () => {
                           </p>
                         )}
                       </Col>
+
+                      {/* ACORDEON INTERNO: Questionário médico */}
+                      <Col xs={12} className="mt-3">
+                        <div className="border rounded">
+                          <button
+                            className="w-100 text-start bg-white border-0 px-3 py-2 d-flex justify-content-between align-items-center"
+                            onClick={() =>
+                              setQuestionarioOpen((prev) => ({
+                                ...prev,
+                                [user.email]: !prev[user.email],
+                              }))
+                            }
+                            aria-expanded={!!questionarioOpen[user.email]}
+                            aria-controls={`qmed-${user.email}`}
+                            style={{ cursor: "pointer" }}
+                            title="Ver respostas do questionário"
+                          >
+                            <span className="fw-semibold">Questionário</span>
+                            <span>
+                              {questionarioOpen[user.email] ? "▲" : "▼"}
+                            </span>
+                          </button>
+
+                          {questionarioOpen[user.email] && (
+                            <div
+                              id={`qmed-${user.email}`}
+                              className="px-3 pb-3"
+                            >
+                              <div className="row g-3 pt-2">
+                                {(() => {
+                                  const qAluno =
+                                    (
+                                      dadosUsuarios[user.email]
+                                        ?.questionarios || {}
+                                    ).aluno || {};
+
+                                  const b = (v) =>
+                                    v === true
+                                      ? "Sim"
+                                      : v === false
+                                      ? "Não"
+                                      : "-";
+
+                                  return (
+                                    <>
+                                      <div className="col-12">
+                                        <p className="mb-2">
+                                          <strong>Problema de saúde: </strong>
+                                          {b(qAluno.problemaSaude)}
+                                        </p>
+                                      </div>
+                                      <div className="col-12">
+                                        <p className="mb-2">
+                                          <strong>Detalhe do problema: </strong>
+                                          {qAluno.problemaSaudeDetalhe || "-"}
+                                        </p>
+                                      </div>
+
+                                      <div className="col-12">
+                                        <p className="mb-2">
+                                          <strong>
+                                            Já praticou capoeira antes:{" "}
+                                          </strong>
+                                          {b(qAluno.praticouCapoeira)}
+                                        </p>
+                                      </div>
+                                      <div className="col-12">
+                                        <p className="mb-2">
+                                          <strong>
+                                            Histórico na capoeira:{" "}
+                                          </strong>
+                                          {qAluno.historicoCapoeira || "-"}
+                                        </p>
+                                      </div>
+
+                                      <div className="col-12">
+                                        <p className="mb-2">
+                                          <strong>
+                                            Outro esporte/atividade:{" "}
+                                          </strong>
+                                          {b(qAluno.outroEsporte)}
+                                        </p>
+                                      </div>
+                                      <div className="col-12">
+                                        <p className="mb-2">
+                                          <strong>
+                                            Detalhe de outro esporte:{" "}
+                                          </strong>
+                                          {qAluno.outroEsporteDetalhe || "-"}
+                                        </p>
+                                      </div>
+
+                                      <div className="col-12">
+                                        <p className="mb-2">
+                                          <strong>
+                                            Já ficou algum tempo sem treinar
+                                            capoeira?{" "}
+                                          </strong>
+                                          {qAluno.hiatoSemTreinar || "-"}
+                                        </p>
+                                      </div>
+
+                                      <div className="col-12">
+                                        <p className="mb-2">
+                                          <strong>
+                                            Objetivos com a capoeira:{" "}
+                                          </strong>
+                                          {qAluno.objetivosCapoeira || "-"}
+                                        </p>
+                                      </div>
+
+                                      <div className="col-12">
+                                        <p className="mb-2">
+                                          <strong>
+                                            Sugestões para o ICMBc:{" "}
+                                          </strong>
+                                          {qAluno.sugestoesPontoDeCultura ||
+                                            "-"}
+                                        </p>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </Col>
                     </Row>
 
                     {/* RODAPÉ: nível + permissão (sempre embaixo) */}
@@ -450,6 +637,38 @@ const PainelAdmin = () => {
                           {!podeEditarPerm && (
                             <small className="text-muted ms-2">
                               (bloqueado: requer nível &ge; Graduado)
+                            </small>
+                          )}
+                        </div>
+
+                        <div>
+                          <strong>Permitir edição do Questionário: </strong>
+                          <select
+                            className="form-select d-inline w-auto ms-2"
+                            value={
+                              dadosUsuarios[user.email]?.podeEditarQuestionario
+                                ? "true"
+                                : "false"
+                            }
+                            onChange={(e) =>
+                              atualizarPermissaoQuestionario(
+                                user.email,
+                                e.target.value === "true"
+                              )
+                            }
+                            disabled={!podeEditarQuest}
+                            title={
+                              podeEditarQuest
+                                ? "Controla se o aluno pode reabrir e editar o próprio questionário"
+                                : "Disponível apenas para nível 'Aluno' ou acima"
+                            }
+                          >
+                            <option value="false">Desativado</option>
+                            <option value="true">Ativado</option>
+                          </select>
+                          {!podeEditarQuest && (
+                            <small className="text-muted ms-2">
+                              (bloqueado: requer nível &ge; Aluno)
                             </small>
                           )}
                         </div>

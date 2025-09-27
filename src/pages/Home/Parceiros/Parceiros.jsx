@@ -5,6 +5,7 @@ import "./Parceiros.scss";
 import teste1 from "../../../assets/parceiros/alanson.png";
 import teste2 from "../../../assets/parceiros/implantar.png";
 import teste3 from "../../../assets/parceiros/rede.png";
+import teste4 from "../../../assets/parceiros/mineires.png";
 import { Card } from "react-bootstrap";
 
 const responsive = {
@@ -14,7 +15,7 @@ const responsive = {
   mobile: { breakpoint: { max: 464, min: 0 }, items: 1 },
 };
 
-const images = [teste1, teste2, teste3, teste1, teste2, teste3];
+const images = [teste1, teste2, teste3, teste4, teste1, teste2, teste3, teste4];
 
 const Parceiros = () => {
   return (

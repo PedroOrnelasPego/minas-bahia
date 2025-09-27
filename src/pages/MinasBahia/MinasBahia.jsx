@@ -1,5 +1,5 @@
 import { Container } from "react-bootstrap";
-import logo from "../../assets/logo/icmbc.png";
+import logo from "../../assets/logo/teste-black.png";
 import selo from "../../assets/logo/logoMbc.png";
 import alunoInfantil from "../../assets/graduacao/aluno-infantil.png";
 import alunoAdulto from "../../assets/graduacao/aluno-adulto.png";

@@ -33,13 +33,13 @@ const About = () => {
             </p>
           </div>
           {/* Área da imagem */}
-          <div className="mt-4 mt-md-0 text-center text-md-end">
+          {/* <div className="mt-4 mt-md-0 text-center text-md-end">
             <img
               src={minas}
               alt="Logo do ICMBC"
               className="img-fluid about-image"
             />
-          </div>
+          </div> */}
         </div>
       </div>
     </Container>

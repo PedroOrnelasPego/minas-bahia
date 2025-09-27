@@ -17,6 +17,8 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 
 ==============
 
+## [6.0.1] (CHANGELOG.md#300) - 2025-09-27
+
 ### Alterado
 
 - LocalStorage para SessionStorage(temporario)

@@ -17,11 +17,23 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 
 ==============
 
+## [6.0.0] (CHANGELOG.md#300) - 2025-09-26
+
 ### Adicionado
 
-- Login via GoogleAuth
+- Adicionado login via GoogleAuth
+- Adicionado tratamento de auth
+- Adicionado loading
+- Adicionado questionario para alunos
 
-## [5.0.0] (CHANGELOG.md#300) - 20XX-XX-XX
+### Alterado
+
+- Nova logo do ICMBC
+- Nova logo de parceiros
+- Navbar agora com as logos e novas cores
+- Nova cor do footer
+
+## [5.0.0] (CHANGELOG.md#300) - 2025-09-20
 
 ### Alterado
 

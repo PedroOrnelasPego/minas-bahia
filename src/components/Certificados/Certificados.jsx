@@ -24,20 +24,19 @@ function trimEndOnly(s) {
   return String(s || "").replace(/\s+$/g, "");
 }
 
-// slug só para STORAGE (com traços)
+// slug só para STORAGE (com traços, **preservando o casing**)
 function toSlugForStorage(text) {
   return (text || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // tira acento
-    .replace(/[^\w\s.-]/g, "") // mantém letra/dígito/underscore/espaço/.-  (tira o resto)
+    .replace(/[^\w\s.-]/g, "") // mantém letra/dígito/underscore/espaço/.- (tira o resto)
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .toLowerCase();
+    .replace(/^-+|-+$/g, ""); // ⬅️ sem .toLowerCase()
 }
 
 // caso o back ainda não mande displayName, gera um legível a partir do filename
-// ⬇️ sem forçar maiúsculas: apenas substitui '-' por ' ' e mantém o casing original
+// sem forçar maiúsculas/minúsculas: apenas substitui '-' por ' ' e mantém casing
 function prettifyFromFilename(filename) {
   const base = stripExt(stripTimestampPrefix(filename || ""));
   if (!base) return filename || "";
@@ -71,7 +70,7 @@ const Certificados = ({ email }) => {
   const [arquivo, setArquivo] = useState(null);
   const [arquivoPreviewUrl, setArquivoPreviewUrl] = useState("");
   const [arquivoIsPdf, setArquivoIsPdf] = useState(false);
-  const [displayName, setDisplayName] = useState(""); // nome “bonito” do usuário (com espaços liberados)
+  const [displayName, setDisplayName] = useState(""); // nome que o usuário vê
   const [erroUpload, setErroUpload] = useState("");
 
   // preview a partir da lista
@@ -116,7 +115,7 @@ const Certificados = ({ email }) => {
       return;
     }
 
-    // nome salvo no STORAGE (slug com traços)
+    // nome salvo no STORAGE (slug com traços e casing preservado)
     const storageBase = toSlugForStorage(cleanDisplay);
     if (!storageBase) {
       setErroUpload("O nome informado ficou inválido após normalização.");
@@ -167,7 +166,7 @@ const Certificados = ({ email }) => {
     }
   };
 
-  // download via proxy do back (funciona mesmo com container privado)
+  // download via proxy do back
   const baixar = async (proxyUrl, fallbackName = "arquivo") => {
     try {
       const resp = await fetch(proxyUrl, { mode: "cors" });
@@ -218,7 +217,7 @@ const Certificados = ({ email }) => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Seleção + preview + sugestão de displayName (sem bloquear espaços)
+  // Seleção + preview + sugestão de displayName (sem bloquear espaços e sem mudar casing)
   const onSelectFile = (e) => {
     setErroUpload("");
     const file = e.target.files?.[0] || null;

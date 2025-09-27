@@ -244,6 +244,18 @@ const ModalEditarPerfil = ({
               ))}
             </select>
 
+            <small className="text-muted">
+              Quando iniciou seus treinos no Grupo de Capoeira Minas Bahia
+            </small>
+            <input
+              type="date"
+              name="inicioNoGrupo"
+              className={fc("inicioNoGrupo")}
+              placeholder="Insira a data (dd/MM/yyyy)"
+              value={formEdit?.inicioNoGrupo}
+              onChange={handleChange}
+            />
+
             <small className="text-muted">Gênero</small>
             <select
               name="genero"
@@ -297,7 +309,9 @@ const ModalEditarPerfil = ({
                 />
               </Col>
               <Col md={6}>
-                <small className="text-muted">Contato de emergência / responsável</small>
+                <small className="text-muted">
+                  Contato de emergência / responsável
+                </small>
                 <input
                   name="contatoEmergencia"
                   className={fc("contatoEmergencia")}

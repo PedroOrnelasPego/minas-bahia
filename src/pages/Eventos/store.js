@@ -1,4 +1,4 @@
-// armazenamento simples em localStorage até integrar com o backend
+// armazenamento simples em sessionStorage até integrar com o backend
 
 const KEY = "albumGroups";
 
@@ -14,7 +14,7 @@ export const slugify = (s) =>
 
 export const loadGroups = () => {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = sessionStorage.getItem(KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -22,5 +22,5 @@ export const loadGroups = () => {
 };
 
 export const saveGroups = (groups) => {
-  localStorage.setItem(KEY, JSON.stringify(groups));
+  sessionStorage.setItem(KEY, JSON.stringify(groups));
 };

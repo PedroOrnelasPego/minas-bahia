@@ -17,6 +17,11 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 
 ==============
 
+### Alterado
+
+- LocalStorage para SessionStorage(temporario)
+- Restrição acordeon apenas para alunos
+
 ## [6.0.0] (CHANGELOG.md#300) - 2025-09-26
 
 ### Adicionado

@@ -90,6 +90,7 @@ const AreaGraduado = () => {
     nome: "",
     apelido: "",
     corda: "",
+    inicioNoGrupo: "",
     genero: "",
     racaCor: "",
     numero: "",
@@ -581,6 +582,14 @@ const AreaGraduado = () => {
                   {getCordaNome(perfil.corda) || "-"}
                 </p>
                 <p>
+                  <strong>Quando iniciou no grupo: </strong>
+                  {perfil.inicioNoGrupo
+                    ? `${formatarData(perfil.inicioNoGrupo)} | ${calcularIdade(
+                        perfil.inicioNoGrupo
+                      )} anos`
+                    : "-"}
+                </p>
+                <p>
                   <strong>Gênero:</strong> {perfil.genero || "-"}
                 </p>
                 <p>
@@ -617,109 +626,111 @@ const AreaGraduado = () => {
                 </p>
 
                 {/* ===== Acordeon do Questionário ===== */}
-                <div className="border rounded mt-3">
-                  <button
-                    className="w-100 text-start bg-white border-0 px-3 py-2 d-flex justify-content-between align-items-center"
-                    onClick={() => setQuestionarioOpen((v) => !v)}
-                    aria-expanded={questionarioOpen}
-                    aria-controls="q-aluno-area"
-                    style={{ cursor: "pointer" }}
-                    title="Ver respostas do questionário"
-                  >
-                    <span className="fw-semibold">Questionário</span>
-                    <span>{questionarioOpen ? "▲" : "▼"}</span>
-                  </button>
+                <RequireAccess nivelMinimo="aluno">
+                  <div className="border rounded mt-3">
+                    <button
+                      className="w-100 text-start bg-white border-0 px-3 py-2 d-flex justify-content-between align-items-center"
+                      onClick={() => setQuestionarioOpen((v) => !v)}
+                      aria-expanded={questionarioOpen}
+                      aria-controls="q-aluno-area"
+                      style={{ cursor: "pointer" }}
+                      title="Ver respostas do questionário"
+                    >
+                      <span className="fw-semibold">Questionário</span>
+                      <span>{questionarioOpen ? "▲" : "▼"}</span>
+                    </button>
 
-                  {questionarioOpen && (
-                    <div id="q-aluno-area" className="px-3 pb-3">
-                      {(() => {
-                        const q = (perfil.questionarios || {}).aluno || {};
-                        return (
-                          <div className="row g-2 pt-2">
-                            <div className="col-12">
-                              <p className="mb-2">
-                                <strong>Problema de saúde: </strong>
-                                {b(q.problemaSaude)}
-                              </p>
-                            </div>
-                            <div className="col-12">
-                              <p className="mb-2">
-                                <strong>
-                                  Se sim, qual problema de saúde você possui?:{" "}
-                                </strong>
-                                {q.problemaSaudeDetalhe || "-"}
-                              </p>
-                            </div>
+                    {questionarioOpen && (
+                      <div id="q-aluno-area" className="px-3 pb-3">
+                        {(() => {
+                          const q = (perfil.questionarios || {}).aluno || {};
+                          return (
+                            <div className="row g-2 pt-2">
+                              <div className="col-12">
+                                <p className="mb-2">
+                                  <strong>Problema de saúde: </strong>
+                                  {b(q.problemaSaude)}
+                                </p>
+                              </div>
+                              <div className="col-12">
+                                <p className="mb-2">
+                                  <strong>
+                                    Se sim, qual problema de saúde você possui?:{" "}
+                                  </strong>
+                                  {q.problemaSaudeDetalhe || "-"}
+                                </p>
+                              </div>
 
-                            <div className="col-12">
-                              <p className="mb-2">
-                                <strong>Já praticou capoeira antes?: </strong>
-                                {b(q.praticouCapoeira)}
-                              </p>
-                            </div>
-                            <div className="col-12">
-                              <p className="mb-2">
-                                <strong>
-                                  Se sim, em qual grupo? Com quem
-                                  (mestre/professor)? Por quanto tempo?:{" "}
-                                </strong>
-                                {q.historicoCapoeira || "-"}
-                              </p>
-                            </div>
+                              <div className="col-12">
+                                <p className="mb-2">
+                                  <strong>Já praticou capoeira antes?: </strong>
+                                  {b(q.praticouCapoeira)}
+                                </p>
+                              </div>
+                              <div className="col-12">
+                                <p className="mb-2">
+                                  <strong>
+                                    Se sim, em qual grupo? Com quem
+                                    (mestre/professor)? Por quanto tempo?:{" "}
+                                  </strong>
+                                  {q.historicoCapoeira || "-"}
+                                </p>
+                              </div>
 
-                            <div className="col-12">
-                              <p className="mb-2">
-                                <strong>
-                                  Pratica ou já praticou outro esporte/atividade
-                                  cultural?:{" "}
-                                </strong>
-                                {b(q.outroEsporte)}
-                              </p>
-                            </div>
-                            <div className="col-12">
-                              <p className="mb-2">
-                                <strong>
-                                  Se sim, qual atividade e durante quanto
-                                  tempo?:{" "}
-                                </strong>
-                                {q.outroEsporteDetalhe || "-"}
-                              </p>
-                            </div>
+                              <div className="col-12">
+                                <p className="mb-2">
+                                  <strong>
+                                    Pratica ou já praticou outro
+                                    esporte/atividade cultural?:{" "}
+                                  </strong>
+                                  {b(q.outroEsporte)}
+                                </p>
+                              </div>
+                              <div className="col-12">
+                                <p className="mb-2">
+                                  <strong>
+                                    Se sim, qual atividade e durante quanto
+                                    tempo?:{" "}
+                                  </strong>
+                                  {q.outroEsporteDetalhe || "-"}
+                                </p>
+                              </div>
 
-                            <div className="col-12">
-                              <p className="mb-2">
-                                <strong>
-                                  Já ficou algum tempo sem treinar capoeira? Por
-                                  quanto tempo? Qual o motivo?:{" "}
-                                </strong>
-                                {q.hiatoSemTreinar || "-"}
-                              </p>
-                            </div>
+                              <div className="col-12">
+                                <p className="mb-2">
+                                  <strong>
+                                    Já ficou algum tempo sem treinar capoeira?
+                                    Por quanto tempo? Qual o motivo?:{" "}
+                                  </strong>
+                                  {q.hiatoSemTreinar || "-"}
+                                </p>
+                              </div>
 
-                            <div className="col-12">
-                              <p className="mb-2">
-                                <strong>
-                                  Quais os seus objetivos com a capoeira?:{" "}
-                                </strong>
-                                {q.objetivosCapoeira || "-"}
-                              </p>
-                            </div>
+                              <div className="col-12">
+                                <p className="mb-2">
+                                  <strong>
+                                    Quais os seus objetivos com a capoeira?:{" "}
+                                  </strong>
+                                  {q.objetivosCapoeira || "-"}
+                                </p>
+                              </div>
 
-                            <div className="col-12">
-                              <p className="mb-0">
-                                <strong>
-                                  Sugestões para o ICMBC (Ponto de Cultura)
-                                  crescer de forma positiva?:{" "}
-                                </strong>
-                                {q.sugestoesPontoDeCultura || "-"}
-                              </p>
+                              <div className="col-12">
+                                <p className="mb-0">
+                                  <strong>
+                                    Sugestões para o ICMBC (Ponto de Cultura)
+                                    crescer de forma positiva?:{" "}
+                                  </strong>
+                                  {q.sugestoesPontoDeCultura || "-"}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </RequireAccess>
                 {/* ===== fim acordeon ===== */}
               </div>
             </Col>

@@ -53,12 +53,12 @@ const AlbumPage = () => {
   const abortRef = useRef(null);
   const reqSeq = useRef(0);
 
-  // --- DEBUG FLAG: ?skeleton=1 ou localStorage 'debug:skeleton' === '1'
+  // --- DEBUG FLAG: ?skeleton=1 ou sessionStorage 'debug:skeleton' === '1'
   const forceSkeleton = useMemo(() => {
     try {
       const p = new URLSearchParams(window.location.search);
       if (p.has("skeleton")) return true;
-      return localStorage.getItem("debug:skeleton") === "1";
+      return sessionStorage.getItem("debug:skeleton") === "1";
     } catch {
       return false;
     }
@@ -186,10 +186,9 @@ const AlbumPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupSlug, albumSlug]);
 
-  
   //useEffect(() => {
-    //const t = albumTitle || albumSlug;
-    //document.title = `${t} | ${groupSlug} | Eventos`;
+  //const t = albumTitle || albumSlug;
+  //document.title = `${t} | ${groupSlug} | Eventos`;
   //}, [albumTitle, groupSlug, albumSlug]);
 
   // ===== Lightbox =====

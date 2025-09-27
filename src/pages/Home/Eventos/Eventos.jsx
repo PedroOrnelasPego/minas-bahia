@@ -1,6 +1,7 @@
 import { Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import "./Eventos.scss";
+
 import trajetoria from "../../../assets/projetos/trajetorias.png";
 import uai from "../../../assets/projetos/uai.jpg";
 import logo from "../../../assets/projetos/logoMbc.png";
@@ -19,7 +20,9 @@ const Eventos = () => {
         cursos, buscamos ampliar o acesso à cultura, à educação e ao
         conhecimento.
       </div>
+
       <div className="container-cards">
+        {/* Card 1 */}
         <Link to="/projetos" className="card-link">
           <Card className="card-projeto">
             <Card.Body className="card-body">
@@ -27,47 +30,51 @@ const Eventos = () => {
                 className="img-projeto"
                 src={trajetoria}
                 alt="Trajetórias Ancestrais"
+                width={180}
+                height={170}
+                loading="lazy"
+                decoding="async"
               />
             </Card.Body>
             <Card.Title>Trajetórias Ancestrais</Card.Title>
           </Card>
         </Link>
+
+        {/* Card 2 */}
         <Link to="/uai-minas-bahia" className="card-link">
           <Card className="card-projeto">
             <Card.Body className="card-body">
-              <img className="img-projeto" src={uai} alt="UAI Minas Bahia" />
+              <img
+                className="img-projeto"
+                src={uai}
+                alt="UAI Minas Bahia"
+                width={180}
+                height={96}
+                loading="lazy"
+                decoding="async"
+              />
             </Card.Body>
             <Card.Title>UAI Minas Bahia</Card.Title>
           </Card>
         </Link>
+
+        {/* Card 3 */}
         <Link to="/minas-bahia-capoeira" className="card-link">
           <Card className="card-projeto">
             <Card.Body className="card-body">
               <img
-                style={{ maxWidth: "160px" }}
+                className="img-projeto"
                 src={logo}
                 alt="Capoeira Minas Bahia"
+                width={160}
+                height={150}
+                loading="lazy"
+                decoding="async"
               />
             </Card.Body>
             <Card.Title>Capoeira Minas Bahia</Card.Title>
           </Card>
         </Link>
-        {/* <Link to="#troca-de-cordas" className="card-link">
-          <Card className="card-projeto">
-            <Card.Body className="card-body">
-              <img className="img-projeto" src={uai} alt="Troca de Cordas" />
-            </Card.Body>
-            <Card.Title>Troca de Cordas</Card.Title>
-          </Card>
-        </Link>
-        <Link to="#exemplo" className="card-link">
-          <Card className="card-projeto">
-            <Card.Body className="card-body">
-              <img className="img-projeto" src={trajetoria} alt="Exemplo" />
-            </Card.Body>
-            <Card.Title>Exemplo</Card.Title>
-          </Card>
-        </Link> */}
       </div>
     </div>
   );

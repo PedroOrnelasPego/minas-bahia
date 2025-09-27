@@ -1,6 +1,5 @@
 import { Container } from "react-bootstrap";
-import minas from "../../../assets/projetos/icmbc.png"; // Substitua pelo caminho correto da imagem
-import "./About.scss"; // Importe a folha de estilo customizada
+import "./About.scss";
 
 const About = () => {
   return (
@@ -8,7 +7,6 @@ const About = () => {
       <div className="p-2">
         <h1 className="text-center mb-4">Bem-vindos ao ICMBC</h1>
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
-          {/* Área do texto */}
           <div className="flex-grow-1">
             <p className="mb-3" style={{ textAlign: "justify" }}>
               O Instituto de Patrimônio Cultural, Esporte, Lazer e Educação
@@ -32,14 +30,6 @@ const About = () => {
               Patrimônio Cultural Brasileiro / MG.
             </p>
           </div>
-          {/* Área da imagem */}
-          {/* <div className="mt-4 mt-md-0 text-center text-md-end">
-            <img
-              src={minas}
-              alt="Logo do ICMBC"
-              className="img-fluid about-image"
-            />
-          </div> */}
         </div>
       </div>
     </Container>

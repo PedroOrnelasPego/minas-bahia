@@ -1,11 +1,11 @@
+// src/components/MenuBar/MenuBar.jsx
 import { useState } from "react";
 import { Container, Nav, Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 
-import teste from "../../assets/logo/teste-black.png";
-// removemos a logo direita no mobile; pode manter o import se ainda quiser no desktop
-import teste2 from "../../assets/logo/logoMbc.png";
+import teste from "../../assets/logo/teste-black.png"; // logo esquerda / mobile
+import teste2 from "../../assets/logo/logoMbc.png"; // logo direita (desktop)
 
 const MenuBar = () => {
   const [expanded, setExpanded] = useState(false);
@@ -15,7 +15,7 @@ const MenuBar = () => {
   const mestreEmail = "contato@capoeiraminasbahia.com.br";
   const isMestre = accounts[0]?.username === mestreEmail;
 
-  // estilo dos links como botão
+  // estilo base dos links como "botões"
   const linkStyle = ({ isActive }) => ({
     color: "#8b0000",
     border: "2px solid #8b0000",
@@ -28,14 +28,9 @@ const MenuBar = () => {
     transition: "all 0.2s ease-in-out",
     ...(isActive && {
       backgroundColor: "#8b0000",
-      color: "white",
+      color: "#ffffff",
     }),
   });
-
-  const linkHoverStyle = {
-    backgroundColor: "#a00000",
-    color: "white",
-  };
 
   return (
     <Navbar
@@ -43,28 +38,29 @@ const MenuBar = () => {
       className="py-3"
       style={{
         backgroundColor: "#f9f9f9",
-        boxShadow: "0 4px 6px rgba(0,0,0,0.1)", // sombra na barra inteira
+        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
       }}
       expanded={expanded}
       onToggle={() => setExpanded(!expanded)}
+      aria-label="Barra de navegação principal"
     >
       <Container className="align-items-stretch">
         {/* ====== MOBILE (<= lg) ====== */}
         <div className="d-lg-none w-100">
-          {/* logo única, menor e centralizada */}
+          {/* logo única, centralizada */}
           <div className="w-100 d-flex justify-content-center">
             <img
               src={teste}
               width={110}
-              height={40}
-              alt="ICMBC"
-              fetchpriority="high"
+              height={40} // ajuste se a proporção do seu PNG for outra
+              alt="ICMBC - logotipo"
+              fetchpriority="high" // acima da dobra
               decoding="async"
               style={{ display: "block" }}
             />
           </div>
 
-          {/* botão hamburguer alinhado à direita */}
+          {/* botão hamburguer à direita */}
           <div className="d-flex justify-content-end mt-2">
             <Navbar.Toggle aria-controls="menu-principal" />
           </div>
@@ -105,13 +101,13 @@ const MenuBar = () => {
           <img
             src={teste}
             width={150}
-            height={55}
-            alt="logo esquerda"
-            fetchpriority="high"
+            height={55} // ajuste conforme proporção real
+            alt="ICMBC - logotipo esquerdo"
+            fetchpriority="high" // acima da dobra
             decoding="async"
           />
 
-          {/* espaço central com título/subtítulo e menu */}
+          {/* centro com título/subtítulo e menu */}
           <div className="flex-grow-1 text-center">
             <h2 className="mb-0 fw-bold text-dark">
               Instituto Cultural Minas Bahia de Capoeira
@@ -145,19 +141,25 @@ const MenuBar = () => {
             </Nav>
           </div>
 
-          {/* logo direita (apenas desktop). Se não quiser no desktop, remova este bloco */}
-          <img src={teste2} width={130} alt="logo direita" />
+          {/* logo direita (apenas desktop) — remova se não quiser */}
+          <img
+            src={teste2}
+            width={130}
+            height={60}
+            alt="Logotipo direito"
+            decoding="async"
+          />
         </div>
       </Container>
 
+      {/* estilos locais para hover e micro-ajustes mobile */}
       <style>
         {`
           .custom-link:hover {
-            background-color: ${linkHoverStyle.backgroundColor} !important;
-            color: ${linkHoverStyle.color} !important;
+            background-color: #a00000 !important;
+            color: #ffffff !important;
           }
 
-          /* opcional: melhor espaçamento dos botões no mobile */
           @media (max-width: 991.98px) {
             .custom-link {
               padding: 8px 14px !important;

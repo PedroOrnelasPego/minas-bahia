@@ -56,8 +56,10 @@ const MenuBar = () => {
             <img
               src={teste}
               width={110}
-              height="auto"
+              height={40}
               alt="ICMBC"
+              fetchpriority="high"
+              decoding="async"
               style={{ display: "block" }}
             />
           </div>
@@ -100,7 +102,14 @@ const MenuBar = () => {
         {/* ====== DESKTOP (>= lg) ====== */}
         <div className="d-none d-lg-flex w-100 align-items-center">
           {/* logo esquerda */}
-          <img src={teste} width={150} alt="logo esquerda" />
+          <img
+            src={teste}
+            width={150}
+            height={55}
+            alt="logo esquerda"
+            fetchpriority="high"
+            decoding="async"
+          />
 
           {/* espaço central com título/subtítulo e menu */}
           <div className="flex-grow-1 text-center">

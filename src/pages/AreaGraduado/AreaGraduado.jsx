@@ -450,7 +450,6 @@ const AreaGraduado = () => {
           {feedback.message}
         </Alert>
       )}
-
       <Row className="mb-4">
         <Col className="bg-light p-3">
           <h4>
@@ -459,7 +458,6 @@ const AreaGraduado = () => {
           </h4>
         </Col>
       </Row>
-
       <Row>
         <Col md={2} className="border p-3 d-flex flex-column gap-2">
           <button
@@ -737,7 +735,6 @@ const AreaGraduado = () => {
           </Row>
         </Col>
       </Row>
-
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3">
@@ -747,7 +744,6 @@ const AreaGraduado = () => {
           </Col>
         </Row>
       )}
-
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
@@ -759,9 +755,66 @@ const AreaGraduado = () => {
           </Col>
         </Row>
       )}
-
-      {/* demais seções... iguais ao seu código */}
-
+      {/* Arquivos para Graduado */}
+      {canAccess(2) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Graduado</h5>
+            <p>Área para documentos de download público</p>
+            <div className="grid-list-3">
+              <FileSection pasta="graduado" canUpload={isMestre} />
+            </div>
+          </Col>
+        </Row>
+      )}
+      {/* Arquivos para Monitores */}
+      {canAccess(3) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Monitores</h5>
+            <p>Área para documentos de download público</p>
+            <div className="grid-list-3">
+              <FileSection pasta="monitor" canUpload={isMestre} />
+            </div>
+          </Col>
+        </Row>
+      )}
+      {/* Arquivos para Instrutores */}
+      {canAccess(4) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Instrutores</h5>
+            <p>Área para documentos de download público</p>
+            <div className="grid-list-3">
+              <FileSection pasta="instrutor" canUpload={isMestre} />
+            </div>
+          </Col>
+        </Row>
+      )}
+      {/* Arquivos para Professores */}
+      {canAccess(5) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Professores</h5>
+            <p>Área para documentos de download público</p>
+            <div className="grid-list-3">
+              <FileSection pasta="professor" canUpload={isMestre} />
+            </div>
+          </Col>
+        </Row>
+      )}
+      {/* Arquivos para Contramestre */}
+      {canAccess(6) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Contramestre</h5>
+            <p>Área para documentos de download público</p>
+            <div className="grid-list-3">
+              <FileSection pasta="contramestre" canUpload={isMestre} />
+            </div>
+          </Col>
+        </Row>
+      )}
       <ModalEditarPerfil
         show={showEditModal}
         onHide={() => {
@@ -781,7 +834,6 @@ const AreaGraduado = () => {
         uf={uf}
         buscandoCep={buscandoCep}
       />
-
       {showCadastroInicial && (
         <CadastroInicial
           show={showCadastroInicial}
@@ -802,7 +854,6 @@ const AreaGraduado = () => {
           }}
         />
       )}
-
       {cropModal && (
         <CropImageModal
           imageSrc={rawImage}
@@ -810,7 +861,6 @@ const AreaGraduado = () => {
           onClose={() => setCropModal(false)}
         />
       )}
-
       <Modal
         show={showAvatarModal}
         onHide={() => setShowAvatarModal(false)}
@@ -839,7 +889,6 @@ const AreaGraduado = () => {
           />
         </Modal.Body>
       </Modal>
-
       {showQuestionarioAluno && (
         <QuestionarioAluno
           show={showQuestionarioAluno}

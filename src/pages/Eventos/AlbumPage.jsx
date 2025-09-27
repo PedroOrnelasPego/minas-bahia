@@ -53,12 +53,12 @@ const AlbumPage = () => {
   const abortRef = useRef(null);
   const reqSeq = useRef(0);
 
-  // --- DEBUG FLAG: ?skeleton=1 ou sessionStorage 'debug:skeleton' === '1'
+  // --- DEBUG FLAG: ?skeleton=1 ou localStorage 'debug:skeleton' === '1'
   const forceSkeleton = useMemo(() => {
     try {
       const p = new URLSearchParams(window.location.search);
       if (p.has("skeleton")) return true;
-      return sessionStorage.getItem("debug:skeleton") === "1";
+      return localStorage.getItem("debug:skeleton") === "1";
     } catch {
       return false;
     }

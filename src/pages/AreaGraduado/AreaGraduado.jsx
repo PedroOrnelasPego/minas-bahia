@@ -1,3 +1,4 @@
+// src/pages/AreaGraduado/AreaGraduado.jsx
 import { useEffect, useRef, useState } from "react";
 import { Container, Row, Col, Alert, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
@@ -131,6 +132,9 @@ const AreaGraduado = () => {
     setFeedback({ show: true, variant: "success", message });
   const hideFeedback = () =>
     setFeedback((p) => ({ ...p, show: false, message: "" }));
+
+  // NEW: acordeon do questionário na Área Graduado
+  const [questionarioOpen, setQuestionarioOpen] = useState(false);
 
   const abortRef = useRef(null);
   const reqSeq = useRef(0);
@@ -280,7 +284,9 @@ const AreaGraduado = () => {
       setAvatar2x(null);
       setTemFotoRemota(true);
       setFotoPreview(
-        `https://certificadoscapoeira.blob.core.windows.net/certificados/${userData.email}/foto-perfil@1x.jpg?${Date.now()}`
+        `https://certificadoscapoeira.blob.core.windows.net/certificados/${
+          userData.email
+        }/foto-perfil@1x.jpg?${Date.now()}`
       );
     } catch (e) {
       console.error(e);
@@ -424,6 +430,10 @@ const AreaGraduado = () => {
   };
 
   const nivelDisplay = getNivelLabel(perfil.nivelAcesso) || "-";
+  const podeEditarQuestionario = !!perfil?.podeEditarQuestionario;
+
+  // helper local para exibir booleanos do questionário
+  const b = (v) => (v === true ? "Sim" : v === false ? "Não" : "-");
 
   return (
     <Container fluid className="min-h-screen p-4">
@@ -462,7 +472,14 @@ const AreaGraduado = () => {
           <RequireAccess nivelMinimo="aluno">
             <button
               className="btn btn-secondary"
-              disabled={!canAccess(1)}
+              disabled={!canAccess(1) || !podeEditarQuestionario}
+              title={
+                !canAccess(1)
+                  ? "Disponível apenas para nível 'Aluno' ou superior"
+                  : !podeEditarQuestionario
+                  ? "Edição desativada pelo Mestre no Painel Admin"
+                  : ""
+              }
               onClick={() => setShowQuestionarioAluno(true)}
             >
               Editar Questionário
@@ -592,13 +609,119 @@ const AreaGraduado = () => {
                   <strong>Professor referência: </strong>
                   {perfil.professorReferencia || "-"}
                 </p>
+
+                {/* ===== Acordeon do Questionário ===== */}
+                <div className="border rounded mt-3">
+                  <button
+                    className="w-100 text-start bg-white border-0 px-3 py-2 d-flex justify-content-between align-items-center"
+                    onClick={() => setQuestionarioOpen((v) => !v)}
+                    aria-expanded={questionarioOpen}
+                    aria-controls="q-aluno-area"
+                    style={{ cursor: "pointer" }}
+                    title="Ver respostas do questionário"
+                  >
+                    <span className="fw-semibold">Questionário</span>
+                    <span>{questionarioOpen ? "▲" : "▼"}</span>
+                  </button>
+
+                  {questionarioOpen && (
+                    <div id="q-aluno-area" className="px-3 pb-3">
+                      {(() => {
+                        const q = (perfil.questionarios || {}).aluno || {};
+                        return (
+                          <div className="row g-2 pt-2">
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>Problema de saúde: </strong>
+                                {b(q.problemaSaude)}
+                              </p>
+                            </div>
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Se sim, qual problema de saúde você possui?:{" "}
+                                </strong>
+                                {q.problemaSaudeDetalhe || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>Já praticou capoeira antes?: </strong>
+                                {b(q.praticouCapoeira)}
+                              </p>
+                            </div>
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Se sim, em qual grupo? Com quem
+                                  (mestre/professor)? Por quanto tempo?:{" "}
+                                </strong>
+                                {q.historicoCapoeira || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Pratica ou já praticou outro esporte/atividade
+                                  cultural?:{" "}
+                                </strong>
+                                {b(q.outroEsporte)}
+                              </p>
+                            </div>
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Se sim, qual atividade e durante quanto
+                                  tempo?:{" "}
+                                </strong>
+                                {q.outroEsporteDetalhe || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Já ficou algum tempo sem treinar capoeira? Por
+                                  quanto tempo? Qual o motivo?:{" "}
+                                </strong>
+                                {q.hiatoSemTreinar || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-2">
+                                <strong>
+                                  Quais os seus objetivos com a capoeira?:{" "}
+                                </strong>
+                                {q.objetivosCapoeira || "-"}
+                              </p>
+                            </div>
+
+                            <div className="col-12">
+                              <p className="mb-0">
+                                <strong>
+                                  Sugestões para o ICMBC (Ponto de Cultura)
+                                  crescer de forma positiva?:{" "}
+                                </strong>
+                                {q.sugestoesPontoDeCultura || "-"}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+                {/* ===== fim acordeon ===== */}
               </div>
             </Col>
           </Row>
         </Col>
       </Row>
 
-      {nivelMap[perfil.nivelAcesso] >= 1 && (
+      {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3">
             <div className="grid-list-3">
@@ -608,20 +731,19 @@ const AreaGraduado = () => {
         </Row>
       )}
 
-      {nivelMap[perfil.nivelAcesso] >= 1 && (
+      {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Alunos</h5>
             <p>Área para documentos de download público</p>
             <div className="grid-list-3">
-              <FileSection
-                pasta="aluno"
-                canUpload={isMestre}
-              />
+              <FileSection pasta="aluno" canUpload={isMestre} />
             </div>
           </Col>
         </Row>
       )}
+
+      {/* demais seções... iguais ao seu código */}
 
       <ModalEditarPerfil
         show={showEditModal}

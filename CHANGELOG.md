@@ -17,6 +17,12 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 
 ==============
 
+### Adicionado
+
+- Login via GoogleAuth
+
+## [5.0.0] (CHANGELOG.md#300) - 20XX-XX-XX
+
 ### Alterado
 
 - Aba UAI! Minas Bahia agora justify
@@ -30,7 +36,6 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 - Corrigido layout quebrando em telas pequenas
 - Corrigido card de album/grupo com nome grande quebrando o card e o layout
 - Corrigido botão do whatsapp comentado
-
 
 ## [4.0.0] (CHANGELOG.md#300) - 2025-09-17
 

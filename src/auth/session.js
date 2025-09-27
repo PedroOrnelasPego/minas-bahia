@@ -1,23 +1,27 @@
-// src/auth/session.js
-
 import { msalInstance } from "../auth/msalInstance";
 
-/**
- * Chave usada para marcar sessão Google após /auth/google.
- * Valor: string com email.
- */
 const GOOGLE_KEY = "app_google_email";
+
+function cleanEmail(v) {
+  if (!v) return null;
+  const s = String(v)
+    .trim()
+    .replace(/^"+|"+$/g, "")
+    .toLowerCase();
+  return s.includes("@") ? s : null;
+}
 
 /** Retorna o email autenticado (MSAL OU Google) */
 export function getAuthEmail() {
-  // 1) MSAL (Microsoft)
+  // 1) Microsoft (MSAL)
   const active = msalInstance.getActiveAccount();
   const msalAccount = active || (msalInstance.getAllAccounts?.()[0] ?? null);
-  if (msalAccount?.username) return msalAccount.username;
+  const msalEmail = cleanEmail(msalAccount?.username);
+  if (msalEmail) return msalEmail;
 
   // 2) Google (persistido no localStorage após /auth/google)
-  const g = localStorage.getItem(GOOGLE_KEY);
-  if (g && typeof g === "string" && g.includes("@")) return g;
+  const g = cleanEmail(localStorage.getItem(GOOGLE_KEY));
+  if (g) return g;
 
   return null;
 }
@@ -31,14 +35,15 @@ export function isAuthenticated() {
 export function getAuthProvider() {
   const active = msalInstance.getActiveAccount();
   const msalAccount = active || (msalInstance.getAllAccounts?.()[0] ?? null);
-  if (msalAccount?.username) return "microsoft";
-  if (localStorage.getItem(GOOGLE_KEY)) return "google";
+  if (cleanEmail(msalAccount?.username)) return "microsoft";
+  if (cleanEmail(localStorage.getItem(GOOGLE_KEY))) return "google";
   return null;
 }
 
 /** usada no Login do Google, após sucesso do backend */
 export function setGoogleSession(email) {
-  if (email) localStorage.setItem(GOOGLE_KEY, email);
+  const e = cleanEmail(email);
+  if (e) localStorage.setItem(GOOGLE_KEY, e);
 }
 
 /** Logout unificado */
@@ -52,11 +57,9 @@ export async function signOutUnified() {
 
   if (provider === "google") {
     localStorage.removeItem(GOOGLE_KEY);
-    // volta para a tela de login
     window.location.replace("/area-graduado/login");
     return;
   }
 
-  // fallback
   window.location.replace("/area-graduado/login");
 }

@@ -33,11 +33,7 @@ const Login = () => {
       }
 
       const { email } = await r.json();
-
-      // ✅ marca sessão Google centralizada
       setGoogleSession(email);
-
-      // vai para a área protegida
       window.location.replace("/area-graduado");
     } catch (e) {
       console.error(e);
@@ -45,29 +41,50 @@ const Login = () => {
     }
   };
 
-  const handleGoogleError = () => {
-    alert("Falha no login do Google");
-  };
+  const handleGoogleError = () => alert("Falha no login do Google");
 
   return (
-    <div className="max-w-md mx-auto p-20 m-20 bg-white shadow-lg rounded-lg d-flex flex-column justify-center">
-      <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
+    // wrapper: centraliza vertical e horizontalmente
+    <div
+      className="d-flex align-items-center justify-content-center"
+      style={{ minHeight: "60vh" }} // ajuste se quiser mais/menos altura
+    >
+      {/* grid responsivo + centralização horizontal */}
+      <div className="container">
+        <div className="row justify-content-center">
+          {/* largura do card responsiva */}
+          <div className="col-12 col-sm-10 col-md-8 col-lg-5">
+            <div className="card shadow-lg border-0">
+              <div className="card-body p-4">
+                <h2 className="h3 text-center mb-4">Login</h2>
 
-      <div className="mb-3 d-flex justify-content-center">
-        <GoogleLogin
-          onSuccess={handleGoogleSuccess}
-          onError={handleGoogleError}
-        />
+                {/* botão do Google centralizado */}
+                <div className="d-flex justify-content-center w-100">
+                  <div className="w-100">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
+                      width="100%" // garante largura total
+                    />
+                  </div>
+                </div>
+
+                <div className="text-center text-muted my-2">ou</div>
+
+                {/* botão Microsoft ocupa a largura da coluna */}
+                <div className="d-flex justify-content-center w-100">
+                  <button
+                    onClick={handleMicrosoftLogin}
+                    className="btn btn-primary w-100"
+                  >
+                    Fazer Login com a Microsoft
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div className="text-center text-muted my-2">ou</div>
-
-      <button
-        onClick={handleMicrosoftLogin}
-        className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700"
-      >
-        Entrar com Microsoft
-      </button>
     </div>
   );
 };

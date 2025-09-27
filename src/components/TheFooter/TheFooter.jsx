@@ -1,8 +1,9 @@
 import { Col, Container, Row } from "react-bootstrap";
+import "./TheFooter.scss";
 
 const TheFooter = () => {
   return (
-    <footer className="bg-secondary text-light py-4">
+    <footer className="footer-background text-light pt-4">
       <Container>
         {/* 3 colunas no md+: Unidade principal | Unidade E.M. | Redes sociais */}
         <Row className="text-center text-md-start g-4">

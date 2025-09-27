@@ -17,6 +17,24 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 
 ==============
 
+## [6.0.0] (CHANGELOG.md#300) - 2025-09-26
+
+### Adicionado
+
+- Adicionado login via GoogleAuth
+- Adicionado tratamento de auth
+- Adicionado loading
+- Adicionado questionario para alunos
+
+### Alterado
+
+- Nova logo do ICMBC
+- Nova logo de parceiros
+- Navbar agora com as logos e novas cores
+- Nova cor do footer
+
+## [5.0.0] (CHANGELOG.md#300) - 2025-09-20
+
 ### Alterado
 
 - Aba UAI! Minas Bahia agora justify
@@ -30,7 +48,6 @@ e este projeto adere ao [SemVer](https://semver.org/lang/pt-BR/).
 - Corrigido layout quebrando em telas pequenas
 - Corrigido card de album/grupo com nome grande quebrando o card e o layout
 - Corrigido botão do whatsapp comentado
-
 
 ## [4.0.0] (CHANGELOG.md#300) - 2025-09-17
 

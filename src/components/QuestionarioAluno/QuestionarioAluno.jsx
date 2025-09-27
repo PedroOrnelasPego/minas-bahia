@@ -168,7 +168,7 @@ export default function QuestionarioAluno({
         <Row className="g-3">
           <Col md={12}>
             <small className="text-muted">
-              10. Você possui algum problema de saúde?
+              Você possui algum problema de saúde?
             </small>
             <div className="d-flex gap-3 mb-2">
               <div className="form-check">
@@ -204,8 +204,8 @@ export default function QuestionarioAluno({
             {form.problemaSaude === SIM && (
               <>
                 <small className="text-muted">
-                  11. Se a resposta anterior foi sim, qual problema de saúde
-                  você possui?
+                  Se a resposta anterior foi sim, qual problema de saúde você
+                  possui?
                 </small>
                 <textarea
                   name="problemaSaudeDetalhe"
@@ -218,9 +218,7 @@ export default function QuestionarioAluno({
               </>
             )}
 
-            <small className="text-muted">
-              12. Já praticou capoeira antes?
-            </small>
+            <small className="text-muted">Já praticou capoeira antes?</small>
             <div className="d-flex gap-3 mb-2">
               <div className="form-check">
                 <input
@@ -255,8 +253,8 @@ export default function QuestionarioAluno({
             {form.praticouCapoeira === SIM && (
               <>
                 <small className="text-muted">
-                  13. Se sim, em qual grupo? Com quem (mestre/professor)? Por
-                  quanto tempo?
+                  Se sim, em qual grupo? Com quem (mestre/professor)? Por quanto
+                  tempo?
                 </small>
                 <textarea
                   name="historicoCapoeira"
@@ -270,7 +268,7 @@ export default function QuestionarioAluno({
             )}
 
             <small className="text-muted">
-              14. Pratica ou já praticou outro esporte/atividade cultural?
+              Pratica ou já praticou outro esporte/atividade cultural?
             </small>
             <div className="d-flex gap-3 mb-2">
               <div className="form-check">
@@ -306,7 +304,7 @@ export default function QuestionarioAluno({
             {form.outroEsporte === SIM && (
               <>
                 <small className="text-muted">
-                  15. Se sim, qual atividade e durante quanto tempo?
+                  Se sim, qual atividade e durante quanto tempo?
                 </small>
                 <textarea
                   name="outroEsporteDetalhe"
@@ -320,8 +318,8 @@ export default function QuestionarioAluno({
             )}
 
             <small className="text-muted">
-              17. Já ficou algum tempo sem treinar capoeira? Por quanto tempo?
-              Qual o motivo?
+              Já ficou algum tempo sem treinar capoeira? Por quanto tempo? Qual
+              o motivo?
             </small>
             <textarea
               name="hiatoSemTreinar"
@@ -333,7 +331,7 @@ export default function QuestionarioAluno({
             />
 
             <small className="text-muted">
-              23. Quais os seus objetivos com a capoeira?
+              Quais os seus objetivos com a capoeira?
             </small>
             <textarea
               name="objetivosCapoeira"
@@ -345,7 +343,7 @@ export default function QuestionarioAluno({
             />
 
             <small className="text-muted">
-              24. Sugestões para o ICMBC (Ponto de Cultura) crescer de forma
+              Sugestões para o ICMBC (Ponto de Cultura) crescer de forma
               positiva?
             </small>
             <textarea

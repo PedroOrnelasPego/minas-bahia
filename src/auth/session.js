@@ -18,7 +18,7 @@ export function getAuthEmail() {
   const msalEmail = cleanEmail(msalAccount?.username);
   if (msalEmail) return msalEmail;
 
-  const g = cleanEmail(sessionStorage.getItem(GOOGLE_KEY));
+  const g = cleanEmail(localStorage.getItem(GOOGLE_KEY));
   if (g) return g;
 
   return null;
@@ -32,13 +32,13 @@ export function getAuthProvider() {
   const active = msalInstance.getActiveAccount();
   const msalAccount = active || (msalInstance.getAllAccounts?.()[0] ?? null);
   if (cleanEmail(msalAccount?.username)) return "microsoft";
-  if (cleanEmail(sessionStorage.getItem(GOOGLE_KEY))) return "google";
+  if (cleanEmail(localStorage.getItem(GOOGLE_KEY))) return "google";
   return null;
 }
 
 export function setGoogleSession(email) {
   const e = cleanEmail(email);
-  if (e) sessionStorage.setItem(GOOGLE_KEY, e);
+  if (e) localStorage.setItem(GOOGLE_KEY, e);
 }
 
 export async function signOutUnified() {
@@ -54,7 +54,7 @@ export async function signOutUnified() {
   }
 
   if (provider === "google") {
-    sessionStorage.removeItem(GOOGLE_KEY);
+    localStorage.removeItem(GOOGLE_KEY);
     window.location.hash = "#/area-graduado/login";
     return;
   }

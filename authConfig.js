@@ -1,19 +1,53 @@
 // src/auth/msalConfig.js
-const redirectUri = window.location.origin + "/area-graduado";
+
+// Lê configs do ambiente (não commitar valores fixos)
+const ENV_CLIENT_ID = import.meta.env.VITE_MSAL_CLIENT_ID; // obrigatória via .env/.CI
+const ENV_AUTHORITY =
+  import.meta.env.VITE_MSAL_AUTHORITY ||
+  "https://login.microsoftonline.com/common";
+const ENV_CACHE = (
+  import.meta.env.VITE_MSAL_CACHE || "sessionstorage"
+).toLowerCase(); // sessionstorage (recomendado) | localstorage
+const ENV_SCOPES = (import.meta.env.VITE_MSAL_SCOPES || "User.Read")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+// Evita crash em SSR (se algum dia trocar o bundler)
+const ORIGIN = typeof window !== "undefined" ? window.location.origin : "";
+
+// Mantemos teu fluxo: AAD redireciona para /area-graduado (sem hash).
+// O AuthProvider normaliza para hash (#/area-graduado) depois.
+const redirectUri = `${ORIGIN}/area-graduado`;
+const postLogoutRedirectUri = `${ORIGIN}/#/area-graduado/login`;
+
+// Mapeia cacheLocation de forma segura
+const BrowserCacheLocation = {
+  localstorage: "localStorage",
+  sessionstorage: "sessionStorage",
+};
+const cacheLocation =
+  BrowserCacheLocation[ENV_CACHE] || BrowserCacheLocation.sessionstorage;
 
 export const msalConfig = {
   auth: {
-    clientId: "ad632909-8e39-4a28-b180-19ae2c987a94",
-    authority: "https://login.microsoftonline.com/common",
+    clientId: ENV_CLIENT_ID, // <- defina VITE_MSAL_CLIENT_ID no .env/.CI
+    authority: ENV_AUTHORITY,
     redirectUri,
-    navigateToLoginRequestUrl: true,
+    postLogoutRedirectUri,
+    // Deixamos o controle de navegação para o AuthProvider (evita loops)
+    navigateToLoginRequestUrl: false,
   },
   cache: {
-    cacheLocation: "localStorage",
-    storeAuthStateInCookie: false,
+    cacheLocation, // sessionStorage por padrão (mais seguro)
+    storeAuthStateInCookie: false, // true só se precisar suportar IE/edge-legacy
+  },
+  system: {
+    allowRedirectInIframe: false, // evita login dentro de iframes
   },
 };
 
+// Scopes de login (configuráveis por env)
 export const loginRequest = {
-  scopes: ["User.Read"],
+  scopes: ENV_SCOPES,
 };

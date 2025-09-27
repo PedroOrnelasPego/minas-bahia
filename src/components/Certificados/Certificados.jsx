@@ -1,5 +1,4 @@
-// src/components/Certificados.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Button, Form, Modal, Alert, Spinner } from "react-bootstrap";
 import axios from "axios";
 
@@ -19,31 +18,27 @@ const stripTimestampPrefix = (name) => name.replace(/^\d+-/, "");
 const DISPLAY_ALLOWED_REGEX = /^[A-Za-z0-9 À-ÿ._-]+$/u;
 const MAX_DISPLAY_LEN = 150;
 
-// remove SOMENTE espaços do final
 function trimEndOnly(s) {
   return String(s || "").replace(/\s+$/g, "");
 }
 
-// slug só para STORAGE (com traços, **preservando o casing**)
+// slug só para STORAGE (com traços, preservando casing)
 function toSlugForStorage(text) {
   return (text || "")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // tira acento
-    .replace(/[^\w\s.-]/g, "") // mantém letra/dígito/underscore/espaço/.- (tira o resto)
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s.-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, ""); // ⬅️ sem .toLowerCase()
+    .replace(/^-+|-+$/g, "");
 }
 
-// caso o back ainda não mande displayName, gera um legível a partir do filename
-// sem forçar maiúsculas/minúsculas: apenas substitui '-' por ' ' e mantém casing
 function prettifyFromFilename(filename) {
   const base = stripExt(stripTimestampPrefix(filename || ""));
   if (!base) return filename || "";
   return base.split("-").filter(Boolean).join(" ");
 }
 
-// resolve nomes potencialmente url-encoded sem quebrar (mojibake)
 function decodeSafe(s) {
   try {
     return /%|\+/.test(s) ? decodeURIComponent(s.replace(/\+/g, "%20")) : s;
@@ -52,7 +47,6 @@ function decodeSafe(s) {
   }
 }
 
-// validação só na hora de enviar/habilitar botão
 function isDisplayNameValid(raw) {
   const s = trimEndOnly(raw || "");
   return (
@@ -70,7 +64,7 @@ const Certificados = ({ email }) => {
   const [arquivo, setArquivo] = useState(null);
   const [arquivoPreviewUrl, setArquivoPreviewUrl] = useState("");
   const [arquivoIsPdf, setArquivoIsPdf] = useState(false);
-  const [displayName, setDisplayName] = useState(""); // nome que o usuário vê
+  const [displayName, setDisplayName] = useState("");
   const [erroUpload, setErroUpload] = useState("");
 
   // preview a partir da lista
@@ -80,8 +74,15 @@ const Certificados = ({ email }) => {
 
   const fileInputRef = useRef(null);
 
-  // ---- API ----
-  const listar = async () => {
+  // cleanup dos objectURLs ao desmontar
+  useEffect(() => {
+    return () => {
+      if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
+    };
+  }, [arquivoPreviewUrl]);
+
+  const listar = useCallback(async () => {
+    if (!email) return;
     try {
       const res = await axios.get(
         `${API_URL}/upload?email=${encodeURIComponent(email)}`
@@ -89,11 +90,11 @@ const Certificados = ({ email }) => {
       const lista = Array.isArray(res.data?.arquivos) ? res.data.arquivos : [];
       setArquivos(lista);
     } catch {
-      alert("Erro ao listar arquivos.");
+      // mantém silencioso para UX; você pode logar no Sentry
     }
-  };
+  }, [email]);
 
-  const enviarArquivo = async () => {
+  const enviarArquivo = useCallback(async () => {
     setErroUpload("");
 
     if (!arquivo) {
@@ -106,7 +107,6 @@ const Certificados = ({ email }) => {
       return;
     }
 
-    // Apenas TRIM-END antes de validar/salvar
     const cleanDisplay = trimEndOnly(displayName || "");
     if (!isDisplayNameValid(cleanDisplay)) {
       setErroUpload(
@@ -115,18 +115,14 @@ const Certificados = ({ email }) => {
       return;
     }
 
-    // nome salvo no STORAGE (slug com traços e casing preservado)
     const storageBase = toSlugForStorage(cleanDisplay);
     if (!storageBase) {
       setErroUpload("O nome informado ficou inválido após normalização.");
       return;
     }
 
-    // Se quiser prefixar timestamp, troque aqui:
-    // const finalName = `${Date.now()}-${storageBase}.${ext}`;
     const finalName = `${storageBase}.${ext}`;
 
-    // Envia **renomeado** e com `displayName` no body (pra back salvar como metadado)
     const renamedFile =
       typeof File !== "undefined"
         ? new File([arquivo], finalName, { type: arquivo.type })
@@ -134,7 +130,7 @@ const Certificados = ({ email }) => {
 
     const formData = new FormData();
     formData.append("arquivo", renamedFile, finalName);
-    formData.append("displayName", cleanDisplay); // <— salve isso no back se quiser
+    formData.append("displayName", cleanDisplay);
 
     setUploading(true);
     try {
@@ -151,23 +147,25 @@ const Certificados = ({ email }) => {
     } finally {
       setUploading(false);
     }
-  };
+  }, [arquivo, displayName, email, listar]);
 
-  const remover = async (nomeArquivo) => {
-    try {
-      await axios.delete(
-        `${API_URL}/upload?email=${encodeURIComponent(
-          email
-        )}&arquivo=${encodeURIComponent(nomeArquivo)}`
-      );
-      listar();
-    } catch {
-      alert("Erro ao deletar.");
-    }
-  };
+  const remover = useCallback(
+    async (nomeArquivo) => {
+      try {
+        await axios.delete(
+          `${API_URL}/upload?email=${encodeURIComponent(
+            email
+          )}&arquivo=${encodeURIComponent(nomeArquivo)}`
+        );
+        listar();
+      } catch {
+        // silencioso
+      }
+    },
+    [email, listar]
+  );
 
-  // download via proxy do back
-  const baixar = async (proxyUrl, fallbackName = "arquivo") => {
+  const baixar = useCallback(async (proxyUrl, fallbackName = "arquivo") => {
     try {
       const resp = await fetch(proxyUrl, { mode: "cors" });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -184,29 +182,30 @@ const Certificados = ({ email }) => {
     } catch {
       window.open(proxyUrl, "_blank");
     }
-  };
+  }, []);
 
-  const openPreview = (proxyUrl, isPdf) => {
+  const openPreview = useCallback((proxyUrl, isPdf) => {
     setPreviewIsPdf(isPdf);
     setPreviewUrl(proxyUrl);
     setShowPreview(true);
-  };
+  }, []);
 
   useEffect(() => {
-    if (email) listar();
-  }, [email]);
+    listar();
+  }, [listar]);
 
-  // Modal de upload
-  const abrirModalUpload = () => {
+  const abrirModalUpload = useCallback(() => {
     setShowModal(true);
     setErroUpload("");
     setArquivo(null);
+    if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
     setArquivoPreviewUrl("");
     setArquivoIsPdf(false);
     setDisplayName("");
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-  const fecharModalUpload = () => {
+  }, [arquivoPreviewUrl]);
+
+  const fecharModalUpload = useCallback(() => {
     setShowModal(false);
     setErroUpload("");
     if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
@@ -215,40 +214,47 @@ const Certificados = ({ email }) => {
     setDisplayName("");
     setArquivoIsPdf(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+  }, [arquivoPreviewUrl]);
 
-  // Seleção + preview + sugestão de displayName (sem bloquear espaços e sem mudar casing)
-  const onSelectFile = (e) => {
-    setErroUpload("");
-    const file = e.target.files?.[0] || null;
+  const onSelectFile = useCallback(
+    (e) => {
+      setErroUpload("");
+      const file = e.target.files?.[0] || null;
 
-    if (!file) {
+      if (!file) {
+        if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
+        setArquivo(null);
+        setArquivoPreviewUrl("");
+        setArquivoIsPdf(false);
+        setDisplayName("");
+        return;
+      }
+
+      if (!allowedTypes.includes(file.type)) {
+        setErroUpload(
+          "Tipo de arquivo inválido. Envie apenas PDF, PNG ou JPG."
+        );
+        e.target.value = null;
+        return;
+      }
+
       if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
-      setArquivo(null);
-      setArquivoPreviewUrl("");
-      setArquivoIsPdf(false);
-      setDisplayName("");
-      return;
-    }
+      const objUrl = URL.createObjectURL(file);
 
-    if (!allowedTypes.includes(file.type)) {
-      setErroUpload("Tipo de arquivo inválido. Envie apenas PDF, PNG ou JPG.");
-      e.target.value = null;
-      return;
-    }
+      setArquivo(file);
+      setArquivoPreviewUrl(objUrl);
+      setArquivoIsPdf(isPdfType(file.type));
 
-    if (arquivoPreviewUrl) URL.revokeObjectURL(arquivoPreviewUrl);
-    const objUrl = URL.createObjectURL(file);
+      const base = stripExt(file.name);
+      setDisplayName((base || "arquivo").slice(0, MAX_DISPLAY_LEN));
+    },
+    [arquivoPreviewUrl]
+  );
 
-    setArquivo(file);
-    setArquivoPreviewUrl(objUrl);
-    setArquivoIsPdf(isPdfType(file.type));
-
-    const base = stripExt(file.name);
-    setDisplayName((base || "arquivo").slice(0, MAX_DISPLAY_LEN));
-  };
-
-  const arquivosSeguros = Array.isArray(arquivos) ? arquivos : [];
+  const arquivosSeguros = useMemo(
+    () => (Array.isArray(arquivos) ? arquivos : []),
+    [arquivos]
+  );
 
   const podeEnviar = useMemo(() => {
     return !uploading && arquivo && isDisplayNameValid(displayName);
@@ -324,7 +330,7 @@ const Certificados = ({ email }) => {
         </ul>
       )}
 
-      {/* Modal de upload com pré-visualização e nome “bonito” obrigatório */}
+      {/* Modal de upload */}
       <Modal show={showModal} onHide={fecharModalUpload} centered>
         <Modal.Header closeButton>
           <Modal.Title>Enviar Certificado</Modal.Title>
@@ -369,6 +375,7 @@ const Certificados = ({ email }) => {
                       alt="Pré-visualização"
                       className="img-fluid border rounded"
                       style={{ maxHeight: "300px" }}
+                      loading="lazy"
                     />
                   </div>
                 )}
@@ -387,6 +394,7 @@ const Certificados = ({ email }) => {
                   isInvalid={
                     displayName.length > 0 && !isDisplayNameValid(displayName)
                   }
+                  autoComplete="off"
                 />
                 <Form.Control.Feedback type="invalid">
                   Use apenas letras (pode acento), números, espaços e os
@@ -445,7 +453,10 @@ const Certificados = ({ email }) => {
               alt="Preview"
               className="img-fluid"
               style={{ maxHeight: "70vh" }}
-              onError={() => alert("Não foi possível abrir a imagem.")}
+              loading="lazy"
+              onError={() => {
+                // fallback silencioso
+              }}
             />
           )}
         </Modal.Body>

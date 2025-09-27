@@ -9,8 +9,7 @@ import App from "./App";
 import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-const GOOGLE_CLIENT_ID =
-  "682547488468-223fh2c6u5m96ie3hm39cogpfc2di3rk.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

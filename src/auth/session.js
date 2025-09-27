@@ -1,3 +1,4 @@
+// src/auth/session.js
 import { msalInstance } from "../auth/msalInstance";
 
 const GOOGLE_KEY = "app_google_email";
@@ -11,27 +12,22 @@ function cleanEmail(v) {
   return s.includes("@") ? s : null;
 }
 
-/** Retorna o email autenticado (MSAL OU Google) */
 export function getAuthEmail() {
-  // 1) Microsoft (MSAL)
   const active = msalInstance.getActiveAccount();
   const msalAccount = active || (msalInstance.getAllAccounts?.()[0] ?? null);
   const msalEmail = cleanEmail(msalAccount?.username);
   if (msalEmail) return msalEmail;
 
-  // 2) Google (persistido no localStorage após /auth/google)
   const g = cleanEmail(localStorage.getItem(GOOGLE_KEY));
   if (g) return g;
 
   return null;
 }
 
-/** true se existe email autenticado por qualquer provedor */
 export function isAuthenticated() {
   return !!getAuthEmail();
 }
 
-/** "microsoft" | "google" | null */
 export function getAuthProvider() {
   const active = msalInstance.getActiveAccount();
   const msalAccount = active || (msalInstance.getAllAccounts?.()[0] ?? null);
@@ -40,26 +36,28 @@ export function getAuthProvider() {
   return null;
 }
 
-/** usada no Login do Google, após sucesso do backend */
 export function setGoogleSession(email) {
   const e = cleanEmail(email);
   if (e) localStorage.setItem(GOOGLE_KEY, e);
 }
 
-/** Logout unificado */
 export async function signOutUnified() {
   const provider = getAuthProvider();
 
   if (provider === "microsoft") {
-    await msalInstance.logoutRedirect();
+    await msalInstance.logoutRedirect({
+      postLogoutRedirectUri: window.location.origin, // volta para origem
+    });
+    // Ao voltar, deixamos o usuário na tela de login via hash:
+    window.location.hash = "#/area-graduado/login";
     return;
   }
 
   if (provider === "google") {
     localStorage.removeItem(GOOGLE_KEY);
-    window.location.replace("/area-graduado/login");
+    window.location.hash = "#/area-graduado/login";
     return;
   }
 
-  window.location.replace("/area-graduado/login");
+  window.location.hash = "#/area-graduado/login";
 }

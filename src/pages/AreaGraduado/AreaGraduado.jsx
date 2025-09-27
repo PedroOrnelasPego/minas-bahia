@@ -30,6 +30,7 @@ import {
   getAuthProvider,
   signOutUnified,
 } from "../../auth/session";
+import Loading from "../../components/Loading/Loading";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const DEV_STRICT_DEBOUNCE_MS = 30;
@@ -413,7 +414,8 @@ const AreaGraduado = () => {
     }
   };
 
-  if (loading) return <p>Carregando...</p>;
+  if (loading)
+    return <Loading variant="block" size="md" message="Carregando dados..." />;
 
   const isRemotePreview =
     typeof fotoPreview === "string" && fotoPreview.startsWith("http");
@@ -504,7 +506,11 @@ const AreaGraduado = () => {
                   className="spinner-border text-secondary mb-3"
                   role="status"
                 >
-                  <span className="visually-hidden">Carregando...</span>
+                  <Loading
+                    variant="block"
+                    size="md"
+                    message="Carregando dados..."
+                  />
                 </div>
               ) : (
                 <img

@@ -3,139 +3,160 @@ import { Container, Nav, Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 
-import teste from '../../assets/logo/teste-black.png';
-import teste2 from '../../assets/logo/logoMbc.png';
+import teste from "../../assets/logo/teste-black.png";
+// removemos a logo direita no mobile; pode manter o import se ainda quiser no desktop
+import teste2 from "../../assets/logo/logoMbc.png";
 
 const MenuBar = () => {
   const [expanded, setExpanded] = useState(false);
   const handleClose = () => setExpanded(false);
 
   const { accounts } = useMsal();
-  const mestreEmail = "contato@capoeiraminasbahia.com.br"; // Substitua
+  const mestreEmail = "contato@capoeiraminasbahia.com.br";
   const isMestre = accounts[0]?.username === mestreEmail;
 
-  // 🔎 função de estilo para links
+  // estilo dos links como botão
   const linkStyle = ({ isActive }) => ({
-    color: "#fff",
-    textDecoration: isActive ? "underline" : "none",
-    textUnderlineOffset: "6px",
+    color: "#8b0000",
+    border: "2px solid #8b0000",
+    borderRadius: "12px",
+    padding: "6px 12px",
+    margin: "4px",
+    textDecoration: "none",
     fontWeight: 600,
+    backgroundColor: "#f9f9f9",
+    transition: "all 0.2s ease-in-out",
+    ...(isActive && {
+      backgroundColor: "#8b0000",
+      color: "white",
+    }),
   });
+
+  const linkHoverStyle = {
+    backgroundColor: "#a00000",
+    color: "white",
+  };
 
   return (
     <Navbar
       expand="lg"
       className="py-3"
-      style={{ backgroundColor: "#8b0000" }} // fundo vermelho
+      style={{
+        backgroundColor: "#f9f9f9",
+        boxShadow: "0 4px 6px rgba(0,0,0,0.1)", // sombra na barra inteira
+      }}
       expanded={expanded}
       onToggle={() => setExpanded(!expanded)}
     >
-      <Container>
-        {/* Logo desktop */}
-        <img src={teste} width={150} alt="" />
-        <Navbar.Brand
-          as={NavLink}
-          to="/"
-          className="me-3 d-none d-lg-block"
-          onClick={handleClose}
-        >
-          {/* <img src="logo.png" alt="Logo" height="40" /> */}
-        </Navbar.Brand>
+      <Container className="align-items-stretch">
+        {/* ====== MOBILE (<= lg) ====== */}
+        <div className="d-lg-none w-100">
+          {/* logo única, menor e centralizada */}
+          <div className="w-100 d-flex justify-content-center">
+            <img
+              src={teste}
+              width={110}
+              height="auto"
+              alt="ICMBC"
+              style={{ display: "block" }}
+            />
+          </div>
 
-        {/* Sigla ICMBC visível apenas em mobile */}
-        <Navbar.Brand
-          as={NavLink}
-          to="/"
-          className="fw-bold d-block d-lg-none"
-          onClick={handleClose}
-          style={{ color: "#fff" }}
-        >
-          ICMBC
-        </Navbar.Brand>
+          {/* botão hamburguer alinhado à direita */}
+          <div className="d-flex justify-content-end mt-2">
+            <Navbar.Toggle aria-controls="menu-principal" />
+          </div>
 
-        <Navbar.Toggle aria-controls="menu-principal" />
-
-        <Navbar.Collapse id="menu-principal">
-          <div className="w-100 text-center">
-            <h2 className="mb-0 fw-bold text-white">
-              Instituto Cultural Minas Bahia de Capoeira
-            </h2>
-            <p className="mb-2" style={{ color: "#f5f5f5" }}>
-              Mestre Costela
-            </p>
-
+          {/* menu colapsável abaixo da logo */}
+          <Navbar.Collapse id="menu-principal" className="mt-2">
             <Nav className="d-flex flex-wrap justify-content-center">
-              <Nav.Link
-                as={NavLink}
-                to="/"
-                onClick={handleClose}
-                style={linkStyle}
-              >
-                Início
-              </Nav.Link>
-              <Nav.Link
-                as={NavLink}
-                to="/minas-bahia-capoeira"
-                onClick={handleClose}
-                style={linkStyle}
-              >
-                Capoeira
-              </Nav.Link>
-              <Nav.Link
-                as={NavLink}
-                to="/mestre-costela"
-                onClick={handleClose}
-                style={linkStyle}
-              >
-                Mestre Costela
-              </Nav.Link>
-              <Nav.Link
-                as={NavLink}
-                to="/eventos"
-                onClick={handleClose}
-                style={linkStyle}
-              >
-                Eventos
-              </Nav.Link>
-              <Nav.Link
-                as={NavLink}
-                to="/uai-minas-bahia"
-                onClick={handleClose}
-                style={linkStyle}
-              >
-                UAI! Minas Bahia
-              </Nav.Link>
-              <Nav.Link
-                as={NavLink}
-                to="/projetos"
-                onClick={handleClose}
-                style={linkStyle}
-              >
-                Projetos
-              </Nav.Link>
-              <Nav.Link
-                as={NavLink}
-                to="/area-graduado"
-                onClick={handleClose}
-                style={linkStyle}
-              >
-                Área do Graduado
-              </Nav.Link>
-              {isMestre && (
+              {[
+                { to: "/", label: "Início" },
+                { to: "/minas-bahia-capoeira", label: "Capoeira" },
+                { to: "/mestre-costela", label: "Mestre Costela" },
+                { to: "/eventos", label: "Eventos" },
+                { to: "/uai-minas-bahia", label: "UAI! Minas Bahia" },
+                { to: "/projetos", label: "Projetos" },
+                { to: "/area-graduado", label: "Área do Graduado" },
+                ...(isMestre
+                  ? [{ to: "/painel-admin", label: "Painel Administrativo" }]
+                  : []),
+              ].map((item) => (
                 <Nav.Link
+                  key={item.to}
                   as={NavLink}
-                  to="/painel-admin"
+                  to={item.to}
                   onClick={handleClose}
                   style={linkStyle}
+                  className="custom-link"
                 >
-                  Painel Administrativo
+                  {item.label}
                 </Nav.Link>
-              )}
+              ))}
+            </Nav>
+          </Navbar.Collapse>
+        </div>
+
+        {/* ====== DESKTOP (>= lg) ====== */}
+        <div className="d-none d-lg-flex w-100 align-items-center">
+          {/* logo esquerda */}
+          <img src={teste} width={150} alt="logo esquerda" />
+
+          {/* espaço central com título/subtítulo e menu */}
+          <div className="flex-grow-1 text-center">
+            <h2 className="mb-0 fw-bold text-dark">
+              Instituto Cultural Minas Bahia de Capoeira
+            </h2>
+            <p className="mb-2 text-dark">Mestre Costela</p>
+
+            <Nav className="d-flex flex-wrap justify-content-center">
+              {[
+                { to: "/", label: "Início" },
+                { to: "/minas-bahia-capoeira", label: "Capoeira" },
+                { to: "/mestre-costela", label: "Mestre Costela" },
+                { to: "/eventos", label: "Eventos" },
+                { to: "/uai-minas-bahia", label: "UAI! Minas Bahia" },
+                { to: "/projetos", label: "Projetos" },
+                { to: "/area-graduado", label: "Área do Graduado" },
+                ...(isMestre
+                  ? [{ to: "/painel-admin", label: "Painel Administrativo" }]
+                  : []),
+              ].map((item) => (
+                <Nav.Link
+                  key={item.to}
+                  as={NavLink}
+                  to={item.to}
+                  onClick={handleClose}
+                  style={linkStyle}
+                  className="custom-link"
+                >
+                  {item.label}
+                </Nav.Link>
+              ))}
             </Nav>
           </div>
-        </Navbar.Collapse>
-        <img src={teste2} width={130} alt="" />
+
+          {/* logo direita (apenas desktop). Se não quiser no desktop, remova este bloco */}
+          <img src={teste2} width={130} alt="logo direita" />
+        </div>
       </Container>
+
+      <style>
+        {`
+          .custom-link:hover {
+            background-color: ${linkHoverStyle.backgroundColor} !important;
+            color: ${linkHoverStyle.color} !important;
+          }
+
+          /* opcional: melhor espaçamento dos botões no mobile */
+          @media (max-width: 991.98px) {
+            .custom-link {
+              padding: 8px 14px !important;
+              margin: 6px !important;
+            }
+          }
+        `}
+      </style>
     </Navbar>
   );
 };

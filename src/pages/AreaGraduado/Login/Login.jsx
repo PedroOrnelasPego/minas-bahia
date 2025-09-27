@@ -10,7 +10,10 @@ const Login = () => {
 
   const handleMicrosoftLogin = async () => {
     try {
-      await instance.loginRedirect();
+      // Ao retornar, AuthProvider faz a limpeza do path e manda para #/area-graduado
+      await instance.loginRedirect({
+        redirectStartPage: window.location.href,
+      });
     } catch (error) {
       console.error("Erro ao logar com Microsoft:", error);
       alert("Falha ao entrar com Microsoft");
@@ -34,7 +37,9 @@ const Login = () => {
 
       const { email } = await r.json();
       setGoogleSession(email);
-      window.location.replace("/area-graduado");
+
+      // HashRouter: vai direto para a área via hash
+      window.location.hash = "#/area-graduado";
     } catch (e) {
       console.error(e);
       alert("Falha ao entrar com Google");
@@ -44,34 +49,29 @@ const Login = () => {
   const handleGoogleError = () => alert("Falha no login do Google");
 
   return (
-    // wrapper: centraliza vertical e horizontalmente
     <div
       className="d-flex align-items-center justify-content-center"
-      style={{ minHeight: "60vh" }} // ajuste se quiser mais/menos altura
+      style={{ minHeight: "60vh" }}
     >
-      {/* grid responsivo + centralização horizontal */}
       <div className="container">
         <div className="row justify-content-center">
-          {/* largura do card responsiva */}
           <div className="col-12 col-sm-10 col-md-8 col-lg-5">
             <div className="card shadow-lg border-0">
               <div className="card-body p-4">
                 <h2 className="h3 text-center mb-4">Login</h2>
 
-                {/* botão do Google centralizado */}
                 <div className="d-flex justify-content-center w-100">
                   <div className="w-100">
                     <GoogleLogin
                       onSuccess={handleGoogleSuccess}
                       onError={handleGoogleError}
-                      width="100%" // garante largura total
+                      width="100%"
                     />
                   </div>
                 </div>
 
                 <div className="text-center text-muted my-2">ou</div>
 
-                {/* botão Microsoft ocupa a largura da coluna */}
                 <div className="d-flex justify-content-center w-100">
                   <button
                     onClick={handleMicrosoftLogin}

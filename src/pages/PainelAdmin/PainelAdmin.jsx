@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, Row, Col, Spinner, Modal } from "react-bootstrap";
+import { Container, Row, Col, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import calcularIdade from "../../utils/calcularIdade";
@@ -8,6 +8,7 @@ import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import { getCordaNome } from "../../constants/nomesCordas";
 import { getHorarioLabel } from "../../helpers/agendaTreino";
 import { formatarData } from "../../utils/formatarData";
+import Loading from "../../components/Loading/Loading";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -43,8 +44,11 @@ const PainelAdmin = () => {
   const [usuarioExpandido, setUsuarioExpandido] = useState(null);
   const [dadosUsuarios, setDadosUsuarios] = useState({});
   const [carregando, setCarregando] = useState(false);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(true);
 
   const [certificadosUsuarios, setCertificadosUsuarios] = useState({});
+  const [certsLoading, setCertsLoading] = useState(null); // email em carregamento
+
   const [previewUrl, setPreviewUrl] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [previewIsPdf, setPreviewIsPdf] = useState(false);
@@ -114,8 +118,6 @@ const PainelAdmin = () => {
     }
   };
 
-  // ----------------- bootstrap -----------------
-
   const atualizarPermissaoQuestionario = async (
     email,
     habilitado,
@@ -136,6 +138,8 @@ const PainelAdmin = () => {
     }
   };
 
+  // ----------------- bootstrap -----------------
+
   useEffect(() => {
     const user = accounts[0];
     if (!user || user.username !== mestreEmail) {
@@ -144,10 +148,13 @@ const PainelAdmin = () => {
     }
     const fetchUsuarios = async () => {
       try {
+        setLoadingUsuarios(true);
         const res = await axios.get(`${API_URL}/perfil`);
-        setUsuarios(res.data);
+        setUsuarios(res.data || []);
       } catch {
         alert("Erro ao buscar usuários.");
+      } finally {
+        setLoadingUsuarios(false);
       }
     };
     fetchUsuarios();
@@ -177,6 +184,7 @@ const PainelAdmin = () => {
 
   const listarCertificados = async (email) => {
     try {
+      setCertsLoading(email);
       const res = await axios.get(`${API_URL}/upload?email=${email}`);
       setCertificadosUsuarios((prev) => ({
         ...prev,
@@ -184,6 +192,8 @@ const PainelAdmin = () => {
       }));
     } catch {
       alert(`Erro ao listar arquivos de ${email}`);
+    } finally {
+      setCertsLoading(null);
     }
   };
 
@@ -206,6 +216,14 @@ const PainelAdmin = () => {
   };
 
   // ----------------- render -----------------
+
+  if (loadingUsuarios) {
+    return (
+      <Container className="py-5">
+        <Loading variant="block" size="md" message="Carregando usuários..." />
+      </Container>
+    );
+  }
 
   return (
     <Container className="py-4">
@@ -244,10 +262,11 @@ const PainelAdmin = () => {
             {usuarioExpandido === user.email && (
               <div className="mt-3">
                 {carregando && !dadosUsuarios[user.email] ? (
-                  <div className="text-center my-3">
-                    <Spinner animation="border" variant="primary" />
-                    <p className="mt-2">Carregando dados...</p>
-                  </div>
+                  <Loading
+                    variant="block"
+                    size="sm"
+                    message="Carregando dados do usuário..."
+                  />
                 ) : (
                   <>
                     <Row className="g-3 align-items-start">
@@ -356,8 +375,14 @@ const PainelAdmin = () => {
                       </Col>
 
                       <Col xs={12}>
-                        {Array.isArray(certificadosUsuarios[user.email]) &&
-                        certificadosUsuarios[user.email].length > 0 ? (
+                        {certsLoading === user.email ? (
+                          <Loading
+                            variant="block"
+                            size="sm"
+                            message="Carregando certificados..."
+                          />
+                        ) : Array.isArray(certificadosUsuarios[user.email]) &&
+                          certificadosUsuarios[user.email].length > 0 ? (
                           <>
                             <h5 className="mt-3">Certificados</h5>
                             <div className="grid-list-3">

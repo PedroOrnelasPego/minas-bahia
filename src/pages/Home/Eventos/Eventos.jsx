@@ -2,7 +2,7 @@ import { Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import "./Eventos.scss";
 
-import trajetoria from "../../../assets/projetos/trajetorias.png";
+import trajetoria from "../../../assets/projetos/trajetorias.webp";
 import uai from "../../../assets/projetos/uai.jpg";
 import logo from "../../../assets/projetos/logoMbc.png";
 

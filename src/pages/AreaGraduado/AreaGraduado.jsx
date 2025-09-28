@@ -13,7 +13,7 @@ import { getCordaNome } from "../../constants/nomesCordas";
 import calcularIdade from "../../utils/calcularIdade";
 import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
 import axios from "axios";
-import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.avif";
+import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import CropImageModal from "../../components/CropImageModal";
 import { nivelMap } from "../../utils/roles";
 import FileSection from "../../components/FileSection/FileSection";
@@ -866,7 +866,6 @@ const AreaGraduado = () => {
         onHide={() => setShowAvatarModal(false)}
         size="lg"
         centered
-        
       >
         <Modal.Header closeButton>
           <Modal.Title>Foto de perfil</Modal.Title>

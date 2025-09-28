@@ -4,10 +4,10 @@ import "./Parceiros.scss";
 
 import { Card } from "react-bootstrap";
 
-import teste1 from "../../../assets/parceiros/alanson.avif";
-import teste2 from "../../../assets/parceiros/implantar.avif";
-import teste3 from "../../../assets/parceiros/rede.avif";
-import teste4 from "../../../assets/parceiros/mineires.avif";
+import teste1 from "../../../assets/parceiros/alanson.png";
+import teste2 from "../../../assets/parceiros/implantar.png";
+import teste3 from "../../../assets/parceiros/rede.png";
+import teste4 from "../../../assets/parceiros/mineires.png";
 
 const responsive = {
   superLargeDesktop: { breakpoint: { max: 4000, min: 1200 }, items: 4 },

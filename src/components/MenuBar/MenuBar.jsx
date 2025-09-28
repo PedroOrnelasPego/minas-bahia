@@ -4,8 +4,8 @@ import { Container, Nav, Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 
-import teste from "../../assets/logo/teste-black.png"; // logo esquerda / mobile
-import teste2 from "../../assets/logo/logoMbc.png"; // logo direita (desktop)
+import teste from "../../assets/logo/icmbc-logo.avif"; // logo esquerda / mobile
+import teste2 from "../../assets/logo/mbc-logo.avif"; // logo direita (desktop)
 
 const MenuBar = () => {
   const [expanded, setExpanded] = useState(false);

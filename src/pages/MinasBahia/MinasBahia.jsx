@@ -1,10 +1,8 @@
 import { Container } from "react-bootstrap";
-import logo from "../../assets/logo/teste-black.png";
-import selo from "../../assets/logo/logoMbc.png";
-import alunoInfantil from "../../assets/graduacao/aluno-infantil.png";
-import alunoAdulto from "../../assets/graduacao/aluno-adulto.png";
-import Album from "../../components/Album/Album";
-import data from "./data"; // Importando o array de fotos local
+import logo from "../../assets/logo/icmbc-logo.avif";
+import selo from "../../assets/logo/mbc-logo.avif";
+import alunoInfantil from "../../assets/graduacao/aluno-infantil.avif";
+import alunoAdulto from "../../assets/graduacao/aluno-adulto.avif";
 
 const MinasBahia = () => {
   return (

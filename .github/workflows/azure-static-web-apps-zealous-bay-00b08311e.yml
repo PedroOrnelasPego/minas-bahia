@@ -14,6 +14,13 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
+    env:
+      VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+      VITE_MSAL_CLIENT_ID: ${{ secrets.VITE_MSAL_CLIENT_ID }}
+      VITE_MSAL_AUTHORITY: ${{ vars.VITE_MSAL_AUTHORITY }}
+      VITE_MSAL_CACHE: sessionstorage
+      VITE_MSAL_SCOPES: User.Read
 
     steps:
       - uses: actions/checkout@v3

@@ -4,7 +4,7 @@ import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import calcularIdade from "../../utils/calcularIdade";
 import axios from "axios";
-import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.avif";
+import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import { getCordaNome } from "../../constants/nomesCordas";
 import { getHorarioLabel } from "../../helpers/agendaTreino";
 import { formatarData } from "../../utils/formatarData";

@@ -71,13 +71,6 @@ const TheFooter = () => {
             </p>
           </Col>
         </Row>
-
-        {/* Linha com versão */}
-        <Row className="mt-3">
-          <Col className="text-center">
-            <small className="text-muted">v{__APP_VERSION__}</small>
-          </Col>
-        </Row>
       </Container>
     </footer>
   );

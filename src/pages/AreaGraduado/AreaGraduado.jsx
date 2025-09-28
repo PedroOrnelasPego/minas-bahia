@@ -13,7 +13,7 @@ import { getCordaNome } from "../../constants/nomesCordas";
 import calcularIdade from "../../utils/calcularIdade";
 import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
 import axios from "axios";
-import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
+import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.avif";
 import CropImageModal from "../../components/CropImageModal";
 import { nivelMap } from "../../utils/roles";
 import FileSection from "../../components/FileSection/FileSection";

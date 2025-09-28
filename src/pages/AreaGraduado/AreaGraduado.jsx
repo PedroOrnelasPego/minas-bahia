@@ -866,6 +866,7 @@ const AreaGraduado = () => {
         onHide={() => setShowAvatarModal(false)}
         size="lg"
         centered
+        
       >
         <Modal.Header closeButton>
           <Modal.Title>Foto de perfil</Modal.Title>

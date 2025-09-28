@@ -1,3 +1,4 @@
+// src/components/Parceiros/Parceiros.jsx
 import Carousel from "react-multi-carousel";
 import "react-multi-carousel/lib/styles.css";
 import "./Parceiros.scss";
@@ -16,6 +17,10 @@ const responsive = {
   mobile: { breakpoint: { max: 576, min: 0 }, items: 1 },
 };
 
+// defina o slot que você quer reservar para todas as logos (consistente = sem reflow)
+const SLOT_W = 200;
+const SLOT_H = 120;
+
 const images = [teste1, teste2, teste3, teste4, teste1, teste2, teste3, teste4];
 
 const Parceiros = () => {
@@ -32,7 +37,7 @@ const Parceiros = () => {
         autoPlay
         autoPlaySpeed={3000}
         keyBoardControl
-        customTransition="all 0.5s"
+        customTransition="transform 0.5s ease" // só transforma (não afeta layout)
         transitionDuration={500}
         removeArrowOnDeviceType={["tablet", "mobile"]}
         itemClass="partner-item"
@@ -43,25 +48,46 @@ const Parceiros = () => {
         renderDotsOutside={false}
         focusOnSelect={false}
       >
-        {images.map((src, i) => (
-          <div key={i} className="carousel-item-wrapper">
-            <Card
-              className="card-carousel"
-              role="group"
-              aria-roledescription="slide"
-            >
-              <img
-                src={src}
-                alt={`Parceiro ${i + 1}`}
-                className="carousel-image"
-                width={200} // reserva espaço p/ evitar CLS
-                height={120}
-                loading="lazy"
-                decoding="async"
-              />
-            </Card>
-          </div>
-        ))}
+        {images.map((src, i) => {
+          // itens imediatamente visíveis: carregamento eager para evitar atraso de pintura
+          const isLikelyAboveTheFold = i < 4; // cobre desktop (4) e sobra para tablets
+          return (
+            <div key={i} className="carousel-item-wrapper">
+              <Card
+                className="card-carousel"
+                role="group"
+                aria-roledescription="slide"
+              >
+                {/* SLOT FIXO: reserva espaço antes da imagem chegar */}
+                <div
+                  className="logo-slot"
+                  style={{
+                    width: SLOT_W,
+                    height: SLOT_H,
+                    aspectRatio: `${SLOT_W} / ${SLOT_H}`,
+                  }}
+                >
+                  <img
+                    src={src}
+                    alt={`Parceiro ${i + 1}`}
+                    className="carousel-image"
+                    width={SLOT_W}
+                    height={SLOT_H}
+                    decoding="async"
+                    loading={isLikelyAboveTheFold ? "eager" : "lazy"}
+                    fetchpriority={isLikelyAboveTheFold ? "high" : undefined}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              </Card>
+            </div>
+          );
+        })}
       </Carousel>
     </div>
   );

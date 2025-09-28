@@ -1,34 +1,8 @@
-/* evita “pulos” no layout: card com dimensões/ratio previsíveis */
-.card-carousel {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+/* src/components/Parceiros/Parceiros.scss */
 
-  width: 100% !important;
-  max-width: 250px;
-  /* Mantém proporção visual do card mesmo antes de carregar conteúdo */
-  aspect-ratio: 25 / 22;
-  height: auto !important;
-
-  border-radius: 10px;
-  border: none !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-
-  margin: auto;
-}
-
-/* imagem dentro do card: nunca estoura, sem reflow */
-.carousel-image {
+/* baseline fix para evitar salto de linha */
+.parceiros-wrap img {
   display: block;
-  max-width: 90%;
-  max-height: 90%;
-  height: auto;
-  object-fit: contain;
-}
-
-/* track do react-multi-carousel: alinhamento vertical consistente */
-.react-multi-carousel-track {
-  align-items: center;
 }
 
 /* Espaço consistente entre slides (aplicado em cada item) */
@@ -62,14 +36,52 @@
   }
 }
 
-/* wrapper pra ajustes futuros, se necessário */
+/* wrapper de cada item */
 .carousel-item-wrapper {
   box-sizing: border-box;
   display: flex;
   justify-content: center;
 }
 
-/* container do carrossel (classe do lib) — opcional */
+/* card com dimensões previsíveis e altura estável */
+.card-carousel {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 100% !important;
+  max-width: 250px;
+  border-radius: 10px;
+  border: none !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+  /* altura do card = slot + padding respirando */
+  min-height: 170px; /* 120 (logo) + 50 (folga/padding) */
+  height: auto !important;
+
+  margin: auto;
+}
+
+/* slot da logo — reserva visual */
+.logo-slot {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* imagem: nunca estoura e não muda layout */
+.carousel-image {
+  max-width: 100%;
+  max-height: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* alinha verticalmente o track sem mexer no layout dos itens */
+.react-multi-carousel-track {
+  align-items: center;
+}
+
+/* container do carrossel — opcional */
 .carousel-container {
   padding-bottom: 6px;
 }

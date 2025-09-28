@@ -1,3 +1,11 @@
 .footer-background {
-  background-color: #331D1C !important;
+  background-color: #331d1c !important;
+}
+.footer-background {
+  /* se o footer “cresce” depois, reservar uma altura mínima ajuda o CLS */
+  min-height: 280px;
+}
+.footer-background,
+.footer-background * {
+  line-height: 1.4; /* estabilidade de layout */
 }

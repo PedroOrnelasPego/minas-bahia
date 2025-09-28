@@ -45,11 +45,14 @@ const Eventos = () => {
     >
       <h1>Eventos e Projetos</h1>
 
-      <div style={{ textAlign: "justify", marginBottom: "48px", lineHeight: 1.5 }}>
-        Os eventos e projetos promovidos pelo ICMBC são parte fundamental do nosso
-        compromisso com a valorização da Capoeira e das expressões afro-brasileiras.
-        Através de vivências, apresentações, oficinas, rodas e cursos, buscamos ampliar
-        o acesso à cultura, à educação e ao conhecimento.
+      <div
+        style={{ textAlign: "justify", marginBottom: "48px", lineHeight: 1.5 }}
+      >
+        Os eventos e projetos promovidos pelo ICMBC são parte fundamental do
+        nosso compromisso com a valorização da Capoeira e das expressões
+        afro-brasileiras. Através de vivências, apresentações, oficinas, rodas e
+        cursos, buscamos ampliar o acesso à cultura, à educação e ao
+        conhecimento.
       </div>
 
       <div className="container-cards">
@@ -69,13 +72,18 @@ const Eventos = () => {
                   <img
                     className="img-projeto"
                     src={c.src}
-                    alt={c.alt}
+                    alt="" // <- vazio para não repetir o título
+                    aria-hidden="true"
                     width={c.w}
                     height={c.h}
                     decoding="async"
                     fetchpriority="high"
                     // sem loading="lazy" porque esses cards tendem a ficar acima da dobra
-                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                    }}
                   />
                 </div>
               </Card.Body>

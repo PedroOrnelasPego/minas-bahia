@@ -330,6 +330,14 @@ const PainelAdmin = () => {
                           {getCordaNome(perfilSel?.corda) || "-"}
                         </p>
                         <p>
+                          <strong>Quando iniciou no grupo: </strong>
+                          {perfilSel.inicioNoGrupo
+                            ? `${formatarData(
+                                perfilSel.inicioNoGrupo
+                              )} | ${calcularIdade(perfilSel.inicioNoGrupo)} anos`
+                            : "-"}
+                        </p>
+                        <p>
                           <strong>Gênero: </strong>
                           {perfilSel?.genero || "-"}
                         </p>

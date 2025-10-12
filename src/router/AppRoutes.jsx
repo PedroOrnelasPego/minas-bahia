@@ -44,9 +44,9 @@ export function AppRoutes() {
         <Route path="/projetos" element={<Trajetorias />} />
 
         {/* Portal do Graduado */}
-        <Route path="/area-graduado/login" element={<Login />} />
+        <Route path="/acesso-interno/login" element={<Login />} />
         <Route
-          path="/area-graduado"
+          path="/acesso-interno"
           element={
             <ProtectedRoute>
               <AreaGraduado />

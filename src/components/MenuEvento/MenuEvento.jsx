@@ -54,7 +54,7 @@ const MenuEvento = () => {
               alt={selectedEvent.title}
               className="img-fluid rounded"
             />
-            <p className="text-center mt-2">{selectedEvent.date}</p>
+            <p className="text-center text-lg mt-2 font-bold text-gray-800">{selectedEvent.date}</p>
           </Modal.Body>
           <Modal.Footer className="modal-footer-custom">
             <Button variant="secondary" onClick={handleClose}>

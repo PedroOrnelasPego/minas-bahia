@@ -1,9 +1,16 @@
 // src/components/QuestionarioAluno/QuestionarioAluno.jsx
 import { useEffect, useState } from "react";
 import { Modal, Button, Row, Col, Alert } from "react-bootstrap";
+import axios from "axios";
+import { getAuthEmail } from "../../auth/session";
 
 const SIM = "sim";
 const NAO = "nao";
+
+const API_URL = import.meta.env.VITE_API_URL;
+// mesmo padrão usado em AreaGraduado.jsx
+const BLOB_BASE =
+  "https://certificadoscapoeira.blob.core.windows.net/certificados";
 
 const toRadio = (b) => (b === true ? SIM : b === false ? NAO : "");
 const toBool = (v) => (v === SIM ? true : v === NAO ? false : undefined);
@@ -26,6 +33,16 @@ export default function QuestionarioAluno({
     sugestoesPontoDeCultura: "",
   });
 
+  // Laudos (upload/list/delete)
+  const [laudos, setLaudos] = useState([]);
+  const [enviandoLaudo, setEnviandoLaudo] = useState(false);
+  const [laudoSelecionado, setLaudoSelecionado] = useState(null);
+
+  // Preview de laudo (igual ao preview da timeline)
+  const [laudoPreviewOpen, setLaudoPreviewOpen] = useState(false);
+  const [laudoPreviewUrl, setLaudoPreviewUrl] = useState("");
+  const [laudoPreviewIsPdf, setLaudoPreviewIsPdf] = useState(false);
+
   // Quando initialData mudar (abrir para editar), pré-carrega o form
   useEffect(() => {
     if (!initialData) return;
@@ -41,6 +58,93 @@ export default function QuestionarioAluno({
       sugestoesPontoDeCultura: initialData.sugestoesPontoDeCultura || "",
     });
   }, [initialData]);
+
+  // Carrega laudos ao abrir o modal, e sempre que alternar para SIM no problema de saúde
+  useEffect(() => {
+    if (!show) return;
+    if (form.problemaSaude === SIM) {
+      carregarLaudos().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, form.problemaSaude]);
+
+  const carregarLaudos = async () => {
+    const email = getAuthEmail();
+    if (!email) return;
+    try {
+      const { data } = await axios.get(`${API_URL}/upload/laudos`, {
+        params: { email },
+      });
+      setLaudos(Array.isArray(data?.arquivos) ? data.arquivos : []);
+    } catch (e) {
+      console.error("Erro ao listar laudos:", e?.message || e);
+      setLaudos([]);
+    }
+  };
+
+  const handleUploadLaudo = async () => {
+    if (!laudoSelecionado) return;
+    const email = getAuthEmail();
+    if (!email) return;
+
+    setEnviandoLaudo(true);
+    try {
+      const fd = new FormData();
+      fd.append("arquivo", laudoSelecionado);
+
+      await axios.post(
+        `${API_URL}/upload/laudos?email=${encodeURIComponent(email)}`,
+        fd,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      setLaudoSelecionado(null);
+      await carregarLaudos();
+    } catch (e) {
+      console.error("Erro ao enviar laudo:", e?.message || e);
+      setFeedback({
+        show: true,
+        variant: "danger",
+        message: "Não foi possível enviar o laudo. Tente novamente.",
+      });
+    } finally {
+      setEnviandoLaudo(false);
+    }
+  };
+
+  const handleExcluirLaudo = async (item) => {
+    const email = getAuthEmail();
+    if (!email || !item?.nome) return;
+
+    try {
+      await axios.delete(`${API_URL}/upload/laudos`, {
+        params: { email, arquivo: item.nome }, // aceita "xxx.ext" no backend
+      });
+      await carregarLaudos();
+    } catch (e) {
+      console.error("Erro ao excluir laudo:", e?.message || e);
+      setFeedback({
+        show: true,
+        variant: "danger",
+        message: "Não foi possível excluir este laudo.",
+      });
+    }
+  };
+
+  // monta e abre o preview (sem navegar)
+  const openLaudoPreview = (item) => {
+    const email = getAuthEmail();
+    if (!email || !item?.nome) return;
+
+    const isPdf = String(item.nome).toLowerCase().endsWith(".pdf");
+    const url = `${BLOB_BASE}/${encodeURIComponent(
+      email
+    )}/laudos/${encodeURIComponent(item.nome)}`;
+
+    setLaudoPreviewIsPdf(isPdf);
+    setLaudoPreviewUrl(url);
+    setLaudoPreviewOpen(true);
+  };
 
   const [submitted, setSubmitted] = useState(false);
   const [feedback, setFeedback] = useState({
@@ -215,6 +319,85 @@ export default function QuestionarioAluno({
                   value={form.problemaSaudeDetalhe}
                   onChange={handleChange}
                 />
+
+                {/* ====== Bloco de Laudos ====== */}
+                <div className="mt-3 p-2 border rounded">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Laudo / Documento médico</strong>
+                    <small className="text-muted">
+                      Envie PDF ou imagem (jpg/png).
+                    </small>
+                  </div>
+
+                  <div className="d-flex gap-2 align-items-center mb-2">
+                    <input
+                      type="file"
+                      accept="application/pdf,image/jpeg,image/png"
+                      className="form-control"
+                      onChange={(e) =>
+                        setLaudoSelecionado(e.target.files?.[0] || null)
+                      }
+                    />
+                    <Button
+                      variant="outline-primary"
+                      disabled={!laudoSelecionado || enviandoLaudo}
+                      onClick={handleUploadLaudo}
+                      title="Enviar laudo"
+                    >
+                      {enviandoLaudo ? "Enviando..." : "Enviar"}
+                    </Button>
+                  </div>
+
+                  {/* Lista de laudos */}
+                  {laudos.length === 0 ? (
+                    <p className="text-muted mb-0">Nenhum laudo enviado.</p>
+                  ) : (
+                    <ul className="list-unstyled mb-0">
+                      {laudos.map((item) => {
+                        const isPdf = (item?.nome || "")
+                          .toLowerCase()
+                          .endsWith(".pdf");
+                        return (
+                          <li
+                            key={item.nome}
+                            className="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-2"
+                          >
+                            <div className="d-flex flex-column">
+                              <span className="fw-semibold">{item.nome}</span>
+                              <small className="text-muted">
+                                {isPdf ? "PDF" : "Imagem"}{" "}
+                                {item.atualizadoEm
+                                  ? `• ${new Date(
+                                      item.atualizadoEm
+                                    ).toLocaleString()}`
+                                  : ""}
+                              </small>
+                            </div>
+                            <div className="d-flex gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => openLaudoPreview(item)}
+                                title="Visualizar laudo"
+                              >
+                                {isPdf ? "📄 Abrir PDF" : "🔍 Visualizar"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => handleExcluirLaudo(item)}
+                                title="Excluir este laudo"
+                              >
+                                🗑 Excluir
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+                {/* ====== fim bloco laudos ====== */}
               </>
             )}
 
@@ -368,6 +551,35 @@ export default function QuestionarioAluno({
           Salvar respostas
         </Button>
       </Modal.Footer>
+
+      {/* Modal de preview de Laudo */}
+      <Modal
+        show={laudoPreviewOpen}
+        onHide={() => setLaudoPreviewOpen(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Visualizar laudo</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          {laudoPreviewIsPdf ? (
+            <iframe
+              src={laudoPreviewUrl}
+              style={{ width: "100%", height: "70vh", border: "none" }}
+              title="PDF Preview"
+            />
+          ) : (
+            <img
+              src={laudoPreviewUrl}
+              alt="Preview do laudo"
+              className="img-fluid"
+              style={{ maxHeight: "70vh" }}
+              loading="lazy"
+            />
+          )}
+        </Modal.Body>
+      </Modal>
     </Modal>
   );
 }

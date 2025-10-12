@@ -13,7 +13,7 @@ export default function ProtectedRoute({ children }) {
 
   // Usa seu mecanismo atual de sessão (Google/MSAL via AuthProvider)
   if (!isAuthenticated()) {
-    return <Navigate to="/area-graduado/login" replace />;
+    return <Navigate to="/acesso-interno/login" replace />;
   }
 
   return children;

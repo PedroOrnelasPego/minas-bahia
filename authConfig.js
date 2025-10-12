@@ -16,10 +16,10 @@ const ENV_SCOPES = (import.meta.env.VITE_MSAL_SCOPES || "User.Read")
 // Evita crash em SSR (se algum dia trocar o bundler)
 const ORIGIN = typeof window !== "undefined" ? window.location.origin : "";
 
-// Mantemos teu fluxo: AAD redireciona para /area-graduado (sem hash).
-// O AuthProvider normaliza para hash (#/area-graduado) depois.
-const redirectUri = `${ORIGIN}/area-graduado`;
-const postLogoutRedirectUri = `${ORIGIN}/#/area-graduado/login`;
+// Mantemos teu fluxo: AAD redireciona para /acesso-interno (sem hash).
+// O AuthProvider normaliza para hash (#/acesso-interno) depois.
+const redirectUri = `${ORIGIN}/acesso-interno`;
+const postLogoutRedirectUri = `${ORIGIN}/#/acesso-interno/login`;
 
 // Mapeia cacheLocation de forma segura
 const BrowserCacheLocation = {

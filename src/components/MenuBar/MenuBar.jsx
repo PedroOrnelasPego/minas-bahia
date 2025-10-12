@@ -5,7 +5,7 @@ import { NavLink } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 
 import teste from "../../assets/logo/teste-black.png"; // logo esquerda / mobile (selo)
-import teste2 from "../../assets/logo/logoMbc.png";    // logo direita (desktop)
+import teste2 from "../../assets/logo/logoMbc.png"; // logo direita (desktop)
 
 const MenuBar = () => {
   const [expanded, setExpanded] = useState(false);
@@ -85,7 +85,7 @@ const MenuBar = () => {
                 { to: "/eventos", label: "Eventos" },
                 { to: "/uai-minas-bahia", label: "UAI! Minas Bahia" },
                 { to: "/projetos", label: "Projetos" },
-                { to: "/area-graduado", label: "Área do Graduado" },
+                { to: "/acesso-interno", label: "Acesso Interno" },
                 ...(isMestre
                   ? [{ to: "/painel-admin", label: "Painel Administrativo" }]
                   : []),
@@ -133,7 +133,7 @@ const MenuBar = () => {
                 { to: "/eventos", label: "Eventos" },
                 { to: "/uai-minas-bahia", label: "UAI! Minas Bahia" },
                 { to: "/projetos", label: "Projetos" },
-                { to: "/area-graduado", label: "Área do Graduado" },
+                { to: "/acesso-interno", label: "Acesso Interno" },
                 ...(isMestre
                   ? [{ to: "/painel-admin", label: "Painel Administrativo" }]
                   : []),

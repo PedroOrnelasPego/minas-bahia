@@ -1,0 +1,25 @@
+/* Timeline – responsivo no mobile */
+@media (max-width: 576px) {
+  .tl-item {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .tl-left {
+    align-items: flex-start !important;
+  }
+  .tl-actions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr; /* dois botões lado a lado */
+    gap: 8px;
+  }
+  .tl-actions .btn {
+    width: 100%;
+  }
+  /* Se o texto do badge quebrar feio, força inline-block */
+  .tl-badge {
+    display: inline-block;
+    margin-top: 4px;
+  }
+}

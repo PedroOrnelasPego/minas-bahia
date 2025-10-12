@@ -14,11 +14,16 @@ import { maskPhoneBR } from "../../utils/phone";
 import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { validateRequiredFields } from "../../utils/validate";
+import axios from "axios";
+import { maskCPF, isValidCPF, onlyDigits } from "../../utils/cpf";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 /* ================== Constantes fora do componente (evita recriação) ================== */
 const OBRIGATORIOS = [
   "nome",
   "corda",
+  "cpf",
   "genero",
   "racaCor",
   "dataNascimento",
@@ -43,6 +48,7 @@ const CadastroInicial = ({ show, onSave }) => {
     nome: "",
     apelido: "",
     corda: "",
+    cpf: "", // <-- corrigido
     genero: "",
     racaCor: "",
     dataNascimento: "",
@@ -67,6 +73,9 @@ const CadastroInicial = ({ show, onSave }) => {
 
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+
+  const [cpfExists, setCpfExists] = useState(null); // null desconhecido | true/false
+  const pendingCpfCheck = useRef(null);
 
   const [feedback, setFeedback] = useState({
     show: false,
@@ -127,6 +136,20 @@ const CadastroInicial = ({ show, onSave }) => {
         return;
       }
 
+      if (name === "cpf") {
+        setForm((prev) => ({ ...prev, cpf: maskCPF(value) }));
+        setCpfExists(null);
+        // limpa erro se usuário está digitando algo
+        if (errors.cpf && onlyDigits(value).length <= 11) {
+          setErrors((prev) => {
+            const n = { ...prev };
+            delete n.cpf;
+            return n;
+          });
+        }
+        return;
+      }
+
       if (name === "localTreino") {
         setErrors((prev) => {
           const next = { ...prev };
@@ -163,6 +186,28 @@ const CadastroInicial = ({ show, onSave }) => {
     },
     [errors, feedback.show, hideFeedback]
   );
+
+  const checkCpfExists = useCallback(async () => {
+    const raw = onlyDigits(form.cpf);
+    if (raw.length !== 11 || !isValidCPF(raw)) return; // só checa se válido
+
+    // cancela chamada anterior
+    if (pendingCpfCheck.current) pendingCpfCheck.current.abort();
+
+    const controller = new AbortController();
+    pendingCpfCheck.current = controller;
+
+    try {
+      const { data } = await axios.get(`${API_URL}/perfil/__check/exists-cpf`, {
+        params: { cpf: raw },
+        signal: controller.signal,
+      });
+      setCpfExists(Boolean(data?.exists));
+    } catch {
+      // falha de rede não deve bloquear o fluxo de digitação
+      setCpfExists(null);
+    }
+  }, [form.cpf]);
 
   const preencherEndereco = useCallback(
     (data) => {
@@ -243,6 +288,13 @@ const CadastroInicial = ({ show, onSave }) => {
     hideFeedback();
 
     const newErrors = validateRequiredFields(form, OBRIGATORIOS);
+
+    // validação específica do CPF
+    const rawCpf = onlyDigits(form.cpf);
+    if (!isValidCPF(rawCpf)) {
+      newErrors.cpf = "CPF inválido";
+    }
+
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
@@ -257,10 +309,16 @@ const CadastroInicial = ({ show, onSave }) => {
       return;
     }
 
+    if (cpfExists === true) {
+      showError("Este CPF já está cadastrado. Verifique seus dados.");
+      return;
+    }
+
     onSave({
       ...form,
       nome: form.nome.trim(),
       apelido: form.apelido.trim(),
+      cpf: rawCpf, // <-- envia normalizado
       genero: form.genero.trim(),
       racaCor: form.racaCor?.trim(),
       endereco: form.endereco.trim(),
@@ -269,7 +327,7 @@ const CadastroInicial = ({ show, onSave }) => {
       aceitouTermos: true,
       nivelAcesso: "visitante",
     });
-  }, [form, hideFeedback, aceitouTermos, onSave, showError]);
+  }, [form, hideFeedback, aceitouTermos, cpfExists, onSave, showError]);
 
   return (
     <Modal show={show} centered size="xl" backdrop="static">
@@ -333,6 +391,27 @@ const CadastroInicial = ({ show, onSave }) => {
                 </optgroup>
               ))}
             </select>
+
+            {/* CPF */}
+            <small className="text-muted">CPF</small>
+            <div className="d-flex align-items-center gap-2">
+              <input
+                name="cpf"
+                className={fc("cpf")}
+                placeholder="000.000.000-00"
+                inputMode="numeric"
+                value={form.cpf}
+                onChange={handleChange}
+                onBlur={checkCpfExists}
+                autoComplete="off"
+              />
+              {cpfExists === true && (
+                <span className="text-danger small">Já cadastrado</span>
+              )}
+              {cpfExists === false && (
+                <span className="text-success small">Disponível</span>
+              )}
+            </div>
 
             {/* Quando Iniciou */}
             <small className="text-muted">

@@ -91,7 +91,7 @@ const Parceiros = () => {
                     height={SLOT_H}
                     decoding="async"
                     loading={isLikelyAboveTheFold ? "eager" : "lazy"}
-                    fetchpriority={isLikelyAboveTheFold ? "high" : undefined}
+                    fetchPriority={isLikelyAboveTheFold ? "high" : undefined}
                     style={{
                       width: "100%",
                       height: "100%",

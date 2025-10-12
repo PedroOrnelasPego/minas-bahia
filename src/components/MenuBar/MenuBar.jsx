@@ -58,7 +58,7 @@ const MenuBar = () => {
                 width={300}
                 height={110}
                 alt="ICMBC - logotipo"
-                fetchpriority="high"
+                fetchPriority="high"
                 decoding="async"
                 style={{
                   width: "100%",
@@ -113,7 +113,7 @@ const MenuBar = () => {
             width={150}
             height={55}
             alt="ICMBC - logotipo esquerdo"
-            fetchpriority="high"
+            fetchPriority="high"
             decoding="async"
             style={{ display: "block" }}
           />

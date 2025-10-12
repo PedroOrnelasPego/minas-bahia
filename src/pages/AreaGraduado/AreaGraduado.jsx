@@ -32,6 +32,7 @@ import {
 } from "../../auth/session";
 import Loading from "../../components/Loading/Loading";
 import ModalArquivosPessoais from "../../components/Modals/ModalArquivosPessoais";
+import "./AreaGraduado.scss";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const DEV_STRICT_DEBOUNCE_MS = 30;
@@ -957,9 +958,9 @@ const AreaGraduado = () => {
                     return (
                       <li
                         key={item.id}
-                        className="d-flex align-items-center justify-content-between border rounded px-3 py-2 mb-2"
+                        className="tl-item d-flex align-items-center justify-content-between border rounded px-3 py-2 mb-2"
                       >
-                        <div className="d-flex align-items-center gap-3">
+                        <div className="tl-left d-flex align-items-center gap-3">
                           <div
                             style={{
                               width: 10,
@@ -977,7 +978,7 @@ const AreaGraduado = () => {
                             <small className="text-muted">
                               Data: {dataFmt} •{" "}
                               <span
-                                className={`badge ${
+                                className={`tl-badge badge ${
                                   aprovado
                                     ? "bg-success"
                                     : rejeitado
@@ -995,7 +996,7 @@ const AreaGraduado = () => {
                           </div>
                         </div>
 
-                        <div className="d-flex gap-2">
+                        <div className="tl-actions d-flex gap-2">
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-primary"

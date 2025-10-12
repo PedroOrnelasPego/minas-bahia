@@ -77,7 +77,7 @@ const Eventos = () => {
                     width={c.w}
                     height={c.h}
                     decoding="async"
-                    fetchpriority="high"
+                    fetchPriority="high"
                     // sem loading="lazy" porque esses cards tendem a ficar acima da dobra
                     style={{
                       width: "100%",

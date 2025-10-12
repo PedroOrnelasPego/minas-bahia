@@ -10,7 +10,7 @@ const Login = () => {
 
   const handleMicrosoftLogin = async () => {
     try {
-      // Ao retornar, AuthProvider faz a limpeza do path e manda para #/area-graduado
+      // Ao retornar, AuthProvider faz a limpeza do path e manda para #/acesso-interno
       await instance.loginRedirect({
         redirectStartPage: window.location.href,
       });
@@ -39,7 +39,7 @@ const Login = () => {
       setGoogleSession(email);
 
       // HashRouter: vai direto para a área via hash
-      window.location.hash = "#/area-graduado";
+      window.location.hash = "#/acesso-interno";
     } catch (e) {
       console.error(e);
       alert("Falha ao entrar com Google");

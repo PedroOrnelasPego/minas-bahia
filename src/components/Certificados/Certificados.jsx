@@ -1,10 +1,12 @@
+/*
+
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Button, Form, Modal, Alert, Spinner } from "react-bootstrap";
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-/* ================= Helpers ================= */
+
 const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
 const isPdfType = (mime) => mime === "application/pdf";
 const getExt = (filename) =>
@@ -54,7 +56,7 @@ function isDisplayNameValid(raw) {
   );
 }
 
-/* ================= Componente ================= */
+
 const Certificados = ({ email }) => {
   const [arquivos, setArquivos] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -90,7 +92,7 @@ const Certificados = ({ email }) => {
       const lista = Array.isArray(res.data?.arquivos) ? res.data.arquivos : [];
       setArquivos(lista);
     } catch {
-      // mantém silencioso para UX; você pode logar no Sentry
+      // mantém silencioso para UX
     }
   }, [email]);
 
@@ -262,7 +264,7 @@ const Certificados = ({ email }) => {
 
   return (
     <div>
-      <h5 className="text-center mb-3">Arquivos Pessoais</h5>
+      <h5 className="text-center mb-3">Arquivos Pessoais (Antigo)</h5>
       <div className="d-flex justify-content-center mb-3">
         <Button variant="secondary" onClick={abrirModalUpload}>
           📌 Enviar Arquivo
@@ -330,7 +332,7 @@ const Certificados = ({ email }) => {
         </ul>
       )}
 
-      {/* Modal de upload */}
+   
       <Modal show={showModal} onHide={fecharModalUpload} centered>
         <Modal.Header closeButton>
           <Modal.Title>Enviar Certificado</Modal.Title>
@@ -406,22 +408,13 @@ const Certificados = ({ email }) => {
         </Modal.Body>
 
         <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={fecharModalUpload}
-            disabled={uploading}
-          >
+          <Button variant="secondary" onClick={fecharModalUpload} disabled={uploading}>
             Cancelar
           </Button>
-          <Button
-            variant="primary"
-            onClick={enviarArquivo}
-            disabled={!podeEnviar}
-          >
+          <Button variant="primary" onClick={enviarArquivo} disabled={!podeEnviar}>
             {uploading ? (
               <>
-                <Spinner animation="border" size="sm" className="me-2" />{" "}
-                Enviando...
+                <Spinner animation="border" size="sm" className="me-2" /> Enviando...
               </>
             ) : (
               "Enviar"
@@ -430,13 +423,8 @@ const Certificados = ({ email }) => {
         </Modal.Footer>
       </Modal>
 
-      {/* Modal de preview da lista */}
-      <Modal
-        show={showPreview}
-        onHide={() => setShowPreview(false)}
-        size="lg"
-        centered
-      >
+
+      <Modal show={showPreview} onHide={() => setShowPreview(false)} size="lg" centered>
         <Modal.Header closeButton>
           <Modal.Title>Visualizar arquivo</Modal.Title>
         </Modal.Header>
@@ -454,9 +442,7 @@ const Certificados = ({ email }) => {
               className="img-fluid"
               style={{ maxHeight: "70vh" }}
               loading="lazy"
-              onError={() => {
-                // fallback silencioso
-              }}
+              onError={() => {}}
             />
           )}
         </Modal.Body>
@@ -466,3 +452,6 @@ const Certificados = ({ email }) => {
 };
 
 export default Certificados;
+
+
+*/

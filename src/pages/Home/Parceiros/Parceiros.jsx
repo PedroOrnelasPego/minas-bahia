@@ -9,9 +9,12 @@ import teste1 from "../../../assets/parceiros/alanson.png";
 import teste2 from "../../../assets/parceiros/implantar.png";
 import teste3 from "../../../assets/parceiros/rede.png";
 import teste4 from "../../../assets/parceiros/mineires.png";
+import teste5 from "../../../assets/parceiros/sabor-e-saude.png";
+
+import ponto from "../../../assets/certificado/certificado-ponto.png";
 
 const responsive = {
-  superLargeDesktop: { breakpoint: { max: 4000, min: 1200 }, items: 4 },
+  superLargeDesktop: { breakpoint: { max: 4000, min: 1200 }, items: 5 },
   desktop: { breakpoint: { max: 1200, min: 992 }, items: 3 },
   tablet: { breakpoint: { max: 992, min: 576 }, items: 2 },
   mobile: { breakpoint: { max: 576, min: 0 }, items: 1 },
@@ -21,7 +24,18 @@ const responsive = {
 const SLOT_W = 200;
 const SLOT_H = 120;
 
-const images = [teste1, teste2, teste3, teste4, teste1, teste2, teste3, teste4];
+const images = [
+  teste1,
+  teste2,
+  teste3,
+  teste4,
+  teste5,
+  teste1,
+  teste2,
+  teste3,
+  teste4,
+  teste5,
+];
 
 const Parceiros = () => {
   return (
@@ -29,7 +43,9 @@ const Parceiros = () => {
       className="text-center parceiros-wrap"
       style={{ maxWidth: "90%", margin: "auto", padding: "20px" }}
     >
-      <h1 className="mb-3">Parceiros</h1>
+      <div className="mb-8">
+        <h1>Parceiros</h1>
+      </div>
 
       <Carousel
         responsive={responsive}
@@ -89,6 +105,12 @@ const Parceiros = () => {
           );
         })}
       </Carousel>
+      <div className="mt-16 flex flex-col items-center">
+        <div className="mb-8">
+          <h1>Certificados</h1>
+        </div>
+        <img src={ponto} className="w-210" alt="" />
+      </div>
     </div>
   );
 };

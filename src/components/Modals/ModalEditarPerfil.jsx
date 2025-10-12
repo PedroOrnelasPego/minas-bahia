@@ -224,26 +224,6 @@ const ModalEditarPerfil = ({
               onChange={handleChange}
             />
 
-            <small className="text-muted">Graduação (corda)</small>
-            <select
-              name="corda"
-              className={fc("corda")}
-              value={formEdit?.corda || ""}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Selecione</option>
-              {gruposCordas.map((g) => (
-                <optgroup key={g.key} label={g.label}>
-                  {listarCordasPorGrupo(g.key).map((slug) => (
-                    <option key={slug} value={slug}>
-                      {nomesCordas[slug]}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-
             <small className="text-muted">
               Quando iniciou seus treinos no Grupo de Capoeira Minas Bahia
             </small>

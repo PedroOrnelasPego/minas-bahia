@@ -24,10 +24,6 @@ main > * {
 
 
 
-.graduacao {
-  padding-top: 60px;
-}
-
 /* Grid responsivo: 1 col no mobile, 2 no tablet, 3 no desktop */
 .grid-list-3 ul,
 .grid-list-3 .list-unstyled,

@@ -52,7 +52,7 @@ export function clearHints() {
 export async function signOutUnified() {
   const provider = getAuthProvider();
 
-  const loginHash = "#/area-graduado/login";
+  const loginHash = "#/acesso-interno/login";
   const postLogout = `${window.location.origin}/${loginHash}`;
 
   if (provider === "microsoft") {

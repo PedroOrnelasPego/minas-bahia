@@ -4,7 +4,7 @@ import { MsalProvider } from "@azure/msal-react";
 import { msalInstance } from "./msalInstance";
 
 // rota padrão após login
-const DEFAULT_AFTER_LOGIN = "#/area-graduado";
+const DEFAULT_AFTER_LOGIN = "#/acesso-interno";
 
 // aceita somente rotas hash internas do app, ex: "#/x", sem http(s)
 function isSafeHashRoute(v) {
@@ -44,8 +44,8 @@ export const AuthProvider = ({ children }) => {
             /* ignore state inválido */
           }
 
-          // se o AAD voltou em /area-graduado (sem hash), normalizamos pro hash
-          if (window.location.pathname.startsWith("/area-graduado")) {
+          // se o AAD voltou em /acesso-interno (sem hash), normalizamos pro hash
+          if (window.location.pathname.startsWith("/acesso-interno")) {
             window.history.replaceState(null, "", "/");
           }
 

@@ -1,14 +1,25 @@
+// src/pages/PainelAdmin/PainelAdmin.jsx
 import { useEffect, useState } from "react";
 import { Container, Row, Col, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
-import calcularIdade from "../../utils/calcularIdade";
 import axios from "axios";
+
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
-import { getCordaNome } from "../../constants/nomesCordas";
-import { getHorarioLabel } from "../../helpers/agendaTreino";
-import { formatarData } from "../../utils/formatarData";
 import Loading from "../../components/Loading/Loading";
+import { formatarData } from "../../utils/formatarData";
+import calcularIdade from "../../utils/calcularIdade";
+import { getHorarioLabel } from "../../helpers/agendaTreino";
+
+// === cordas ===
+import {
+  getCordaNome,
+  gruposCordas,
+  listarCordasPorGrupo,
+} from "../../constants/nomesCordas";
+
+// Modal de envio (mesmo usado no Acesso Interno)
+import ModalArquivosPessoais from "../../components/Modals/ModalArquivosPessoais";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -42,28 +53,35 @@ const PainelAdmin = () => {
 
   const [usuarios, setUsuarios] = useState([]);
   const [usuarioExpandido, setUsuarioExpandido] = useState(null);
+
+  // dados detalhados por usuário (carregados ao expandir)
   const [dadosUsuarios, setDadosUsuarios] = useState({});
   const [carregando, setCarregando] = useState(false);
   const [loadingUsuarios, setLoadingUsuarios] = useState(true);
 
-  const [certificadosUsuarios, setCertificadosUsuarios] = useState({});
-  const [certsLoading, setCertsLoading] = useState(null); // email em carregamento
+  // timeline (certificados) por usuário
+  const [timelineUsuarios, setTimelineUsuarios] = useState({});
+  const [tlLoading, setTlLoading] = useState(null); // email em carregamento
 
+  // preview de arquivos
   const [previewUrl, setPreviewUrl] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [previewIsPdf, setPreviewIsPdf] = useState(false);
 
-  // Modal dedicado ao avatar
+  // modal avatar
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarModalUrl, setAvatarModalUrl] = useState("");
 
-  // 👉 cache de quem NÃO tem avatar (evita re-buscas infinitas)
+  // cache de quem NÃO tem avatar (evita re-buscas)
   const [semAvatar, setSemAvatar] = useState({}); // { [email]: true }
 
-  // 👉 estado do acordeon do questionário por usuário
+  // acordeon do questionário por usuário
   const [questionarioOpen, setQuestionarioOpen] = useState({});
 
-  // ----------------- atualizações -----------------
+  // modal "Enviar certificados" (reaproveita o mesmo da Acesso Interno)
+  const [envioModalOpenForEmail, setEnvioModalOpenForEmail] = useState(null);
+
+  // ================== Atualizações de Perfil ==================
 
   const atualizarNivel = async (email, novoNivel) => {
     try {
@@ -138,7 +156,42 @@ const PainelAdmin = () => {
     }
   };
 
-  // ----------------- bootstrap -----------------
+  // alterar a corda pelo select
+  const atualizarCordaPerfil = async (email, novaCorda) => {
+    try {
+      await axios.put(`${API_URL}/perfil/${email}`, {
+        corda: novaCorda,
+        // ao alterar manualmente, mantém o estado de verificação atual
+      });
+      setDadosUsuarios((prev) => ({
+        ...prev,
+        [email]: { ...prev[email], corda: novaCorda },
+      }));
+      alert("Corda atualizada.");
+    } catch {
+      alert("Erro ao atualizar a corda.");
+    }
+  };
+
+  // confirmar OU revogar confirmação da corda (toggle)
+  const toggleVerificacaoCorda = async (email, novoValor) => {
+    try {
+      await axios.put(`${API_URL}/perfil/${email}`, {
+        cordaVerificada: !!novoValor,
+      });
+      setDadosUsuarios((prev) => ({
+        ...prev,
+        [email]: { ...prev[email], cordaVerificada: !!novoValor },
+      }));
+      alert(
+        !!novoValor ? "Corda confirmada." : "Confirmação de corda revogada."
+      );
+    } catch {
+      alert("Erro ao atualizar verificação da corda.");
+    }
+  };
+
+  // ================== Bootstrap ==================
 
   useEffect(() => {
     const user = accounts[0];
@@ -179,21 +232,43 @@ const PainelAdmin = () => {
       }
     }
 
-    await listarCertificados(email);
+    await listarTimeline(email);
   };
 
-  const listarCertificados = async (email) => {
+  const listarTimeline = async (email) => {
     try {
-      setCertsLoading(email);
-      const res = await axios.get(`${API_URL}/upload?email=${email}`);
-      setCertificadosUsuarios((prev) => ({
+      setTlLoading(email);
+      const res = await axios.get(`${API_URL}/upload/timeline`, {
+        params: { email },
+      });
+      setTimelineUsuarios((prev) => ({
         ...prev,
-        [email]: res.data.arquivos,
+        [email]: res.data.items || [],
       }));
     } catch {
-      alert(`Erro ao listar arquivos de ${email}`);
+      alert(`Erro ao listar timeline de ${email}`);
     } finally {
-      setCertsLoading(null);
+      setTlLoading(null);
+    }
+  };
+
+  // ================== Certificados (aprovar/reprovar) ==================
+
+  const aprovarOuReprovar = async (email, item, status) => {
+    try {
+      await axios.put(`${API_URL}/upload/timeline`, {
+        email,
+        arquivo: `certificados/${item.data}/${item.fileName}`,
+        status, // "approved" | "rejected"
+      });
+      await listarTimeline(email);
+      alert(
+        status === "approved"
+          ? "Certificado aprovado."
+          : "Certificado reprovado."
+      );
+    } catch {
+      alert("Falha ao atualizar o status do certificado.");
     }
   };
 
@@ -204,18 +279,17 @@ const PainelAdmin = () => {
       const urlBlob = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = urlBlob;
-      a.download = url.split("/").pop()?.replace(/^\d+-/, "") || "arquivo";
+      a.download = url.split("/").pop() || "arquivo";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(urlBlob);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Erro ao baixar o arquivo.");
     }
   };
 
-  // ----------------- render -----------------
+  // ================== Render ==================
 
   if (loadingUsuarios) {
     return (
@@ -224,6 +298,15 @@ const PainelAdmin = () => {
       </Container>
     );
   }
+
+  const cordasOptions = gruposCordas.map((g) => ({
+    key: g.key,
+    label: g.label,
+    slugs: listarCordasPorGrupo(g.key),
+  }));
+
+  // helper do questionário (booleans)
+  const b = (v) => (v === true ? "Sim" : v === false ? "Não" : "-");
 
   return (
     <Container className="py-4">
@@ -236,12 +319,14 @@ const PainelAdmin = () => {
         const podeEditarQuest = rankNivel(nivel) >= rankNivel("aluno");
         const podeEditarPerm = rankNivel(nivel) >= rankNivel("graduado");
 
-        // se já sabemos que não tem avatar, usa direto o placeholder
         const jaSemAvatar = !!semAvatar[user.email];
-
-        // URLs de avatar (mantive como estavam)
         const url1x = jaSemAvatar ? fotoPadrao : avatarUrl1x(user.email);
         const url2x = jaSemAvatar ? "" : avatarUrl2x(user.email);
+
+        const timeline = timelineUsuarios[user.email] || [];
+        const aprovadoBadge = (
+          <span className="badge bg-success ms-2">Confirmada</span>
+        );
 
         return (
           <div
@@ -301,7 +386,6 @@ const PainelAdmin = () => {
                               setShowAvatarModal(true);
                             }}
                             onError={(e) => {
-                              // 👉 primeira falha: marca e usa placeholder (sem novas tentativas)
                               setSemAvatar((prev) => ({
                                 ...prev,
                                 [user.email]: true,
@@ -312,6 +396,20 @@ const PainelAdmin = () => {
                               img.src = fotoPadrao;
                             }}
                           />
+                        </div>
+
+                        {/* envio pelo admin */}
+                        <div className="mt-3 text-center">
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={() =>
+                              setEnvioModalOpenForEmail(user.email)
+                            }
+                            title="Enviar certificado para este aluno"
+                          >
+                            📎 Enviar certificado
+                          </button>
                         </div>
                       </Col>
 
@@ -325,18 +423,73 @@ const PainelAdmin = () => {
                           <strong>Apelido: </strong>
                           {perfilSel?.apelido || "-"}
                         </p>
-                        <p>
+
+                        {/* Corda + verificação */}
+                        <div className="mb-2">
                           <strong>Corda: </strong>
-                          {getCordaNome(perfilSel?.corda) || "-"}
-                        </p>
-                        <p>
+                          <select
+                            className="form-select d-inline w-auto ms-2"
+                            value={perfilSel?.corda || ""}
+                            onChange={(e) =>
+                              atualizarCordaPerfil(user.email, e.target.value)
+                            }
+                          >
+                            <option value="">Selecione…</option>
+                            {cordasOptions.map((g) => (
+                              <optgroup key={g.key} label={g.label}>
+                                {g.slugs.map((slug) => (
+                                  <option key={slug} value={slug}>
+                                    {getCordaNome(slug)}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
+                          {perfilSel?.cordaVerificada ? (
+                            <>
+                              {aprovadoBadge}
+                              <button
+                                className="btn btn-sm btn-outline-danger ms-2"
+                                onClick={() =>
+                                  toggleVerificacaoCorda(user.email, false)
+                                }
+                                title="Revogar confirmação da corda"
+                              >
+                                ↺ Revogar
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              className="btn btn-sm btn-outline-success ms-2"
+                              onClick={() =>
+                                toggleVerificacaoCorda(user.email, true)
+                              }
+                              title="Marcar corda como verificada"
+                            >
+                              ✓ Confirmar corda
+                            </button>
+                          )}
+                        </div>
+
+                        <p className="mt-2">
                           <strong>Quando iniciou no grupo: </strong>
-                          {perfilSel.inicioNoGrupo
-                            ? `${formatarData(
-                                perfilSel.inicioNoGrupo
-                              )} | ${calcularIdade(perfilSel.inicioNoGrupo)} anos`
-                            : "-"}
+                          {perfilSel.inicioNoGrupo ? (
+                            <>
+                              {formatarData(perfilSel.inicioNoGrupo)} |{" "}
+                              {(() => {
+                                const anos = calcularIdade(
+                                  perfilSel.inicioNoGrupo
+                                );
+                                return anos < 1
+                                  ? "menos de 1 ano"
+                                  : `${anos} anos`;
+                              })()}
+                            </>
+                          ) : (
+                            "-"
+                          )}
                         </p>
+
                         <p>
                           <strong>Gênero: </strong>
                           {perfilSel?.genero || "-"}
@@ -382,82 +535,134 @@ const PainelAdmin = () => {
                         </p>
                       </Col>
 
+                      {/* CERTIFICADOS / TIMELINE */}
                       <Col xs={12}>
-                        {certsLoading === user.email ? (
+                        {tlLoading === user.email ? (
                           <Loading
                             variant="block"
                             size="sm"
                             message="Carregando certificados..."
                           />
-                        ) : Array.isArray(certificadosUsuarios[user.email]) &&
-                          certificadosUsuarios[user.email].length > 0 ? (
+                        ) : timeline.length > 0 ? (
                           <>
                             <h5 className="mt-3">Certificados</h5>
-                            <div className="grid-list-3">
-                              <ul className="list-unstyled">
-                                {certificadosUsuarios[user.email].map(
-                                  ({ nome }) => {
-                                    const nomeArquivo =
-                                      typeof nome === "string"
-                                        ? nome.split("/").pop()
-                                        : "arquivo";
-                                    const ext = nomeArquivo
-                                      ?.split(".")
-                                      .pop()
-                                      ?.toLowerCase();
-                                    const isPdf = ext === "pdf";
-                                    const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email}/certificados/${nomeArquivo}`;
+                            <ul className="list-unstyled">
+                              {timeline
+                                .slice()
+                                .sort((a, b) =>
+                                  (b.data || "").localeCompare(a.data || "")
+                                )
+                                .map((item) => {
+                                  const isPdf = (item.fileName || "")
+                                    .toLowerCase()
+                                    .endsWith(".pdf");
+                                  const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${
+                                    user.email
+                                  }/certificados/${encodeURIComponent(
+                                    item.data
+                                  )}/${encodeURIComponent(item.fileName)}`;
 
-                                    // label legível (remove timestamp do começo, se houver)
-                                    let label = nomeArquivo.replace(
-                                      /^\d+-/,
-                                      ""
-                                    );
-                                    try {
-                                      label = decodeURIComponent(label);
-                                    } catch (_) {
-                                      /* ignora */
-                                    }
+                                  const aprovado = item.status === "approved";
+                                  const rejeitado = item.status === "rejected";
 
-                                    return (
-                                      <li
-                                        key={nome}
-                                        className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
-                                      >
-                                        <span
-                                          className="text-truncate"
-                                          style={{ maxWidth: "60%" }}
-                                        >
-                                          {label}
-                                        </span>
-                                        <div className="d-flex gap-2">
-                                          <button
-                                            className="btn btn-sm btn-outline-primary"
-                                            onClick={() => {
-                                              setPreviewIsPdf(isPdf);
-                                              setPreviewUrl(fullUrl);
-                                              setShowPreview(true);
-                                            }}
-                                          >
-                                            {isPdf
-                                              ? "📄 Visualizar"
-                                              : "🔍 Visualizar"}
-                                          </button>
-                                          <button
-                                            className="btn btn-sm btn-outline-success"
-                                            onClick={() =>
-                                              handleDownload(fullUrl)
-                                            }
-                                          >
-                                            ⬇️ Download
-                                          </button>
+                                  return (
+                                    <li
+                                      key={item.id}
+                                      className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
+                                    >
+                                      <div className="d-flex align-items-center gap-3">
+                                        <div
+                                          style={{
+                                            width: 10,
+                                            height: 10,
+                                            borderRadius: "50%",
+                                            background: aprovado
+                                              ? "#198754"
+                                              : rejeitado
+                                              ? "#dc3545"
+                                              : "#6c757d",
+                                          }}
+                                        />
+                                        <div>
+                                          <div className="fw-semibold">
+                                            {getCordaNome(item.corda) ||
+                                              "(sem corda)"}
+                                          </div>
+                                          <small className="text-muted">
+                                            Data: {formatarData(item.data)} •{" "}
+                                            <span
+                                              className={`badge ${
+                                                aprovado
+                                                  ? "bg-success"
+                                                  : rejeitado
+                                                  ? "bg-danger"
+                                                  : "bg-warning text-dark"
+                                              }`}
+                                            >
+                                              {aprovado
+                                                ? "Confirmada"
+                                                : rejeitado
+                                                ? "Reprovada"
+                                                : "Pendente de confirmação"}
+                                            </span>
+                                          </small>
                                         </div>
-                                      </li>
-                                    );
-                                  }
-                                )}
-                              </ul>
-                            </div>
+                                      </div>
+
+                                      <div className="d-flex gap-2">
+                                        <button
+                                          className="btn btn-sm btn-outline-primary"
+                                          onClick={() => {
+                                            setPreviewIsPdf(isPdf);
+                                            setPreviewUrl(fullUrl);
+                                            setShowPreview(true);
+                                          }}
+                                        >
+                                          {isPdf
+                                            ? "📄 Visualizar"
+                                            : "🔍 Visualizar"}
+                                        </button>
+                                        <button
+                                          className="btn btn-sm btn-outline-success"
+                                          onClick={() =>
+                                            handleDownload(fullUrl)
+                                          }
+                                        >
+                                          ⬇️ Download
+                                        </button>
+                                        <button
+                                          className="btn btn-sm btn-outline-success"
+                                          onClick={() =>
+                                            aprovarOuReprovar(
+                                              user.email,
+                                              item,
+                                              "approved"
+                                            )
+                                          }
+                                          disabled={aprovado}
+                                          title="Confirmar certificado"
+                                        >
+                                          ✅ Confirmar
+                                        </button>
+                                        <button
+                                          className="btn btn-sm btn-outline-danger"
+                                          onClick={() =>
+                                            aprovarOuReprovar(
+                                              user.email,
+                                              item,
+                                              "rejected"
+                                            )
+                                          }
+                                          disabled={rejeitado}
+                                          title="Reprovar certificado"
+                                        >
+                                          ✖ Reprovar
+                                        </button>
+                                      </div>
+                                    </li>
+                                  );
+                                })}
+                            </ul>
                           </>
                         ) : (
                           <p className="text-muted mt-3 mb-0">
@@ -466,7 +671,7 @@ const PainelAdmin = () => {
                         )}
                       </Col>
 
-                      {/* ACORDEON INTERNO: Questionário médico */}
+                      {/* ACORDEON: Questionário do aluno */}
                       <Col xs={12} className="mt-3">
                         <div className="border rounded">
                           <button
@@ -478,7 +683,7 @@ const PainelAdmin = () => {
                               }))
                             }
                             aria-expanded={!!questionarioOpen[user.email]}
-                            aria-controls={`qmed-${user.email}`}
+                            aria-controls={`q-aluno-${user.email}`}
                             style={{ cursor: "pointer" }}
                             title="Ver respostas do questionário"
                           >
@@ -490,198 +695,183 @@ const PainelAdmin = () => {
 
                           {questionarioOpen[user.email] && (
                             <div
-                              id={`qmed-${user.email}`}
+                              id={`q-aluno-${user.email}`}
                               className="px-3 pb-3"
                             >
-                              <div className="row g-3 pt-2">
-                                {(() => {
-                                  const qAluno =
-                                    (
-                                      dadosUsuarios[user.email]
-                                        ?.questionarios || {}
-                                    ).aluno || {};
+                              {(() => {
+                                const q =
+                                  (
+                                    dadosUsuarios[user.email]?.questionarios ||
+                                    {}
+                                  ).aluno || {};
+                                return (
+                                  <div className="row g-2 pt-2">
+                                    <div className="col-12">
+                                      <p className="mb-2">
+                                        <strong>Problema de saúde: </strong>
+                                        {b(q.problemaSaude)}
+                                      </p>
+                                    </div>
+                                    <div className="col-12">
+                                      <p className="mb-2">
+                                        <strong>Detalhe:</strong>{" "}
+                                        {q.problemaSaudeDetalhe || "-"}
+                                      </p>
+                                    </div>
 
-                                  const b = (v) =>
-                                    v === true
-                                      ? "Sim"
-                                      : v === false
-                                      ? "Não"
-                                      : "-";
+                                    <div className="col-12">
+                                      <p className="mb-2">
+                                        <strong>Já praticou capoeira?: </strong>
+                                        {b(q.praticouCapoeira)}
+                                      </p>
+                                    </div>
+                                    <div className="col-12">
+                                      <p className="mb-2">
+                                        <strong>Histórico na capoeira: </strong>
+                                        {q.historicoCapoeira || "-"}
+                                      </p>
+                                    </div>
 
-                                  return (
-                                    <>
-                                      <div className="col-12">
-                                        <p className="mb-2">
-                                          <strong>Problema de saúde: </strong>
-                                          {b(qAluno.problemaSaude)}
-                                        </p>
-                                      </div>
-                                      <div className="col-12">
-                                        <p className="mb-2">
-                                          <strong>Detalhe do problema: </strong>
-                                          {qAluno.problemaSaudeDetalhe || "-"}
-                                        </p>
-                                      </div>
+                                    <div className="col-12">
+                                      <p className="mb-2">
+                                        <strong>
+                                          Outro esporte/atividade cultural?{" "}
+                                        </strong>
+                                        {b(q.outroEsporte)}
+                                      </p>
+                                    </div>
+                                    <div className="col-12">
+                                      <p className="mb-2">
+                                        <strong>
+                                          Detalhe do outro esporte:{" "}
+                                        </strong>
+                                        {q.outroEsporteDetalhe || "-"}
+                                      </p>
+                                    </div>
 
-                                      <div className="col-12">
-                                        <p className="mb-2">
-                                          <strong>
-                                            Já praticou capoeira antes:{" "}
-                                          </strong>
-                                          {b(qAluno.praticouCapoeira)}
-                                        </p>
-                                      </div>
-                                      <div className="col-12">
-                                        <p className="mb-2">
-                                          <strong>
-                                            Histórico na capoeira:{" "}
-                                          </strong>
-                                          {qAluno.historicoCapoeira || "-"}
-                                        </p>
-                                      </div>
+                                    <div className="col-12">
+                                      <p className="mb-2">
+                                        <strong>
+                                          Já ficou algum tempo sem treinar
+                                          capoeira? Por quanto tempo? Motivo?:{" "}
+                                        </strong>
+                                        {q.hiatoSemTreinar || "-"}
+                                      </p>
+                                    </div>
 
-                                      <div className="col-12">
-                                        <p className="mb-2">
-                                          <strong>
-                                            Outro esporte/atividade:{" "}
-                                          </strong>
-                                          {b(qAluno.outroEsporte)}
-                                        </p>
-                                      </div>
-                                      <div className="col-12">
-                                        <p className="mb-2">
-                                          <strong>
-                                            Detalhe de outro esporte:{" "}
-                                          </strong>
-                                          {qAluno.outroEsporteDetalhe || "-"}
-                                        </p>
-                                      </div>
+                                    <div className="col-12">
+                                      <p className="mb-2">
+                                        <strong>
+                                          Objetivos com a capoeira:{" "}
+                                        </strong>
+                                        {q.objetivosCapoeira || "-"}
+                                      </p>
+                                    </div>
 
-                                      <div className="col-12">
-                                        <p className="mb-2">
-                                          <strong>
-                                            Já ficou algum tempo sem treinar
-                                            capoeira?{" "}
-                                          </strong>
-                                          {qAluno.hiatoSemTreinar || "-"}
-                                        </p>
-                                      </div>
-
-                                      <div className="col-12">
-                                        <p className="mb-2">
-                                          <strong>
-                                            Objetivos com a capoeira:{" "}
-                                          </strong>
-                                          {qAluno.objetivosCapoeira || "-"}
-                                        </p>
-                                      </div>
-
-                                      <div className="col-12">
-                                        <p className="mb-2">
-                                          <strong>
-                                            Sugestões para o ICMBc:{" "}
-                                          </strong>
-                                          {qAluno.sugestoesPontoDeCultura ||
-                                            "-"}
-                                        </p>
-                                      </div>
-                                    </>
-                                  );
-                                })()}
-                              </div>
+                                    <div className="col-12">
+                                      <p className="mb-0">
+                                        <strong>
+                                          Sugestões para o ICMBC crescer
+                                          positivamente:
+                                        </strong>{" "}
+                                        {q.sugestoesPontoDeCultura || "-"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
                         </div>
                       </Col>
-                    </Row>
 
-                    {/* RODAPÉ: nível + permissão (sempre embaixo) */}
-                    <div className="pt-3 mt-2 border-top">
-                      <div className="d-flex flex-wrap align-items-center gap-3">
-                        <div>
-                          <strong>Nível de Acesso: </strong>
-                          {user.email === mestreEmail ? (
-                            <span className="badge bg-dark ms-2">Mestre</span>
-                          ) : (
+                      {/* Controles de Nível e Permissões */}
+                      <Col xs={12}>
+                        <div className="pt-3 mt-2 border-top d-flex flex-wrap align-items-center gap-3">
+                          <div>
+                            <strong>Nível de Acesso: </strong>
+                            {user.email === mestreEmail ? (
+                              <span className="badge bg-dark ms-2">Mestre</span>
+                            ) : (
+                              <select
+                                className="form-select d-inline w-auto ms-2"
+                                value={nivel}
+                                onChange={(e) =>
+                                  atualizarNivel(user.email, e.target.value)
+                                }
+                              >
+                                {NIVEIS.map((n) => (
+                                  <option key={n} value={n}>
+                                    {n[0].toUpperCase() + n.slice(1)}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+
+                          <div>
+                            <strong>Permissão nos eventos: </strong>
                             <select
                               className="form-select d-inline w-auto ms-2"
-                              value={nivel}
+                              value={permissaoEventos}
                               onChange={(e) =>
-                                atualizarNivel(user.email, e.target.value)
+                                atualizarPermissaoEventos(
+                                  user.email,
+                                  e.target.value
+                                )
+                              }
+                              disabled={!podeEditarPerm}
+                              title={
+                                podeEditarPerm
+                                  ? "Defina se é leitor ou editor dos álbuns"
+                                  : "Disponível apenas para nível 'Graduado' ou acima"
                               }
                             >
-                              <option value="visitante">Visitante</option>
-                              <option value="aluno">Aluno</option>
-                              <option value="graduado">Graduado</option>
-                              <option value="monitor">Monitor</option>
-                              <option value="instrutor">Instrutor</option>
-                              <option value="professor">Professor</option>
-                              <option value="contramestre">Contramestre</option>
+                              <option value="leitor">Leitor</option>
+                              <option value="editor">Editor</option>
                             </select>
-                          )}
-                        </div>
+                            {!podeEditarPerm && (
+                              <small className="text-muted ms-2">
+                                (bloqueado: requer nível ≥ Graduado)
+                              </small>
+                            )}
+                          </div>
 
-                        <div>
-                          <strong>Permissão nos eventos: </strong>
-                          <select
-                            className="form-select d-inline w-auto ms-2"
-                            value={permissaoEventos}
-                            onChange={(e) =>
-                              atualizarPermissaoEventos(
-                                user.email,
-                                e.target.value
-                              )
-                            }
-                            disabled={!podeEditarPerm}
-                            title={
-                              podeEditarPerm
-                                ? "Defina se é leitor ou editor dos álbuns"
-                                : "Disponível apenas para nível 'Graduado' ou acima"
-                            }
-                          >
-                            <option value="leitor">Leitor</option>
-                            <option value="editor">Editor</option>
-                          </select>
-                          {!podeEditarPerm && (
-                            <small className="text-muted ms-2">
-                              (bloqueado: requer nível &ge; Graduado)
-                            </small>
-                          )}
+                          <div>
+                            <strong>Permitir edição do Questionário: </strong>
+                            <select
+                              className="form-select d-inline w-auto ms-2"
+                              value={
+                                dadosUsuarios[user.email]
+                                  ?.podeEditarQuestionario
+                                  ? "true"
+                                  : "false"
+                              }
+                              onChange={(e) =>
+                                atualizarPermissaoQuestionario(
+                                  user.email,
+                                  e.target.value === "true"
+                                )
+                              }
+                              disabled={!podeEditarQuest}
+                              title={
+                                podeEditarQuest
+                                  ? "Controla se o aluno pode reabrir e editar o próprio questionário"
+                                  : "Disponível apenas para nível 'Aluno' ou acima"
+                              }
+                            >
+                              <option value="false">Desativado</option>
+                              <option value="true">Ativado</option>
+                            </select>
+                            {!podeEditarQuest && (
+                              <small className="text-muted ms-2">
+                                (bloqueado: requer nível ≥ Aluno)
+                              </small>
+                            )}
+                          </div>
                         </div>
-
-                        <div>
-                          <strong>Permitir edição do Questionário: </strong>
-                          <select
-                            className="form-select d-inline w-auto ms-2"
-                            value={
-                              dadosUsuarios[user.email]?.podeEditarQuestionario
-                                ? "true"
-                                : "false"
-                            }
-                            onChange={(e) =>
-                              atualizarPermissaoQuestionario(
-                                user.email,
-                                e.target.value === "true"
-                              )
-                            }
-                            disabled={!podeEditarQuest}
-                            title={
-                              podeEditarQuest
-                                ? "Controla se o aluno pode reabrir e editar o próprio questionário"
-                                : "Disponível apenas para nível 'Aluno' ou acima"
-                            }
-                          >
-                            <option value="false">Desativado</option>
-                            <option value="true">Ativado</option>
-                          </select>
-                          {!podeEditarQuest && (
-                            <small className="text-muted ms-2">
-                              (bloqueado: requer nível &ge; Aluno)
-                            </small>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      </Col>
+                    </Row>
                   </>
                 )}
               </div>
@@ -690,7 +880,7 @@ const PainelAdmin = () => {
         );
       })}
 
-      {/* Preview de arquivo */}
+      {/* Modal de preview de arquivo */}
       <Modal
         show={showPreview}
         onHide={() => setShowPreview(false)}
@@ -714,26 +904,12 @@ const PainelAdmin = () => {
               className="img-fluid"
               style={{ maxHeight: "70vh" }}
               onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "/erro-preview.png";
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = fotoPadrao;
               }}
             />
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <button
-            className="btn btn-success"
-            onClick={() => handleDownload(previewUrl)}
-          >
-            ⬇️ Baixar
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowPreview(false)}
-          >
-            Fechar
-          </button>
-        </Modal.Footer>
       </Modal>
 
       {/* Modal do Avatar (2x) */}
@@ -753,13 +929,25 @@ const PainelAdmin = () => {
             className="img-fluid"
             style={{ maxHeight: "80vh" }}
             onError={(e) => {
-              // se 2x/1x/legado falharam, cai para o placeholder
               e.currentTarget.onerror = null;
               e.currentTarget.src = fotoPadrao;
             }}
           />
         </Modal.Body>
       </Modal>
+
+      {/* Modal: Enviar certificados para o aluno selecionado */}
+      {envioModalOpenForEmail && (
+        <ModalArquivosPessoais
+          show={!!envioModalOpenForEmail}
+          onClose={() => setEnvioModalOpenForEmail(null)}
+          onSave={async () => {
+            await listarTimeline(envioModalOpenForEmail);
+            setEnvioModalOpenForEmail(null);
+          }}
+          email={envioModalOpenForEmail}
+        />
+      )}
     </Container>
   );
 };

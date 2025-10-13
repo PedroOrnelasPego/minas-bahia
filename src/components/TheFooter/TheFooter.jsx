@@ -36,7 +36,7 @@ const TheFooter = () => {
             </h2>
             <div className="d-flex gap-3 align-items-center justify-content-center">
               <a
-                href="https://www.instagram.com"
+                href="https://www.instagram.com/capoeira_minas_bahia/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-light fs-4"
@@ -45,13 +45,22 @@ const TheFooter = () => {
                 <i className="fab fa-instagram" aria-hidden="true" />
               </a>
               <a
-                href="https://wa.me/seunumerodetelefone"
+                href="https://wa.me/5531999371235"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-light fs-4"
                 aria-label="WhatsApp do ICMBC (abre em nova aba)"
               >
                 <i className="fab fa-whatsapp" aria-hidden="true" />
+              </a>
+              <a
+                href="https://www.youtube.com/@icmbc_mg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-light fs-4"
+                aria-label="Canal do YouTube do ICMBC (abre em nova aba)"
+              >
+                <i className="fab fa-youtube" aria-hidden="true" />
               </a>
             </div>
           </Col>

@@ -1,8 +1,8 @@
 // src/auth/useAuthStatus.js
 import { useMsal } from "@azure/msal-react";
 
-const LOGIN_REDIRECT = `${window.location.origin}/#/area-graduado`;
-const LOGOUT_REDIRECT = `${window.location.origin}/#/area-graduado/login`;
+const LOGIN_REDIRECT = `${window.location.origin}/#/acesso-interno`;
+const LOGOUT_REDIRECT = `${window.location.origin}/#/acesso-interno/login`;
 
 export const useAuthStatus = () => {
   const { accounts, instance } = useMsal();

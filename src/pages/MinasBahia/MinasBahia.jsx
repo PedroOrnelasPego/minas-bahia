@@ -3,8 +3,7 @@ import logo from "../../assets/logo/teste-black.png";
 import selo from "../../assets/logo/logoMbc.png";
 import alunoInfantil from "../../assets/graduacao/aluno-infantil.png";
 import alunoAdulto from "../../assets/graduacao/aluno-adulto.png";
-import Album from "../../components/Album/Album";
-import data from "./data"; // Importando o array de fotos local
+
 
 const MinasBahia = () => {
   return (

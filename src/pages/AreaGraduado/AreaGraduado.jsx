@@ -7,8 +7,8 @@ import {
   buscarPerfil,
   atualizarPerfil as apiAtualizarPerfil,
 } from "../../services/backend";
+import { listarTimelineCertificados } from "../../services/certificados";
 import CadastroInicial from "../../components/CadastroInicial/CadastroInicial";
-import Certificados from "../../components/Certificados/Certificados";
 import { getCordaNome } from "../../constants/nomesCordas";
 import calcularIdade from "../../utils/calcularIdade";
 import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
@@ -31,9 +31,13 @@ import {
   signOutUnified,
 } from "../../auth/session";
 import Loading from "../../components/Loading/Loading";
+import ModalArquivosPessoais from "../../components/Modals/ModalArquivosPessoais";
+import "./AreaGraduado.scss";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const DEV_STRICT_DEBOUNCE_MS = 30;
+const BLOB_BASE =
+  "https://certificadoscapoeira.blob.core.windows.net/certificados";
 
 const NIVEL_LABELS = {
   visitante: "Visitante",
@@ -123,6 +127,29 @@ const AreaGraduado = () => {
 
   const [showQuestionarioAluno, setShowQuestionarioAluno] = useState(false);
 
+  // Modal de envio (corda + data + arquivo)
+  const [showEnvioCerts, setShowEnvioCerts] = useState(false);
+
+  // Timeline persistida (vinda do back)
+  const [certTimeline, setCertTimeline] = useState([]);
+
+  // ===== Laudos (apenas visualização) =====
+  const [laudos, setLaudos] = useState([]);
+  const [laudoPreviewOpen, setLaudoPreviewOpen] = useState(false);
+  const [laudoPreviewUrl, setLaudoPreviewUrl] = useState("");
+  const [laudoPreviewIsPdf, setLaudoPreviewIsPdf] = useState(false);
+
+  const openLaudoPreview = (item) => {
+    if (!item?.nome || !userData?.email) return;
+    const isPdf = item.nome.toLowerCase().endsWith(".pdf");
+    const url = `${BLOB_BASE}/${encodeURIComponent(
+      userData.email
+    )}/laudos/${encodeURIComponent(item.nome)}`;
+    setLaudoPreviewIsPdf(isPdf);
+    setLaudoPreviewUrl(url);
+    setLaudoPreviewOpen(true);
+  };
+
   const [feedback, setFeedback] = useState({
     show: false,
     variant: "danger",
@@ -135,7 +162,7 @@ const AreaGraduado = () => {
   const hideFeedback = () =>
     setFeedback((p) => ({ ...p, show: false, message: "" }));
 
-  // NEW: acordeon do questionário na Área Graduado
+  // acordeon do questionário na Área Graduado
   const [questionarioOpen, setQuestionarioOpen] = useState(false);
 
   const abortRef = useRef(null);
@@ -150,6 +177,66 @@ const AreaGraduado = () => {
         mySeq === reqSeq.current ? resolve(false) : resolve(false);
       img.src = url;
     });
+
+  // ====== Preview/Excluir da timeline ======
+  const [tlPreviewOpen, setTlPreviewOpen] = useState(false);
+  const [tlPreviewUrl, setTlPreviewUrl] = useState("");
+  const [tlPreviewIsPdf, setTlPreviewIsPdf] = useState(false);
+
+  // monta caminho relativo esperado pelo backend: certificados/YYYY-MM-DD/arquivo.ext
+  const buildBlobPath = (item) => `certificados/${item.data}/${item.fileName}`;
+
+  // PREVIEW: usa URL pública direta do Blob
+  const openTimelinePreview = (item) => {
+    const isPdf = (item.fileName || "").toLowerCase().endsWith(".pdf");
+    const url = `${BLOB_BASE}/${encodeURIComponent(
+      userData.email
+    )}/certificados/${encodeURIComponent(item.data)}/${encodeURIComponent(
+      item.fileName
+    )}`;
+    setTlPreviewIsPdf(isPdf);
+    setTlPreviewUrl(url);
+    setTlPreviewOpen(true);
+  };
+
+  // DELETE
+  const deleteTimelineItem = async (item) => {
+    // trava: não excluir certificados já verificados pelo Mestre
+    if (item?.status === "approved") {
+      showError(
+        "Este certificado já foi confirmado pelo Mestre e não pode ser excluído."
+      );
+      return;
+    }
+
+    try {
+      const blobPath = buildBlobPath(item);
+      await axios.delete(
+        `${API_URL}/upload?email=${encodeURIComponent(
+          userData.email
+        )}&arquivo=${encodeURIComponent(blobPath)}`
+      );
+
+      setCertTimeline((prev) => prev.filter((x) => x.id !== item.id));
+      showSuccess("Arquivo removido.");
+    } catch (e) {
+      console.error(e);
+      showError("Não foi possível remover este arquivo.");
+    }
+  };
+
+  // ===== util: carregar laudos =====
+  const carregarLaudos = async (email) => {
+    try {
+      const { data } = await axios.get(`${API_URL}/upload/laudos`, {
+        params: { email },
+      });
+      setLaudos(Array.isArray(data?.arquivos) ? data.arquivos : []);
+    } catch (e) {
+      console.error("Erro ao listar laudos:", e?.message || e);
+      setLaudos([]);
+    }
+  };
 
   // ===== Boot / carregamento principal =====
   useEffect(() => {
@@ -182,7 +269,6 @@ const AreaGraduado = () => {
             if (p) {
               setPerfil(p);
               setPerfilCache(email, p);
-              // 👇 abre cadastro inicial se perfil EXISTIR mas estiver incompleto
               setShowCadastroInicial(isPerfilIncompleto(p));
             } else {
               setShowCadastroInicial(true);
@@ -194,7 +280,7 @@ const AreaGraduado = () => {
         })();
 
         const fotoPromise = (async () => {
-          const base = `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}`;
+          const base = `${BLOB_BASE}/${email}`;
           const url1x = `${base}/foto-perfil@1x.jpg?${Date.now()}`;
           const urlLegacy = `${base}/foto-perfil.jpg?${Date.now()}`;
 
@@ -215,7 +301,34 @@ const AreaGraduado = () => {
           setFotoCarregando(false);
         })();
 
-        await Promise.allSettled([perfilPromise, fotoPromise]);
+        const timelinePromise = (async () => {
+          try {
+            const items = await listarTimelineCertificados(email, {
+              signal: controller.signal,
+            });
+            if (mySeq !== reqSeq.current) return;
+            setCertTimeline(items || []);
+          } catch (e) {
+            if (mySeq !== reqSeq.current) return;
+            console.error("Falha ao carregar timeline:", e?.message || e);
+            setCertTimeline([]);
+          }
+        })();
+
+        const laudosPromise = (async () => {
+          try {
+            await carregarLaudos(email);
+          } catch {
+            /* já tratado na função */
+          }
+        })();
+
+        await Promise.allSettled([
+          perfilPromise,
+          fotoPromise,
+          timelinePromise,
+          laudosPromise,
+        ]);
       } finally {
         if (mySeq === reqSeq.current) setLoading(false);
       }
@@ -286,9 +399,7 @@ const AreaGraduado = () => {
       setAvatar2x(null);
       setTemFotoRemota(true);
       setFotoPreview(
-        `https://certificadoscapoeira.blob.core.windows.net/certificados/${
-          userData.email
-        }/foto-perfil@1x.jpg?${Date.now()}`
+        `${BLOB_BASE}/${userData.email}/foto-perfil@1x.jpg?${Date.now()}`
       );
     } catch (e) {
       console.error(e);
@@ -435,8 +546,14 @@ const AreaGraduado = () => {
   const nivelDisplay = getNivelLabel(perfil.nivelAcesso) || "-";
   const podeEditarQuestionario = !!perfil?.podeEditarQuestionario;
 
-  // helper local para exibir booleanos do questionário
   const b = (v) => (v === true ? "Sim" : v === false ? "Não" : "-");
+
+  const sortedTimeline = [...certTimeline].sort((a, b) =>
+    (b.data || "").localeCompare(a.data || "")
+  );
+
+  // 🔒 trava de envio/exclusão após verificação da corda
+  const envioBloqueado = perfil?.cordaVerificada === true;
 
   return (
     <Container fluid className="min-h-screen p-4">
@@ -450,6 +567,7 @@ const AreaGraduado = () => {
           {feedback.message}
         </Alert>
       )}
+
       <Row className="mb-4">
         <Col className="bg-light p-3">
           <h4>
@@ -458,9 +576,11 @@ const AreaGraduado = () => {
           </h4>
         </Col>
       </Row>
+
       <Row>
         <Col md={2} className="border p-3 d-flex flex-column gap-2">
           <button
+            type="button"
             className="btn btn-primary"
             onClick={() => {
               hideFeedback();
@@ -472,6 +592,7 @@ const AreaGraduado = () => {
           </button>
           <RequireAccess nivelMinimo="aluno">
             <button
+              type="button"
               className="btn btn-secondary"
               disabled={!canAccess(1) || !podeEditarQuestionario}
               title={
@@ -486,7 +607,11 @@ const AreaGraduado = () => {
               Editar Questionário
             </button>
           </RequireAccess>
-          <button onClick={handleSignOut} className="btn btn-danger">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="btn btn-danger"
+          >
             Sair
           </button>
         </Col>
@@ -550,6 +675,7 @@ const AreaGraduado = () => {
 
               {avatar1x && (
                 <button
+                  type="button"
                   className="btn btn-success btn-sm mb-2"
                   onClick={salvarFoto}
                 >
@@ -559,6 +685,7 @@ const AreaGraduado = () => {
 
               {temFotoRemota && !avatar1x && (
                 <button
+                  type="button"
                   className="btn btn-outline-danger btn-sm"
                   onClick={handleRemoverFoto}
                 >
@@ -577,16 +704,30 @@ const AreaGraduado = () => {
                 </p>
                 <p>
                   <strong>Corda: </strong>
-                  {getCordaNome(perfil.corda) || "-"}
+                  {getCordaNome(perfil.corda) || "-"}{" "}
+                  {perfil.cordaVerificada ? (
+                    <span className="badge bg-success ms-2">Confirmada</span>
+                  ) : (
+                    <span className="badge bg-warning text-dark ms-2">
+                      Não verificada
+                    </span>
+                  )}
                 </p>
                 <p>
                   <strong>Quando iniciou no grupo: </strong>
-                  {perfil.inicioNoGrupo
-                    ? `${formatarData(perfil.inicioNoGrupo)} | ${calcularIdade(
-                        perfil.inicioNoGrupo
-                      )} anos`
-                    : "-"}
+                  {perfil.inicioNoGrupo ? (
+                    <>
+                      {formatarData(perfil.inicioNoGrupo)} |{" "}
+                      {(() => {
+                        const anos = calcularIdade(perfil.inicioNoGrupo);
+                        return anos < 1 ? "menos de 1 ano" : `${anos} anos`;
+                      })()}
+                    </>
+                  ) : (
+                    "-"
+                  )}
                 </p>
+
                 <p>
                   <strong>Gênero:</strong> {perfil.genero || "-"}
                 </p>
@@ -627,6 +768,7 @@ const AreaGraduado = () => {
                 <RequireAccess nivelMinimo="aluno">
                   <div className="border rounded mt-3">
                     <button
+                      type="button"
                       className="w-100 text-start bg-white border-0 px-3 py-2 d-flex justify-content-between align-items-center"
                       onClick={() => setQuestionarioOpen((v) => !v)}
                       aria-expanded={questionarioOpen}
@@ -730,20 +872,173 @@ const AreaGraduado = () => {
                   </div>
                 </RequireAccess>
                 {/* ===== fim acordeon ===== */}
+
+                {/* ===== Visualização de Laudo (apenas se marcou "Sim" e houver laudo) ===== */}
+                {(() => {
+                  const q = (perfil.questionarios || {}).aluno || {};
+                  const temProblemaSaude = q.problemaSaude === true;
+                  const temLaudos = laudos.length > 0;
+                  if (!temProblemaSaude || !temLaudos) return null;
+
+                  // Mostra o primeiro (mais recente pelo nome com timestamp); você pode alterar o critério se quiser
+                  const primeiro = laudos[0];
+                  const extras =
+                    laudos.length > 1
+                      ? ` (+${laudos.length - 1} outro${
+                          laudos.length - 1 > 1 ? "s" : ""
+                        })`
+                      : "";
+
+                  return (
+                    <div className="border rounded p-2 mt-3 d-flex align-items-center justify-content-between">
+                      <div>
+                        <strong>Laudo médico</strong>
+                        <small className="text-muted ms-2">{extras}</small>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={() => openLaudoPreview(primeiro)}
+                        title="Visualizar laudo"
+                      >
+                        Visualizar laudo
+                      </button>
+                    </div>
+                  );
+                })()}
+                {/* ===== fim visualização de laudo ===== */}
               </div>
             </Col>
           </Row>
         </Col>
       </Row>
+
+      {/* ===== Arquivos Pessoais + Timeline ===== */}
       {canAccess(1) && (
         <Row className="mt-4">
-          <Col md={12} className="border p-3">
-            <div className="grid-list-3">
-              <Certificados email={userData.email} />
+          <Col md={12} className="border p-4">
+            <div className="text-center">
+              <h5 className="mb-2">Arquivos Pessoais (Certificados)</h5>
+              <p className="text-muted mb-3">
+                Para <strong>verificar sua corda</strong>, envie os{" "}
+                <strong>certificados</strong> correspondentes e informe a{" "}
+                <strong>data</strong> que recebeu.
+              </p>
+              <button
+                type="button"
+                className="btn btn-outline-primary"
+                onClick={() => setShowEnvioCerts(true)}
+                title="Enviar certificados por corda"
+                disabled={envioBloqueado}
+              >
+                📎 Enviar Arquivo
+              </button>
+              {envioBloqueado && (
+                <p className="small text-muted mt-2">
+                  Envio desativado: sua corda foi confirmada pelo Mestre.
+                </p>
+              )}
+            </div>
+
+            {/* Timeline */}
+            <div className="mt-4">
+              <h6 className="mb-3">Histórico de graduações (timeline)</h6>
+              {sortedTimeline.length === 0 ? (
+                <p className="text-muted mb-0">
+                  Nenhum envio ainda. Após enviar, suas graduações aparecerão
+                  aqui para análise e confirmação.
+                </p>
+              ) : (
+                <ul className="list-unstyled">
+                  {sortedTimeline.map((item) => {
+                    const label = getCordaNome(item.corda) || "(sem corda)";
+                    const dataFmt = item.data ? formatarData(item.data) : "-";
+                    const isPdf = (item.fileName || "")
+                      .toLowerCase()
+                      .endsWith(".pdf");
+
+                    const aprovado = item.status === "approved";
+                    const rejeitado = item.status === "rejected";
+                    const pendente = !aprovado && !rejeitado;
+                    const bloqueadoPorAprovacao = aprovado;
+
+                    return (
+                      <li
+                        key={item.id}
+                        className="tl-item d-flex align-items-center justify-content-between border rounded px-3 py-2 mb-2"
+                      >
+                        <div className="tl-left d-flex align-items-center gap-3">
+                          <div
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              background: aprovado
+                                ? "#198754"
+                                : rejeitado
+                                ? "#dc3545"
+                                : "#6c757d",
+                            }}
+                          />
+                          <div>
+                            <div className="fw-semibold">{label}</div>
+                            <small className="text-muted">
+                              Data: {dataFmt} •{" "}
+                              <span
+                                className={`tl-badge badge ${
+                                  aprovado
+                                    ? "bg-success"
+                                    : rejeitado
+                                    ? "bg-danger"
+                                    : "bg-warning text-dark"
+                                }`}
+                              >
+                                {aprovado
+                                  ? "Confirmada"
+                                  : rejeitado
+                                  ? "Reprovada"
+                                  : "Pendente de confirmação"}
+                              </span>
+                            </small>
+                          </div>
+                        </div>
+
+                        <div className="tl-actions d-flex gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => openTimelinePreview(item)}
+                            title="Visualizar certificado"
+                          >
+                            {isPdf ? "📄 Abrir PDF" : "🔍 Visualizar"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => deleteTimelineItem(item)}
+                            disabled={envioBloqueado || bloqueadoPorAprovacao}
+                            title={
+                              envioBloqueado
+                                ? "Envio/exclusão desativados: sua corda já foi confirmada."
+                                : bloqueadoPorAprovacao
+                                ? "Este certificado foi confirmado pelo Mestre e não pode ser excluído."
+                                : "Excluir este arquivo"
+                            }
+                          >
+                            🗑 Excluir
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </Col>
         </Row>
       )}
+
+      {/* áreas de arquivos públicas por nível */}
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
@@ -755,66 +1050,57 @@ const AreaGraduado = () => {
           </Col>
         </Row>
       )}
-      {/* Arquivos para Graduado */}
+
       {canAccess(2) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Graduado</h5>
             <p>Área para documentos de download público</p>
-            <div className="grid-list-3">
-              <FileSection pasta="graduado" canUpload={isMestre} />
-            </div>
+            <FileSection pasta="graduado" canUpload={isMestre} />
           </Col>
         </Row>
       )}
-      {/* Arquivos para Monitores */}
+
       {canAccess(3) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Monitores</h5>
             <p>Área para documentos de download público</p>
-            <div className="grid-list-3">
-              <FileSection pasta="monitor" canUpload={isMestre} />
-            </div>
+            <FileSection pasta="monitor" canUpload={isMestre} />
           </Col>
         </Row>
       )}
-      {/* Arquivos para Instrutores */}
+
       {canAccess(4) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Instrutores</h5>
             <p>Área para documentos de download público</p>
-            <div className="grid-list-3">
-              <FileSection pasta="instrutor" canUpload={isMestre} />
-            </div>
+            <FileSection pasta="instrutor" canUpload={isMestre} />
           </Col>
         </Row>
       )}
-      {/* Arquivos para Professores */}
+
       {canAccess(5) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Professores</h5>
             <p>Área para documentos de download público</p>
-            <div className="grid-list-3">
-              <FileSection pasta="professor" canUpload={isMestre} />
-            </div>
+            <FileSection pasta="professor" canUpload={isMestre} />
           </Col>
         </Row>
       )}
-      {/* Arquivos para Contramestre */}
+
       {canAccess(6) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
             <h5>Arquivos para Contramestre</h5>
             <p>Área para documentos de download público</p>
-            <div className="grid-list-3">
-              <FileSection pasta="contramestre" canUpload={isMestre} />
-            </div>
+            <FileSection pasta="contramestre" canUpload={isMestre} />
           </Col>
         </Row>
       )}
+
       <ModalEditarPerfil
         show={showEditModal}
         onHide={() => {
@@ -834,6 +1120,7 @@ const AreaGraduado = () => {
         uf={uf}
         buscandoCep={buscandoCep}
       />
+
       {showCadastroInicial && (
         <CadastroInicial
           show={showCadastroInicial}
@@ -854,6 +1141,7 @@ const AreaGraduado = () => {
           }}
         />
       )}
+
       {cropModal && (
         <CropImageModal
           imageSrc={rawImage}
@@ -861,6 +1149,7 @@ const AreaGraduado = () => {
           onClose={() => setCropModal(false)}
         />
       )}
+
       <Modal
         show={showAvatarModal}
         onHide={() => setShowAvatarModal(false)}
@@ -889,6 +1178,7 @@ const AreaGraduado = () => {
           />
         </Modal.Body>
       </Modal>
+
       {showQuestionarioAluno && (
         <QuestionarioAluno
           show={showQuestionarioAluno}
@@ -901,6 +1191,76 @@ const AreaGraduado = () => {
           }
         />
       )}
+
+      {/* Modal: Envio de certificados por corda  data */}
+      <ModalArquivosPessoais
+        show={showEnvioCerts}
+        onClose={() => setShowEnvioCerts(false)}
+        onSave={() => {
+          listarTimelineCertificados(userData.email)
+            .then((items) => setCertTimeline(items || []))
+            .catch(() => {});
+        }}
+        email={userData.email}
+      />
+
+      {/* Modal de preview da timeline */}
+      <Modal
+        show={tlPreviewOpen}
+        onHide={() => setTlPreviewOpen(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Visualizar arquivo</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          {tlPreviewIsPdf ? (
+            <iframe
+              src={tlPreviewUrl}
+              style={{ width: "100%", height: "70vh", border: "none" }}
+              title="PDF Preview"
+            />
+          ) : (
+            <img
+              src={tlPreviewUrl}
+              alt="Preview"
+              className="img-fluid"
+              style={{ maxHeight: "70vh" }}
+              loading="lazy"
+            />
+          )}
+        </Modal.Body>
+      </Modal>
+
+      {/* Modal de preview do laudo */}
+      <Modal
+        show={laudoPreviewOpen}
+        onHide={() => setLaudoPreviewOpen(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Visualizar laudo</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          {laudoPreviewIsPdf ? (
+            <iframe
+              src={laudoPreviewUrl}
+              style={{ width: "100%", height: "70vh", border: "none" }}
+              title="PDF Preview"
+            />
+          ) : (
+            <img
+              src={laudoPreviewUrl}
+              alt="Preview do laudo"
+              className="img-fluid"
+              style={{ maxHeight: "70vh" }}
+              loading="lazy"
+            />
+          )}
+        </Modal.Body>
+      </Modal>
     </Container>
   );
 };

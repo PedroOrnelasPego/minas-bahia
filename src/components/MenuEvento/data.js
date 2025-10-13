@@ -1,7 +1,7 @@
-import mestreNenel from "../../assets/trajetorias/mestreNenel.jpg";
+import mestreNenel from "../../assets/eventos/uai-25.jpg";
 
 const eventsData = [
-  { title: "Mestre Nenel", img: mestreNenel, date: "23/04/2025" },
+  { title: "UAI! 2025 - Minas Bahia", img: mestreNenel, date: "Do dia 14 à 18 de outubro" },
 ];
 
 export default eventsData;

@@ -305,6 +305,13 @@ const PainelAdmin = () => {
     slugs: listarCordasPorGrupo(g.key),
   }));
 
+  function formatarTempoDeGrupo(data) {
+    const anos = calcularIdade(data); // inteiro
+    if (anos < 1) return "menos de 1 ano";
+    if (anos === 1) return "1 ano";
+    return `${anos} anos`;
+  }
+
   // helper do questionário (booleans)
   const b = (v) => (v === true ? "Sim" : v === false ? "Não" : "-");
 

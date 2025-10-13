@@ -32,7 +32,7 @@ const Mestre = () => {
         </p>
       </div>
       <div className="flex-container-carteirinha flex justify-center items-center gap-2.5">
-        <p >
+        <p>
           No final de 2001, o Mestre Costela resolve abdicar de tudo e
           dedicar-se, de forma mais efetiva, à capoeira. Fundando no início de
           2002 o Instituto Cultural Minas Bahia de Capoeira – ICMBC, que no
@@ -48,12 +48,13 @@ const Mestre = () => {
       <div className="flex-container-mestre flex justify-center items-center gap-2.5">
         <img src={mestre} alt="" />
         <p>
-          Mestre Alanson Costela é Mestre em Educação pela PUC-Minas,
+          Mestre Alanson Costela é Mestre em Educação pela PUC Minas,
           Especialista em Maçonologia: História e Filosofia pela UNINTER,
-          Bacharel e Licenciado em História pelo UNI – BH, Especialista em
-          Inteligência Artificial na Pratica e Administração de Pequenas e
-          Médias Empresas pela Universidade Metropolitana de São Paulo.
-          Acupunturista formado pela Escola Sistêmica de Terapias Humanas ESATH.
+          Bacharel e Licenciado em História pelo UNI-BH, e possui
+          especializações em Inteligência Artificial na Prática, Semiótica e
+          Análise do Discurso, além de Administração de Pequenas e Médias
+          Empresas, pela Universidade Metropolitana de São Paulo. Acupunturista
+          formado pela Escola Sistêmica de Terapias Humanas ESATH.
           Ex-conselheiro de Política Cultural do Estado de Minas Gerias -
           CONSEC-MG como representante da cadeira de Culturas Afro-brasileiras,
           presidente-fundador do Instituto Cultural Minas Bahia de Capoeira -
@@ -64,9 +65,7 @@ const Mestre = () => {
           Tendo experiência na área da Educação, com ênfase em Métodos e
           Técnicas de Ensino, Educação Patrimonial, Jogos e Brincadeiras,
           Cultura africana e afro-brasileira, religiões de matrizes africanas,
-          História da China e Medicina Tradicional Chinesa – MTC. Além de
-          realizar atendimentos de Acupuntura e técnicas afins em duas Clínicas
-          Médicas em BH.
+          História da China e Medicina Tradicional Chinesa – MTC.
         </p>
       </div>
     </Container>

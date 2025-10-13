@@ -85,6 +85,13 @@ function isPerfilIncompleto(p) {
   return false;
 }
 
+function formatarTempoDeGrupo(data) {
+  const anos = calcularIdade(data); // inteiro
+  if (anos < 1) return "menos de 1 ano";
+  if (anos === 1) return "1 ano";
+  return `${anos} anos`;
+}
+
 const AreaGraduado = () => {
   const { instance } = useMsal();
 
@@ -715,17 +722,11 @@ const AreaGraduado = () => {
                 </p>
                 <p>
                   <strong>Quando iniciou no grupo: </strong>
-                  {perfil.inicioNoGrupo ? (
-                    <>
-                      {formatarData(perfil.inicioNoGrupo)} |{" "}
-                      {(() => {
-                        const anos = calcularIdade(perfil.inicioNoGrupo);
-                        return anos < 1 ? "menos de 1 ano" : `${anos} anos`;
-                      })()}
-                    </>
-                  ) : (
-                    "-"
-                  )}
+                  {perfil.inicioNoGrupo
+                    ? `${formatarData(
+                        perfil.inicioNoGrupo
+                      )} | ${formatarTempoDeGrupo(perfil.inicioNoGrupo)}`
+                    : "-"}
                 </p>
 
                 <p>

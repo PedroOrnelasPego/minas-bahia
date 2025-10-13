@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://zealous-bay-00b08311e.6.azurestaticapps.net/sitemap.xml
+Sitemap: https://www.icmbc.com.br//sitemap.xml

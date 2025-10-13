@@ -715,12 +715,19 @@ const AreaGraduado = () => {
                 </p>
                 <p>
                   <strong>Quando iniciou no grupo: </strong>
-                  {perfil.inicioNoGrupo
-                    ? `${formatarData(perfil.inicioNoGrupo)} | ${calcularIdade(
-                        perfil.inicioNoGrupo
-                      )} anos`
-                    : "-"}
+                  {perfil.inicioNoGrupo ? (
+                    <>
+                      {formatarData(perfil.inicioNoGrupo)} |{" "}
+                      {(() => {
+                        const anos = calcularIdade(perfil.inicioNoGrupo);
+                        return anos < 1 ? "menos de 1 ano" : `${anos} anos`;
+                      })()}
+                    </>
+                  ) : (
+                    "-"
+                  )}
                 </p>
+
                 <p>
                   <strong>Gênero:</strong> {perfil.genero || "-"}
                 </p>

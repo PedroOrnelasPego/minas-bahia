@@ -191,9 +191,8 @@ export default function ModalArquivosPessoais({
       <Modal.Body>
         <p className="text-muted mb-3">
           Selecione a <strong>corda</strong>, informe a{" "}
-          <strong>data (ou ano)</strong> que recebeu e anexe o{" "}
-          <strong>certificado</strong>. Cada envio será salvo na pasta da data (
-          <code>YYYY-MM-DD</code>) e o arquivo manterá o <em>nome original</em>.
+          <strong>data</strong> que recebeu e anexe o{" "}
+          <strong>certificado</strong>.
         </p>
 
         {!email && (
@@ -320,7 +319,7 @@ export default function ModalArquivosPessoais({
           })}
         </div>
 
-        <div className="d-flex justify-content-between align-items-center mt-3">
+        <div className="d-flex justify-content-between align-items-center mt-3 flex-col">
           <Button variant="outline-primary" onClick={addRow}>
             + Adicionar outra
           </Button>

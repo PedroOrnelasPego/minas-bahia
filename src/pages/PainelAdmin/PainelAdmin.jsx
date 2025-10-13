@@ -473,14 +473,23 @@ const PainelAdmin = () => {
 
                         <p className="mt-2">
                           <strong>Quando iniciou no grupo: </strong>
-                          {perfilSel.inicioNoGrupo
-                            ? `${formatarData(
-                                perfilSel.inicioNoGrupo
-                              )} | ${calcularIdade(
-                                perfilSel.inicioNoGrupo
-                              )} anos`
-                            : "-"}
+                          {perfilSel.inicioNoGrupo ? (
+                            <>
+                              {formatarData(perfilSel.inicioNoGrupo)} |{" "}
+                              {(() => {
+                                const anos = calcularIdade(
+                                  perfilSel.inicioNoGrupo
+                                );
+                                return anos < 1
+                                  ? "menos de 1 ano"
+                                  : `${anos} anos`;
+                              })()}
+                            </>
+                          ) : (
+                            "-"
+                          )}
                         </p>
+
                         <p>
                           <strong>Gênero: </strong>
                           {perfilSel?.genero || "-"}

@@ -20,7 +20,7 @@ async function fetchJson(
   };
 
   // Se usar cookies HttpOnly para sessão no backend, descomente:
-  // opts.credentials = "include";
+  opts.credentials = "include";
 
   try {
     const res = await fetch(url, { ...opts, headers, signal: ac.signal });

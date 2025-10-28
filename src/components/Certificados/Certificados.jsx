@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Button, Form, Modal, Alert, Spinner } from "react-bootstrap";
-import axios from "axios";
+import http from "../../services/http";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -86,7 +86,7 @@ const Certificados = ({ email }) => {
   const listar = useCallback(async () => {
     if (!email) return;
     try {
-      const res = await axios.get(
+      const res = await http.get(
         `${API_URL}/upload?email=${encodeURIComponent(email)}`
       );
       const lista = Array.isArray(res.data?.arquivos) ? res.data.arquivos : [];
@@ -136,7 +136,7 @@ const Certificados = ({ email }) => {
 
     setUploading(true);
     try {
-      await axios.post(
+      await http.post(
         `${API_URL}/upload?email=${encodeURIComponent(
           email
         )}&name=${encodeURIComponent(finalName)}`,
@@ -154,7 +154,7 @@ const Certificados = ({ email }) => {
   const remover = useCallback(
     async (nomeArquivo) => {
       try {
-        await axios.delete(
+        await http.delete(
           `${API_URL}/upload?email=${encodeURIComponent(
             email
           )}&arquivo=${encodeURIComponent(nomeArquivo)}`

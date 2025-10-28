@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Container, Row, Col, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import http from "../../services/http";
 
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import Loading from "../../components/Loading/Loading";
@@ -85,7 +85,7 @@ const PainelAdmin = () => {
 
   const atualizarNivel = async (email, novoNivel) => {
     try {
-      await axios.put(`${API_URL}/perfil/${email}`, { nivelAcesso: novoNivel });
+      await http.put(`${API_URL}/perfil/${email}`, { nivelAcesso: novoNivel });
 
       // atualiza local
       setDadosUsuarios((prev) => ({
@@ -123,7 +123,7 @@ const PainelAdmin = () => {
   const atualizarPermissaoEventos = async (email, permissao, opts = {}) => {
     const { silent = false } = opts;
     try {
-      await axios.put(`${API_URL}/perfil/${email}`, {
+      await http.put(`${API_URL}/perfil/${email}`, {
         permissaoEventos: permissao,
       });
       setDadosUsuarios((prev) => ({
@@ -143,7 +143,7 @@ const PainelAdmin = () => {
   ) => {
     const { silent = false } = opts;
     try {
-      await axios.put(`${API_URL}/perfil/${email}`, {
+      await http.put(`${API_URL}/perfil/${email}`, {
         podeEditarQuestionario: !!habilitado,
       });
       setDadosUsuarios((prev) => ({
@@ -159,7 +159,7 @@ const PainelAdmin = () => {
   // alterar a corda pelo select
   const atualizarCordaPerfil = async (email, novaCorda) => {
     try {
-      await axios.put(`${API_URL}/perfil/${email}`, {
+      await http.put(`${API_URL}/perfil/${email}`, {
         corda: novaCorda,
         // ao alterar manualmente, mantém o estado de verificação atual
       });
@@ -176,7 +176,7 @@ const PainelAdmin = () => {
   // confirmar OU revogar confirmação da corda (toggle)
   const toggleVerificacaoCorda = async (email, novoValor) => {
     try {
-      await axios.put(`${API_URL}/perfil/${email}`, {
+      await http.put(`${API_URL}/perfil/${email}`, {
         cordaVerificada: !!novoValor,
       });
       setDadosUsuarios((prev) => ({
@@ -202,7 +202,7 @@ const PainelAdmin = () => {
     const fetchUsuarios = async () => {
       try {
         setLoadingUsuarios(true);
-        const res = await axios.get(`${API_URL}/perfil`);
+        const res = await http.get(`${API_URL}/perfil`);
         setUsuarios(res.data || []);
       } catch {
         alert("Erro ao buscar usuários.");
@@ -223,7 +223,7 @@ const PainelAdmin = () => {
     if (!dadosUsuarios[email]) {
       try {
         setCarregando(true);
-        const res = await axios.get(`${API_URL}/perfil/${email}`);
+        const res = await http.get(`${API_URL}/perfil/${email}`);
         setDadosUsuarios((prev) => ({ ...prev, [email]: res.data }));
       } catch {
         alert("Erro ao buscar dados do usuário.");
@@ -238,7 +238,7 @@ const PainelAdmin = () => {
   const listarTimeline = async (email) => {
     try {
       setTlLoading(email);
-      const res = await axios.get(`${API_URL}/upload/timeline`, {
+      const res = await http.get(`${API_URL}/upload/timeline`, {
         params: { email },
       });
       setTimelineUsuarios((prev) => ({
@@ -256,7 +256,7 @@ const PainelAdmin = () => {
 
   const aprovarOuReprovar = async (email, item, status) => {
     try {
-      await axios.put(`${API_URL}/upload/timeline`, {
+      await http.put(`${API_URL}/upload/timeline`, {
         email,
         arquivo: `certificados/${item.data}/${item.fileName}`,
         status, // "approved" | "rejected"

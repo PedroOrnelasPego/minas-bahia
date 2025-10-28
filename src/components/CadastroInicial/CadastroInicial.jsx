@@ -14,7 +14,7 @@ import { maskPhoneBR } from "../../utils/phone";
 import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { validateRequiredFields } from "../../utils/validate";
-import axios from "axios";
+import http from "../../services/http";
 import { maskCPF, isValidCPF, onlyDigits } from "../../utils/cpf";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -198,7 +198,7 @@ const CadastroInicial = ({ show, onSave }) => {
     pendingCpfCheck.current = controller;
 
     try {
-      const { data } = await axios.get(`${API_URL}/perfil/__check/exists-cpf`, {
+      const { data } = await http.get(`${API_URL}/perfil/__check/exists-cpf`, {
         params: { cpf: raw },
         signal: controller.signal,
       });

@@ -1,7 +1,7 @@
 // src/components/QuestionarioAluno/QuestionarioAluno.jsx
 import { useEffect, useState } from "react";
 import { Modal, Button, Row, Col, Alert } from "react-bootstrap";
-import axios from "axios";
+import http from "../../services/http";
 import { getAuthEmail } from "../../auth/session";
 
 const SIM = "sim";
@@ -72,7 +72,7 @@ export default function QuestionarioAluno({
     const email = getAuthEmail();
     if (!email) return;
     try {
-      const { data } = await axios.get(`${API_URL}/upload/laudos`, {
+      const { data } = await http.get(`${API_URL}/upload/laudos`, {
         params: { email },
       });
       setLaudos(Array.isArray(data?.arquivos) ? data.arquivos : []);
@@ -92,7 +92,7 @@ export default function QuestionarioAluno({
       const fd = new FormData();
       fd.append("arquivo", laudoSelecionado);
 
-      await axios.post(
+      await http.post(
         `${API_URL}/upload/laudos?email=${encodeURIComponent(email)}`,
         fd,
         { headers: { "Content-Type": "multipart/form-data" } }
@@ -117,7 +117,7 @@ export default function QuestionarioAluno({
     if (!email || !item?.nome) return;
 
     try {
-      await axios.delete(`${API_URL}/upload/laudos`, {
+      await http.delete(`${API_URL}/upload/laudos`, {
         params: { email, arquivo: item.nome }, // aceita "xxx.ext" no backend
       });
       await carregarLaudos();

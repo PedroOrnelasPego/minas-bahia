@@ -16,6 +16,7 @@ import {
   listarCordasPorGrupo,
   getCordaNome,
 } from "../../constants/nomesCordas";
+import http from "../../services/http";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -122,24 +123,11 @@ export default function ModalArquivosPessoais({
           const fd = new FormData();
           fd.append("arquivo", file); // <input type="file">
           fd.append("data", data); // yyyy-MM-dd
-          fd.append("corda", corda); // útil para meta
+          fd.append("corda", corda); // slug da corda
 
           const url = `${API_URL}/upload?email=${encodeURIComponent(email)}`;
-          const res = await fetch(url, {
-            method: "POST",
-            body: fd,
-          });
+          const { data: json } = await http.post(url, fd); // leva cookie
 
-          if (!res.ok) {
-            const txt = await res.text().catch(() => "");
-            throw new Error(
-              `Falha ao enviar "${file.name}". Servidor respondeu ${
-                res.status
-              }. ${txt || ""}`
-            );
-          }
-
-          const json = await res.json();
           return {
             corda,
             data,
@@ -190,9 +178,8 @@ export default function ModalArquivosPessoais({
 
       <Modal.Body>
         <p className="text-muted mb-3">
-          Selecione a <strong>corda</strong>, informe a{" "}
-          <strong>data</strong> que recebeu e anexe o{" "}
-          <strong>certificado</strong>.
+          Selecione a <strong>corda</strong>, informe a <strong>data</strong>{" "}
+          que recebeu e anexe o <strong>certificado</strong>.
         </p>
 
         {!email && (

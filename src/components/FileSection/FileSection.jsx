@@ -1,4 +1,4 @@
-import axios from "axios";
+import http from "../../services/http";
 import { useEffect, useState } from "react";
 import { Button, Modal, Form } from "react-bootstrap";
 
@@ -18,7 +18,7 @@ export default function FileSection({ pasta, canUpload }) {
   // ---- API ----
   const listar = async () => {
     try {
-      const res = await axios.get(
+      const res = await http.get(
         `${API}/upload/public?pasta=${encodeURIComponent(pasta)}`
       );
       setArquivos(res.data.arquivos || []);
@@ -34,7 +34,7 @@ export default function FileSection({ pasta, canUpload }) {
 
     setUploading(true);
     try {
-      await axios.post(
+      await http.post(
         `${API}/upload/public?pasta=${encodeURIComponent(pasta)}`,
         form,
         { headers: { "Content-Type": "multipart/form-data" } }
@@ -51,7 +51,7 @@ export default function FileSection({ pasta, canUpload }) {
 
   const remover = async (nome) => {
     try {
-      await axios.delete(
+      await http.delete(
         `${API}/upload/public?pasta=${encodeURIComponent(
           pasta
         )}&arquivo=${encodeURIComponent(nome)}`
@@ -201,7 +201,12 @@ export default function FileSection({ pasta, canUpload }) {
       </Modal>
 
       {/* Modal de preview */}
-      <Modal show={showPreview} onHide={() => setShowPreview(false)} size="lg" centered>
+      <Modal
+        show={showPreview}
+        onHide={() => setShowPreview(false)}
+        size="lg"
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title>Visualizar arquivo</Modal.Title>
         </Modal.Header>

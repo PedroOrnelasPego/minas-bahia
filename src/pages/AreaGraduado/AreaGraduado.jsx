@@ -12,7 +12,7 @@ import CadastroInicial from "../../components/CadastroInicial/CadastroInicial";
 import { getCordaNome } from "../../constants/nomesCordas";
 import calcularIdade from "../../utils/calcularIdade";
 import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
-import axios from "axios";
+import http from "../../services/http";
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import CropImageModal from "../../components/CropImageModal";
 import { nivelMap } from "../../utils/roles";
@@ -218,7 +218,7 @@ const AreaGraduado = () => {
 
     try {
       const blobPath = buildBlobPath(item);
-      await axios.delete(
+      await http.delete(
         `${API_URL}/upload?email=${encodeURIComponent(
           userData.email
         )}&arquivo=${encodeURIComponent(blobPath)}`
@@ -235,7 +235,7 @@ const AreaGraduado = () => {
   // ===== util: carregar laudos =====
   const carregarLaudos = async (email) => {
     try {
-      const { data } = await axios.get(`${API_URL}/upload/laudos`, {
+      const { data } = await http.get(`${API_URL}/upload/laudos`, {
         params: { email },
       });
       setLaudos(Array.isArray(data?.arquivos) ? data.arquivos : []);
@@ -398,8 +398,8 @@ const AreaGraduado = () => {
 
     try {
       await Promise.all([
-        axios.post(`${urlBase}&name=foto-perfil@1x.jpg`, f1),
-        axios.post(`${urlBase}&name=foto-perfil@2x.jpg`, f2),
+        http.post(`${urlBase}&name=foto-perfil@1x.jpg`, f1),
+        http.post(`${urlBase}&name=foto-perfil@2x.jpg`, f2),
       ]);
       showSuccess("Foto atualizada com sucesso!");
       setAvatar1x(null);
@@ -417,7 +417,7 @@ const AreaGraduado = () => {
   const handleRemoverFoto = async () => {
     hideFeedback();
     try {
-      await axios.delete(
+      await http.delete(
         `${API_URL}/upload/foto-perfil?email=${userData.email}`
       );
       setFotoPreview(fotoPadrao);

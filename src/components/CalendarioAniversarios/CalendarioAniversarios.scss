@@ -1,0 +1,20 @@
+.calendario-container {
+  max-width: 350px;
+  margin: 0 auto;
+
+  .react-calendar {
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 0.9rem;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background-color: #ff4081;
+    border-radius: 50%;
+    margin: 2px auto 0;
+  }
+}

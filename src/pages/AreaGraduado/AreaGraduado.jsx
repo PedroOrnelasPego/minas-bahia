@@ -33,6 +33,7 @@ import {
 import Loading from "../../components/Loading/Loading";
 import ModalArquivosPessoais from "../../components/Modals/ModalArquivosPessoais";
 import "./AreaGraduado.scss";
+import CalendarioAniversarios from "../../components/CalendarioAniversarios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const DEV_STRICT_DEBOUNCE_MS = 30;
@@ -113,6 +114,8 @@ const AreaGraduado = () => {
   const [formEdit, setFormEdit] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCadastroInicial, setShowCadastroInicial] = useState(false);
+  const [showCalendario, setShowCalendario] = useState(false);
+  const [aniversarios, setAniversarios] = useState([]);
 
   const [cep, setCep] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
@@ -353,6 +356,18 @@ const AreaGraduado = () => {
       if (abortRef.current) abortRef.current.abort();
     };
   }, [instance]);
+
+  useEffect(() => {
+    if (!showCalendario) return;
+    // mês atual (1-12)
+    const month = new Date().getMonth() + 1;
+    http
+      .get(`${API_URL}/perfil/__public/aniversarios`, {
+        params: { month, limit: 2000 },
+      })
+      .then(({ data }) => setAniversarios(Array.isArray(data) ? data : []))
+      .catch(() => setAniversarios([]));
+  }, [showCalendario]);
 
   // ===== Foto: seleção / corte / upload =====
   const handleFotoChange = (e) => {
@@ -1064,10 +1079,35 @@ const AreaGraduado = () => {
 
       {canAccess(3) && (
         <Row className="mt-4">
-          <Col md={12} className="border p-3 text-center">
-            <h5>Arquivos para Monitores</h5>
-            <p>Área para documentos de download público</p>
-            <FileSection pasta="monitor" canUpload={isMestre} />
+          <Col md={12} className="border p-3">
+            {/* grid 3 colunas: centro fixo pro título, botão à direita */}
+            <div
+              className="align-items-center"
+              style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr" }}
+            >
+              <div />
+              {/* espaçador esq */}
+              <div className="text-center">
+                <h5 className="mb-1">Arquivos para Monitores</h5>
+                <p className="mb-0 text-muted">
+                  Área para documentos de download público
+                </p>
+              </div>
+              <div className="text-end">
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={() => setShowCalendario(true)}
+                  title="Abrir calendário de aniversários"
+                >
+                  🎂 Calendário de Aniversário
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 text-center">
+              <FileSection pasta="monitor" canUpload={isMestre} />
+            </div>
           </Col>
         </Row>
       )}
@@ -1204,6 +1244,19 @@ const AreaGraduado = () => {
         }}
         email={userData.email}
       />
+      <Modal
+        show={showCalendario}
+        onHide={() => setShowCalendario(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Calendário de Aniversários</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <CalendarioAniversarios aniversarios={aniversarios} />
+        </Modal.Body>
+      </Modal>
 
       {/* Modal de preview da timeline */}
       <Modal

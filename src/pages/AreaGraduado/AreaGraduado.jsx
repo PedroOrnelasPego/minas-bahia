@@ -42,13 +42,13 @@ const BLOB_BASE =
 
 const NIVEL_LABELS = {
   visitante: "Visitante",
-  aluno: "Aluno",
-  graduado: "Graduado",
-  monitor: "Monitor",
-  instrutor: "Instrutor",
-  professor: "Professor",
+  aluno: "Aluno(a)",
+  graduado: "Graduado(a)",
+  monitor: "Monitor(a)",
+  instrutor: "Instrutor(a)",
+  professor: "Professor(a)",
   contramestre: "Contramestre",
-  mestre: "Mestre",
+  mestre: "Mestre(a)",
 };
 
 function getNivelLabel(nivel) {
@@ -107,6 +107,7 @@ const AreaGraduado = () => {
     racaCor: "",
     numero: "",
     endereco: "",
+    complemento: "", // <-- complemento no estado inicial do perfil
     dataNascimento: "",
     nivelAcesso: "",
   });
@@ -456,10 +457,17 @@ const AreaGraduado = () => {
       setBairro(data.bairro);
       setCidade(data.cidade);
       setUf(data.uf);
-      if (formEdit?.numero) {
+
+      // monta endereço já considerando número + complemento (se houver)
+      if (formEdit?.numero || formEdit?.complemento) {
+        const endereco = buildFullAddress({
+          ...data,
+          numero: formEdit?.numero || "",
+          complemento: formEdit?.complemento || "", // <-- inclui complemento
+        });
         setFormEdit((prev) => ({
           ...prev,
-          endereco: buildFullAddress({ ...data, numero: prev.numero }),
+          endereco,
         }));
       }
     } catch (e) {
@@ -472,12 +480,25 @@ const AreaGraduado = () => {
   const handleNumeroChange = (e) => {
     hideFeedback();
     const numero = e.target.value;
+    // lê o complemento atual para compor o endereço com as partes do CEP
+    const complementoAtual = (formEdit?.complemento || "").trim();
+
+    // Se já temos logradouro/bairro/cidade/uf, compõe com número + complemento
+    const endereco = logradouro
+      ? buildFullAddress({
+          logradouro,
+          numero,
+          bairro,
+          cidade,
+          uf,
+          complemento: complementoAtual, // <-- inclui complemento
+        })
+      : "";
+
     setFormEdit((prev) => ({
       ...prev,
       numero,
-      endereco: logradouro
-        ? `${logradouro}, ${numero} - ${bairro}, ${cidade} - ${uf}`
-        : "",
+      endereco,
     }));
   };
 
@@ -521,6 +542,7 @@ const AreaGraduado = () => {
     const atualizado = {
       ...formEdit,
       apelido: formEdit.apelido?.trim() || "",
+      complemento: formEdit.complemento?.trim() || "", // <-- garante complemento opcional
       id: userData.email,
       email: userData.email,
     };
@@ -767,7 +789,7 @@ const AreaGraduado = () => {
                 </p>
                 <p>
                   <strong>Endereço: </strong>
-                  {perfil.endereco || "-"}
+                  {perfil.endereco || "-"} / {perfil.complemento}
                 </p>
                 <p>
                   <strong>Local e horário de treino: </strong>
@@ -1058,7 +1080,7 @@ const AreaGraduado = () => {
       {canAccess(1) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
-            <h5>Arquivos para Alunos</h5>
+            <h5>Arquivos para Alunos(as)</h5>
             <p>Área para documentos de download público</p>
             <div className="grid-list-3">
               <FileSection pasta="aluno" canUpload={isMestre} />
@@ -1070,7 +1092,7 @@ const AreaGraduado = () => {
       {canAccess(2) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
-            <h5>Arquivos para Graduado</h5>
+            <h5>Arquivos para Graduados(as)</h5>
             <p>Área para documentos de download público</p>
             <FileSection pasta="graduado" canUpload={isMestre} />
           </Col>
@@ -1088,7 +1110,7 @@ const AreaGraduado = () => {
               <div />
               {/* espaçador esq */}
               <div className="text-center">
-                <h5 className="mb-1">Arquivos para Monitores</h5>
+                <h5 className="mb-1">Arquivos para Monitores(as)</h5>
                 <p className="mb-0 text-muted">
                   Área para documentos de download público
                 </p>
@@ -1115,7 +1137,7 @@ const AreaGraduado = () => {
       {canAccess(4) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
-            <h5>Arquivos para Instrutores</h5>
+            <h5>Arquivos para Instrutores(as)</h5>
             <p>Área para documentos de download público</p>
             <FileSection pasta="instrutor" canUpload={isMestre} />
           </Col>
@@ -1125,7 +1147,7 @@ const AreaGraduado = () => {
       {canAccess(5) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3 text-center">
-            <h5>Arquivos para Professores</h5>
+            <h5>Arquivos para Professores(as)</h5>
             <p>Área para documentos de download público</p>
             <FileSection pasta="professor" canUpload={isMestre} />
           </Col>

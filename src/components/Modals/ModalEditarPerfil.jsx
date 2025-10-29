@@ -116,6 +116,37 @@ const ModalEditarPerfil = ({
       });
     }
 
+    // >>> Complemento (opcional): atualiza e recompõe o endereço se já houver dados do CEP/numero
+    if (name === "complemento") {
+      const complemento = value;
+      const numeroAtual = formEdit?.numero || "";
+      const endereco = logradouro
+        ? buildFullAddress({
+            logradouro,
+            numero: numeroAtual,
+            bairro,
+            cidade,
+            uf,
+            complemento: complemento || "",
+          })
+        : formEdit?.endereco || "";
+
+      setFormEdit({
+        ...formEdit,
+        complemento,
+        endereco,
+      });
+
+      if (errors.endereco && String(endereco).trim() !== "") {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.endereco;
+          return next;
+        });
+      }
+      return;
+    }
+
     setFormEdit({ ...formEdit, [name]: value });
   };
 
@@ -131,7 +162,14 @@ const ModalEditarPerfil = ({
       });
     }
     const endereco = logradouro
-      ? buildFullAddress({ logradouro, numero, bairro, cidade, uf })
+      ? buildFullAddress({
+          logradouro,
+          numero,
+          bairro,
+          cidade,
+          uf,
+          complemento: formEdit?.complemento || "", // inclui complemento ao compor
+        })
       : "";
     if (errors.endereco && endereco.trim() !== "") {
       setErrors((prev) => {
@@ -181,6 +219,7 @@ const ModalEditarPerfil = ({
       endereco: (formEdit?.endereco || "").trim(),
       numero: (formEdit?.numero || "").trim(),
       corda: formEdit?.corda,
+      complemento: (formEdit?.complemento || "").trim(), // mantém complemento opcional
     };
 
     salvarPerfil(atualizado);
@@ -414,6 +453,19 @@ const ModalEditarPerfil = ({
               placeholder="UF (preenchida pelo CEP)"
               value={uf}
               disabled
+            />
+
+            {/* Complemento (opcional) */}
+            <small className="text-muted">Complemento (opcional)</small>
+            <input
+              type="text"
+              name="complemento"
+              className="form-control mb-2"
+              placeholder="Apartamento, bloco, casa, etc."
+              value={formEdit?.complemento || ""}
+              onChange={handleChange}
+              autoComplete="address-line2"
+              enterKeyHint="next"
             />
 
             <small className="text-muted">Número do seu endereço</small>

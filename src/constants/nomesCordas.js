@@ -21,17 +21,17 @@ export const nomesCordas = {
   "amarela-adulto": "Amarela",
   "amarela-laranja-adulto": "Amarela / Laranja",
   "laranja-adulto": "Laranja",
-  "laranja-azul-adulto": "Laranja / Azul (Graduado)",
-  "azul-adulto": "Azul (Monitor)",
-  "verde-adulto": "Verde (Instrutor)",
-  "roxa-adulto": "Roxa (Professor)",
-  "marrom-adulto": "Marrom (Contra-mestre)",
+  "laranja-azul-adulto": "Laranja / Azul (Graduado(a))",
+  "azul-adulto": "Azul (Monitor(a))",
+  "verde-adulto": "Verde (Instrutor(a))",
+  "roxa-adulto": "Roxa (Professor(a))",
+  "marrom-adulto": "Marrom (Contra-mestre(a))",
 
   // Estagiário
-  "cru-e-preta-estagiario": "Cru / preta (Estagiário)",
+  "cru-e-preta-estagiario": "Cru / preta (Estagiário(a))",
 
   // Mestre
-  "vermelha-mestre": "Vermelha (Mestre)",
+  "vermelha-mestre": "Vermelha (Mestre(a))",
 };
 
 export const gruposCordas = [

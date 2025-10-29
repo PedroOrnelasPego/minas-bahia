@@ -59,6 +59,7 @@ const CadastroInicial = ({ show, onSave }) => {
     professorReferencia: "",
     endereco: "",
     numero: "",
+    complemento: "", // <-- NOVO (opcional)
     inicioNoGrupo: "",
     permissaoEventos: "leitor",
   });
@@ -323,6 +324,7 @@ const CadastroInicial = ({ show, onSave }) => {
       racaCor: form.racaCor?.trim(),
       endereco: form.endereco.trim(),
       numero: form.numero.trim(),
+      complemento: form.complemento?.trim() || "", // <-- envia complemento (opcional)
       corda: form.corda,
       aceitouTermos: true,
       nivelAcesso: "visitante",
@@ -622,6 +624,19 @@ const CadastroInicial = ({ show, onSave }) => {
               value={uf}
               disabled
               readOnly
+            />
+
+            {/* Complemento (opcional) */}
+            <small className="text-muted">Complemento (opcional)</small>
+            <input
+              type="text"
+              name="complemento"
+              className="form-control mb-2"
+              placeholder="Apartamento, bloco, casa, etc."
+              value={form.complemento}
+              onChange={handleChange}
+              autoComplete="address-line2"
+              enterKeyHint="next"
             />
 
             <small className="text-muted">Número do seu endereço</small>

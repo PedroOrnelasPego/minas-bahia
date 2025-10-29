@@ -47,7 +47,7 @@ const NIVEL_LABELS = {
   monitor: "Monitor(a)",
   instrutor: "Instrutor(a)",
   professor: "Professor(a)",
-  contramestre: "Contramestre",
+  contramestre: "Contramestre(a)",
   mestre: "Mestre(a)",
 };
 
@@ -615,7 +615,7 @@ const AreaGraduado = () => {
       <Row className="mb-4">
         <Col className="bg-light p-3">
           <h4>
-            {nivelDisplay}(a): {perfil.nome || userData.nome}
+            {nivelDisplay}: {perfil.nome || userData.nome}
             {perfil.apelido ? ` - ${perfil.apelido}` : ""}
           </h4>
         </Col>

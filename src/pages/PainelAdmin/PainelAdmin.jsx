@@ -46,6 +46,28 @@ const avatarUrl2x = (email) =>
 const avatarUrlLegacy = (email) =>
   `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil.jpg?${Date.now()}`;
 
+// === bolinha de status (verde / âmbar) ===
+const StatusDot = ({ verificada }) => {
+  // verde Xbox quando true, âmbar “Xbox antigo” quando false
+  const color = verificada ? "#107C10" : "#C8A200";
+  const label = verificada ? "Corda verificada" : "Corda não verificada";
+  return (
+    <span
+      role="status"
+      aria-label={label}
+      title={label}
+      style={{
+        width: 12,
+        height: 12,
+        borderRadius: "50%",
+        backgroundColor: color,
+        display: "inline-block",
+        boxShadow: "0 0 0 2px rgba(0,0,0,0.08) inset",
+      }}
+    />
+  );
+};
+
 const PainelAdmin = () => {
   const { accounts } = useMsal();
   const navigate = useNavigate();
@@ -331,6 +353,14 @@ const PainelAdmin = () => {
         const url2x = jaSemAvatar ? "" : avatarUrl2x(user.email);
 
         const timeline = timelineUsuarios[user.email] || [];
+
+        // flag de verificação disponível já na lista (se o back mandar) OU nos detalhes após expandir
+        const cordaVerificada =
+          perfilSel.cordaVerificada ??
+          (typeof user.cordaVerificada === "boolean"
+            ? user.cordaVerificada
+            : false);
+
         const aprovadoBadge = (
           <span className="badge bg-success ms-2">Confirmada</span>
         );
@@ -340,15 +370,21 @@ const PainelAdmin = () => {
             key={user.email}
             className="border rounded mb-3 p-3 bg-light shadow-sm"
           >
+            {/* Cabeçalho do card */}
             <div
               className="d-flex justify-content-between align-items-center"
               onClick={() => toggleAccordion(user.email)}
               style={{ cursor: "pointer" }}
             >
-              <span>
+              <span className="text-truncate">
                 <strong>{user.nome}</strong> ({user.email})
               </span>
-              <span>{usuarioExpandido === user.email ? "▲" : "▼"}</span>
+
+              {/* canto direito: bolinha + chevron */}
+              <span className="d-flex align-items-center gap-2">
+                <StatusDot verificada={!!cordaVerificada} />
+                <span>{usuarioExpandido === user.email ? "▲" : "▼"}</span>
+              </span>
             </div>
 
             {usuarioExpandido === user.email && (
@@ -518,7 +554,8 @@ const PainelAdmin = () => {
 
                         <p>
                           <strong>Endereço: </strong>
-                          {perfilSel?.endereco || "-"}
+                          {perfilSel?.endereco || "-"} /{" "}
+                          {perfilSel?.complemento}
                         </p>
                         <p>
                           <strong>Local e horário de treino: </strong>

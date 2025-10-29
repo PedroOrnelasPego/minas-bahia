@@ -24,39 +24,46 @@ jobs:
       VITE_MSAL_SCOPES: User.Read
 
     steps:
+      # Faz checkout do código
       - uses: actions/checkout@v4
         with:
           submodules: false
           lfs: false
 
+      # Configura o Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
+      # Instala dependências e faz build
       - name: Install dependencies and build
         run: |
           npm ci
           npm run build
 
+      # Faz o deploy para Azure Static Web Apps
       - name: Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
+        uses: Azure/static-web-apps-deploy@v1.0.0
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ZEALOUS_BAY_00B08311E }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "/" # Diretório do app
-          app_artifact_location: "dist" # Pasta de saída do build
-          skip_api_build: true # Evita procurar 'swa-db-connections'
-          production_branch: "master" # Confirma a branch principal
+          app_artifact_location: "dist" # Pasta gerada pelo build
+          api_location: "" # Força vazio (sem backend)
+          data_api_location: "" # Evita o erro swa-db-connections
+          skip_api_build: true # Ignora build da API
+          production_branch: "master" # Confirma branch de produção
 
+  # Fecha pull requests antigos automaticamente
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: Close Pull Request Job
     steps:
       - name: Close Pull Request
-        uses: Azure/static-web-apps-deploy@v1
+        uses: Azure/static-web-apps-deploy@v1.0.0
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ZEALOUS_BAY_00B08311E }}
           action: "close"

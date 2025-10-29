@@ -17,7 +17,7 @@ const trajetoriasAncestraisCards = [
   { event: "Mestre Márcio Martins", background: marcioMartins, link: "uai15" },
   { event: "Mestre Costela", background: mestreCostela, link: "uai15" },
   // { event: "13º Batizado e Troca de Cordas", background: batizado, link: "uai15" },
-  { event: "Dona Rita da Barquina", background: donaRita, link: "uai15" },
+  { event: "Dona Rita da Barquinha", background: donaRita, link: "uai15" },
   { event: "Mestra Fatinha", background: mestraFatinha, link: "uai15" },
   { event: "Mestra Tida", background: mestraTida, link: "uai15" },
 ];

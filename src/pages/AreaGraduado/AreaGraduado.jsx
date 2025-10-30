@@ -5,7 +5,7 @@ import { useMsal } from "@azure/msal-react";
 import {
   criarPerfil,
   buscarPerfil,
-  atualizarPerfil as apiAtualizarPerfil,
+  atualizarPerfilSelf,
 } from "../../services/backend";
 import { listarTimelineCertificados } from "../../services/certificados";
 import CadastroInicial from "../../components/CadastroInicial/CadastroInicial";
@@ -107,7 +107,7 @@ const AreaGraduado = () => {
     racaCor: "",
     numero: "",
     endereco: "",
-    complemento: "", // <-- complemento no estado inicial do perfil
+    complemento: "",
     dataNascimento: "",
     nivelAcesso: "",
   });
@@ -463,7 +463,7 @@ const AreaGraduado = () => {
         const endereco = buildFullAddress({
           ...data,
           numero: formEdit?.numero || "",
-          complemento: formEdit?.complemento || "", // <-- inclui complemento
+          complemento: formEdit?.complemento || "",
         });
         setFormEdit((prev) => ({
           ...prev,
@@ -480,10 +480,8 @@ const AreaGraduado = () => {
   const handleNumeroChange = (e) => {
     hideFeedback();
     const numero = e.target.value;
-    // lê o complemento atual para compor o endereço com as partes do CEP
     const complementoAtual = (formEdit?.complemento || "").trim();
 
-    // Se já temos logradouro/bairro/cidade/uf, compõe com número + complemento
     const endereco = logradouro
       ? buildFullAddress({
           logradouro,
@@ -491,7 +489,7 @@ const AreaGraduado = () => {
           bairro,
           cidade,
           uf,
-          complemento: complementoAtual, // <-- inclui complemento
+          complemento: complementoAtual,
         })
       : "";
 
@@ -518,9 +516,10 @@ const AreaGraduado = () => {
     if (ehAlunoOuMais && !jaRespondeu) setShowQuestionarioAluno(true);
   }, [perfil.nivelAcesso, perfil?.questionarios]);
 
-  // ===== Salvar Perfil =====
+  // ===== Salvar Perfil (editar perfil modal) =====
   const salvarPerfil = async () => {
     hideFeedback();
+
     const obrigatorios = [
       "nome",
       "genero",
@@ -539,19 +538,48 @@ const AreaGraduado = () => {
       showError("Preencha todos os campos obrigatórios.");
       return;
     }
+
     const atualizado = {
       ...formEdit,
       apelido: formEdit.apelido?.trim() || "",
-      complemento: formEdit.complemento?.trim() || "", // <-- garante complemento opcional
+      complemento: formEdit.complemento?.trim() || "",
       id: userData.email,
       email: userData.email,
     };
-    await apiAtualizarPerfil(userData.email, atualizado);
-    setPerfil(atualizado);
-    setShowEditModal(false);
-    showSuccess("Perfil atualizado com sucesso!");
+
+    try {
+      // chama rota pública PUT /perfil/self
+      const salvoNoBack = await atualizarPerfilSelf(atualizado);
+
+      // mantém estado alinhado com o que o back realmente salvou
+      setPerfil(salvoNoBack || atualizado);
+
+      setShowEditModal(false);
+      showSuccess("Perfil atualizado com sucesso!");
+    } catch (e) {
+      console.error("Falha ao salvar perfil:", e);
+      const status = e?.status;
+      const detalhe =
+        e?.body?.erro ||
+        e?.body?.error ||
+        e?.message ||
+        "Não foi possível atualizar seu perfil.";
+
+      if (status === 401) {
+        showError(
+          "Não foi possível salvar (401). Isso pode acontecer no celular se o navegador bloqueou a sessão. Tente novamente."
+        );
+      } else if (status === 409) {
+        showError(
+          "Não foi possível salvar: CPF já cadastrado em outra conta. Verifique."
+        );
+      } else {
+        showError(detalhe);
+      }
+    }
   };
 
+  // ===== Salvar Questionário do Aluno =====
   const salvarQuestionarioAluno = async (respostas) => {
     const payload = {
       questionarios: {
@@ -559,9 +587,20 @@ const AreaGraduado = () => {
         aluno: { ...respostas },
       },
     };
+
     try {
-      await apiAtualizarPerfil(userData.email, payload);
-      setPerfil((prev) => ({ ...prev, questionarios: payload.questionarios }));
+      const salvoNoBack = await atualizarPerfilSelf({
+        ...payload,
+        id: userData.email,
+        email: userData.email,
+      });
+
+      setPerfil((prev) => ({
+        ...prev,
+        questionarios:
+          salvoNoBack?.questionarios || payload.questionarios || {},
+      }));
+
       setShowQuestionarioAluno(false);
       showSuccess("Questionário do aluno salvo com sucesso!");
     } catch (e) {
@@ -918,7 +957,6 @@ const AreaGraduado = () => {
                   const temLaudos = laudos.length > 0;
                   if (!temProblemaSaude || !temLaudos) return null;
 
-                  // Mostra o primeiro (mais recente pelo nome com timestamp); você pode alterar o critério se quiser
                   const primeiro = laudos[0];
                   const extras =
                     laudos.length > 1
@@ -1102,13 +1140,11 @@ const AreaGraduado = () => {
       {canAccess(3) && (
         <Row className="mt-4">
           <Col md={12} className="border p-3">
-            {/* grid 3 colunas: centro fixo pro título, botão à direita */}
             <div
               className="align-items-center"
               style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr" }}
             >
               <div />
-              {/* espaçador esq */}
               <div className="text-center">
                 <h5 className="mb-1">Arquivos para Monitores(as)</h5>
                 <p className="mb-0 text-muted">
@@ -1255,7 +1291,7 @@ const AreaGraduado = () => {
         />
       )}
 
-      {/* Modal: Envio de certificados por corda  data */}
+      {/* Modal: Envio de certificados por corda + data */}
       <ModalArquivosPessoais
         show={showEnvioCerts}
         onClose={() => setShowEnvioCerts(false)}
@@ -1266,6 +1302,7 @@ const AreaGraduado = () => {
         }}
         email={userData.email}
       />
+
       <Modal
         show={showCalendario}
         onHide={() => setShowCalendario(false)}

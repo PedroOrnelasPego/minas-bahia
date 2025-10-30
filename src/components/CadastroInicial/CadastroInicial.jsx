@@ -284,402 +284,442 @@ const CadastroInicial = ({ show, onSave }) => {
     [logradouro, bairro, cidade, uf, errors.numero, errors.endereco]
   );
 
-  const handleSubmit = useCallback(() => {
-    setSubmitted(true);
-    hideFeedback();
-
-    const newErrors = validateRequiredFields(form, OBRIGATORIOS);
-
-    // validação específica do CPF
-    const rawCpf = onlyDigits(form.cpf);
-    if (!isValidCPF(rawCpf)) {
-      newErrors.cpf = "CPF inválido";
+  // ------------------ INCREMENTO: ref do corpo do modal para rolar ao topo no mobile
+  const modalBodyRef = useRef(null);
+  const scrollBodyToTop = () => {
+    const el = modalBodyRef.current || document.querySelector(".modal-body");
+    if (el) {
+      try {
+        el.scrollTo({ top: 0, behavior: "smooth" });
+      } catch {
+        el.scrollTop = 0;
+      }
     }
+  };
+  // -------------------------------------------------------------------------------
 
-    setErrors(newErrors);
+  const handleSubmit = useCallback(
+    (e) => {
+      // ------------------ INCREMENTO: tratar como submit real (mobile-friendly)
+      if (e && typeof e.preventDefault === "function") e.preventDefault();
+      // -------------------------------------------------------------------------
 
-    if (Object.keys(newErrors).length > 0) {
-      showError("Preencha todos os campos obrigatórios corretamente.");
-      return;
-    }
+      setSubmitted(true);
+      hideFeedback();
 
-    if (!aceitouTermos) {
-      showError(
-        "Você precisa aceitar os termos de uso e política de privacidade para continuar."
-      );
-      return;
-    }
+      const newErrors = validateRequiredFields(form, OBRIGATORIOS);
 
-    if (cpfExists === true) {
-      showError("Este CPF já está cadastrado. Verifique seus dados.");
-      return;
-    }
+      // validação específica do CPF
+      const rawCpf = onlyDigits(form.cpf);
+      if (!isValidCPF(rawCpf)) {
+        newErrors.cpf = "CPF inválido";
+      }
 
-    onSave({
-      ...form,
-      nome: form.nome.trim(),
-      apelido: form.apelido.trim(),
-      cpf: rawCpf, // <-- envia normalizado
-      genero: form.genero.trim(),
-      racaCor: form.racaCor?.trim(),
-      endereco: form.endereco.trim(),
-      numero: form.numero.trim(),
-      complemento: form.complemento?.trim() || "", // <-- envia complemento (opcional)
-      corda: form.corda,
-      aceitouTermos: true,
-      nivelAcesso: "visitante",
-    });
-  }, [form, hideFeedback, aceitouTermos, cpfExists, onSave, showError]);
+      setErrors(newErrors);
+
+      if (Object.keys(newErrors).length > 0) {
+        showError("Preencha todos os campos obrigatórios corretamente.");
+        scrollBodyToTop(); // mostrar alerta no topo do modal no mobile
+        return;
+      }
+
+      if (!aceitouTermos) {
+        showError(
+          "Você precisa aceitar os termos de uso e política de privacidade para continuar."
+        );
+        scrollBodyToTop();
+        return;
+      }
+
+      if (cpfExists === true) {
+        showError("Este CPF já está cadastrado. Verifique seus dados.");
+        scrollBodyToTop();
+        return;
+      }
+
+      onSave({
+        ...form,
+        nome: form.nome.trim(),
+        apelido: form.apelido.trim(),
+        cpf: rawCpf, // <-- envia normalizado
+        genero: form.genero.trim(),
+        racaCor: form.racaCor?.trim(),
+        endereco: form.endereco.trim(),
+        numero: form.numero.trim(),
+        complemento: form.complemento?.trim() || "", // <-- envia complemento (opcional)
+        corda: form.corda,
+        aceitouTermos: true,
+        nivelAcesso: "visitante",
+      });
+    },
+    [form, hideFeedback, aceitouTermos, cpfExists, onSave, showError]
+  );
 
   return (
     <Modal show={show} centered size="xl" backdrop="static">
       <Modal.Header>
         <Modal.Title>Complete seu Cadastro</Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        {feedback.show && (
-          <Alert
-            variant={feedback.variant}
-            onClose={hideFeedback}
-            dismissible
-            className="mb-3"
-          >
-            {feedback.message}
-          </Alert>
-        )}
 
-        <Row className="g-3">
-          {/* Coluna Esquerda */}
-          <Col md={6}>
-            <small className="text-muted">Digite seu nome completo</small>
-            <input
-              name="nome"
-              className={fc("nome")}
-              placeholder="Nome"
-              value={form.nome}
-              onChange={handleChange}
-              autoComplete="name"
-              enterKeyHint="next"
-            />
-
-            <small className="text-muted">Apelido</small>
-            <input
-              name="apelido"
-              className="form-control mb-2"
-              placeholder="Apelido (opcional)"
-              value={form.apelido}
-              onChange={handleChange}
-              autoComplete="nickname"
-              enterKeyHint="next"
-            />
-
-            {/* Graduação */}
-            <small className="text-muted">Escolha sua graduação (corda)</small>
-            <select
-              name="corda"
-              className={fc("corda")}
-              value={form.corda}
-              onChange={handleChange}
-              required
+      {/* INCREMENTO: envolver tudo em <form onSubmit={handleSubmit}> para funcionar melhor no mobile */}
+      <form onSubmit={handleSubmit}>
+        <Modal.Body ref={modalBodyRef}>
+          {feedback.show && (
+            <Alert
+              variant={feedback.variant}
+              onClose={hideFeedback}
+              dismissible
+              className="mb-3"
             >
-              <option value="">Selecione</option>
-              {gruposCordas.map((g) => (
-                <optgroup key={g.key} label={g.label}>
-                  {listarCordasPorGrupo(g.key).map((slug) => (
-                    <option key={slug} value={slug}>
-                      {nomesCordas[slug]}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+              {feedback.message}
+            </Alert>
+          )}
 
-            {/* CPF */}
-            <small className="text-muted">CPF</small>
-            <div className="d-flex align-items-center gap-2">
+          <Row className="g-3">
+            {/* Coluna Esquerda */}
+            <Col md={6}>
+              <small className="text-muted">Digite seu nome completo</small>
               <input
-                name="cpf"
-                className={fc("cpf")}
-                placeholder="000.000.000-00"
-                inputMode="numeric"
-                value={form.cpf}
+                name="nome"
+                className={fc("nome")}
+                placeholder="Nome"
+                value={form.nome}
                 onChange={handleChange}
-                onBlur={checkCpfExists}
-                autoComplete="off"
+                autoComplete="name"
+                enterKeyHint="next"
               />
-              {cpfExists === true && (
-                <span className="text-danger small">Já cadastrado</span>
-              )}
-              {cpfExists === false && (
-                <span className="text-success small">Disponível</span>
-              )}
-            </div>
 
-            {/* Quando Iniciou */}
-            <small className="text-muted">
-              Quando iniciou seus treinos no Grupo de Capoeira Minas Bahia
-            </small>
-            <input
-              type="date"
-              name="inicioNoGrupo"
-              className={fc("inicioNoGrupo")}
-              placeholder="Insira a data (dd/MM/yyyy)"
-              value={form.inicioNoGrupo}
-              onChange={handleChange}
-              autoComplete="bday"
-              enterKeyHint="next"
-            />
+              <small className="text-muted">Apelido</small>
+              <input
+                name="apelido"
+                className="form-control mb-2"
+                placeholder="Apelido (opcional)"
+                value={form.apelido}
+                onChange={handleChange}
+                autoComplete="nickname"
+                enterKeyHint="next"
+              />
 
-            {/* Gênero */}
-            <small className="text-muted">Gênero</small>
-            <select
-              name="genero"
-              className={fc("genero")}
-              value={form.genero}
-              onChange={handleChange}
-            >
-              <option value="">Selecione</option>
-              <option value="Masculino">Masculino</option>
-              <option value="Feminino">Feminino</option>
-              <option value="Outro">Outro</option>
-              <option value="Prefere não informar">Prefere não informar</option>
-            </select>
-
-            {/* Raça/Cor */}
-            <small className="text-muted">Raça/Cor</small>
-            <select
-              name="racaCor"
-              className={fc("racaCor")}
-              value={form.racaCor}
-              onChange={handleChange}
-            >
-              <option value="">Selecione</option>
-              <option value="Branca">Branca</option>
-              <option value="Preta">Preta</option>
-              <option value="Parda">Parda</option>
-              <option value="Amarela">Amarela</option>
-              <option value="Indígena">Indígena</option>
-              <option value="Prefere não informar">Prefere não informar</option>
-            </select>
-
-            {/* Nascimento */}
-            <small className="text-muted">Sua data de nascimento</small>
-            <input
-              name="dataNascimento"
-              className={fc("dataNascimento")}
-              placeholder="Data de Nascimento"
-              type="date"
-              value={form.dataNascimento}
-              onChange={handleChange}
-              autoComplete="bday"
-              enterKeyHint="next"
-            />
-
-            {/* Telefones */}
-            <Row className="g-2">
-              <Col md={6}>
-                <small className="text-muted">WhatsApp (pessoal)</small>
-                <input
-                  name="whatsapp"
-                  className={fc("whatsapp")}
-                  placeholder="(31) 9XXXX-XXXX"
-                  inputMode="numeric"
-                  value={form.whatsapp}
-                  onChange={handleChange}
-                  autoComplete="tel"
-                />
-              </Col>
-              <Col md={6}>
-                <small className="text-muted">
-                  Contato de emergência / responsável
-                </small>
-                <input
-                  name="contatoEmergencia"
-                  className={fc("contatoEmergencia")}
-                  placeholder="(31) 9XXX-XXXX"
-                  inputMode="numeric"
-                  value={form.contatoEmergencia}
-                  onChange={handleChange}
-                  autoComplete="tel-national"
-                />
-              </Col>
-            </Row>
-          </Col>
-
-          {/* Coluna Direita */}
-          <Col md={6}>
-            {/* Local */}
-            <small className="text-muted">Local de treino</small>
-            <select
-              name="localTreino"
-              className={fc("localTreino")}
-              value={form.localTreino}
-              onChange={handleChange}
-            >
-              <option value="">Selecione o local</option>
-              {Object.keys(LOCAIS).map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
-                </option>
-              ))}
-            </select>
-
-            {diasDoLocalTxt && (
-              <div className="mb-2">
-                <small className="text-muted">Dias</small>
-                <div className="form-control-plaintext">{diasDoLocalTxt}</div>
-              </div>
-            )}
-
-            {/* Horário */}
-            <small className="text-muted">Horário de treino</small>
-            <select
-              name="horarioTreino"
-              className={fc("horarioTreino")}
-              value={form.horarioTreino}
-              onChange={handleChange}
-              disabled={!form.localTreino}
-            >
-              <option value="">
-                {form.localTreino
-                  ? "Selecione o horário"
-                  : "Selecione um local primeiro"}
-              </option>
-              {horariosDisponiveis.map((h) => (
-                <option key={h.value} value={h.value}>
-                  {h.label}
-                </option>
-              ))}
-            </select>
-
-            {/* Professor referência */}
-            <div className="mb-2">
-              <small className="text-muted">Professor referência</small>
-              <div
-                className={`form-control-plaintext ${
-                  submitted && !form.professorReferencia ? "text-danger" : ""
-                }`}
+              {/* Graduação */}
+              <small className="text-muted">
+                Escolha sua graduação (corda)
+              </small>
+              <select
+                name="corda"
+                className={fc("corda")}
+                value={form.corda}
+                onChange={handleChange}
+                required
               >
-                {form.professorReferencia || (submitted ? "Obrigatório" : "-")}
+                <option value="">Selecione</option>
+                {gruposCordas.map((g) => (
+                  <optgroup key={g.key} label={g.label}>
+                    {listarCordasPorGrupo(g.key).map((slug) => (
+                      <option key={slug} value={slug}>
+                        {nomesCordas[slug]}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+
+              {/* CPF */}
+              <small className="text-muted">CPF</small>
+              <div className="d-flex align-items-center gap-2">
+                <input
+                  name="cpf"
+                  className={fc("cpf")}
+                  placeholder="000.000.000-00"
+                  inputMode="numeric"
+                  value={form.cpf}
+                  onChange={handleChange}
+                  onBlur={checkCpfExists}
+                  autoComplete="off"
+                />
+                {cpfExists === true && (
+                  <span className="text-danger small">Já cadastrado</span>
+                )}
+                {cpfExists === false && (
+                  <span className="text-success small">Disponível</span>
+                )}
               </div>
-            </div>
 
-            {/* CEP */}
-            <small className="text-muted">
-              Digite seu CEP e clique em Buscar
-            </small>
-            <div className="d-flex gap-2 mb-2">
+              {/* Quando Iniciou */}
+              <small className="text-muted">
+                Quando iniciou seus treinos no Grupo de Capoeira Minas Bahia
+              </small>
               <input
-                type="text"
-                className="form-control"
-                placeholder="Buscar por CEP"
-                value={cep}
-                onChange={(e) => setCep(e.target.value)}
-                inputMode="numeric"
-                autoComplete="postal-code"
-                enterKeyHint="search"
+                type="date"
+                name="inicioNoGrupo"
+                className={fc("inicioNoGrupo")}
+                placeholder="Insira a data (dd/MM/yyyy)"
+                value={form.inicioNoGrupo}
+                onChange={handleChange}
+                autoComplete="bday"
+                enterKeyHint="next"
               />
-              <Button onClick={buscarEnderecoPorCep} disabled={buscandoCep}>
-                {buscandoCep ? "Buscando..." : "Buscar"}
-              </Button>
-            </div>
 
-            {/* Endereço derivados do CEP */}
-            <input
-              type="text"
-              className={`form-control mb-2 ${
-                errors.endereco ? "is-invalid" : ""
-              }`}
-              placeholder="Rua (preenchida pelo CEP)"
-              value={logradouro}
-              disabled
-              readOnly
-            />
-            <input
-              type="text"
-              className={`form-control mb-2 ${
-                errors.endereco ? "is-invalid" : ""
-              }`}
-              placeholder="Bairro (preenchido pelo CEP)"
-              value={bairro}
-              disabled
-              readOnly
-            />
-            <input
-              type="text"
-              className={`form-control mb-2 ${
-                errors.endereco ? "is-invalid" : ""
-              }`}
-              placeholder="Cidade (preenchida pelo CEP)"
-              value={cidade}
-              disabled
-              readOnly
-            />
-            <input
-              type="text"
-              className={`form-control mb-2 ${
-                errors.endereco ? "is-invalid" : ""
-              }`}
-              placeholder="UF (preenchida pelo CEP)"
-              value={uf}
-              disabled
-              readOnly
-            />
+              {/* Gênero */}
+              <small className="text-muted">Gênero</small>
+              <select
+                name="genero"
+                className={fc("genero")}
+                value={form.genero}
+                onChange={handleChange}
+              >
+                <option value="">Selecione</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
+                <option value="Outro">Outro</option>
+                <option value="Prefere não informar">
+                  Prefere não informar
+                </option>
+              </select>
 
-            {/* Complemento (opcional) */}
-            <small className="text-muted">Complemento (opcional)</small>
-            <input
-              type="text"
-              name="complemento"
-              className="form-control mb-2"
-              placeholder="Apartamento, bloco, casa, etc."
-              value={form.complemento}
-              onChange={handleChange}
-              autoComplete="address-line2"
-              enterKeyHint="next"
-            />
+              {/* Raça/Cor */}
+              <small className="text-muted">Raça/Cor</small>
+              <select
+                name="racaCor"
+                className={fc("racaCor")}
+                value={form.racaCor}
+                onChange={handleChange}
+              >
+                <option value="">Selecione</option>
+                <option value="Branca">Branca</option>
+                <option value="Preta">Preta</option>
+                <option value="Parda">Parda</option>
+                <option value="Amarela">Amarela</option>
+                <option value="Indígena">Indígena</option>
+                <option value="Prefere não informar">
+                  Prefere não informar
+                </option>
+              </select>
 
-            <small className="text-muted">Número do seu endereço</small>
-            <input
-              type="text"
-              className={fc("numero")}
-              placeholder="Número"
-              name="numero"
-              value={form.numero}
-              onChange={handleNumeroChange}
-              inputMode="numeric"
-              enterKeyHint="done"
-            />
-
-            <div className="form-check mt-3">
+              {/* Nascimento */}
+              <small className="text-muted">Sua data de nascimento</small>
               <input
-                className={`form-check-input ${
-                  submitted && !aceitouTermos ? "is-invalid" : ""
-                }`}
-                type="checkbox"
-                id="termos"
-                checked={aceitouTermos}
-                onChange={(e) => setAceitouTermos(e.target.checked)}
+                name="dataNascimento"
+                className={fc("dataNascimento")}
+                placeholder="Data de Nascimento"
+                type="date"
+                value={form.dataNascimento}
+                onChange={handleChange}
+                autoComplete="bday"
+                enterKeyHint="next"
               />
-              <label className="form-check-label" htmlFor="termos">
-                Declaro que li e estou de acordo com os termos de uso e a
-                política de privacidade. Autorizo o uso e armazenamento dos meus
-                dados para fins administrativos da plataforma.
-              </label>
-              {submitted && !aceitouTermos && (
-                <div className="invalid-feedback" style={{ display: "block" }}>
-                  Você precisa aceitar os termos.
+
+              {/* Telefones */}
+              <Row className="g-2">
+                <Col md={6}>
+                  <small className="text-muted">WhatsApp (pessoal)</small>
+                  <input
+                    name="whatsapp"
+                    className={fc("whatsapp")}
+                    placeholder="(31) 9XXXX-XXXX"
+                    inputMode="numeric"
+                    value={form.whatsapp}
+                    onChange={handleChange}
+                    autoComplete="tel"
+                  />
+                </Col>
+                <Col md={6}>
+                  <small className="text-muted">
+                    Contato de emergência / responsável
+                  </small>
+                  <input
+                    name="contatoEmergencia"
+                    className={fc("contatoEmergencia")}
+                    placeholder="(31) 9XXX-XXXX"
+                    inputMode="numeric"
+                    value={form.contatoEmergencia}
+                    onChange={handleChange}
+                    autoComplete="tel-national"
+                  />
+                </Col>
+              </Row>
+            </Col>
+
+            {/* Coluna Direita */}
+            <Col md={6}>
+              {/* Local */}
+              <small className="text-muted">Local de treino</small>
+              <select
+                name="localTreino"
+                className={fc("localTreino")}
+                value={form.localTreino}
+                onChange={handleChange}
+              >
+                <option value="">Selecione o local</option>
+                {Object.keys(LOCAIS).map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+              </select>
+
+              {diasDoLocalTxt && (
+                <div className="mb-2">
+                  <small className="text-muted">Dias</small>
+                  <div className="form-control-plaintext">{diasDoLocalTxt}</div>
                 </div>
               )}
-            </div>
-          </Col>
-        </Row>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button onClick={handleSubmit} variant="primary">
-          Salvar
-        </Button>
-      </Modal.Footer>
+
+              {/* Horário */}
+              <small className="text-muted">Horário de treino</small>
+              <select
+                name="horarioTreino"
+                className={fc("horarioTreino")}
+                value={form.horarioTreino}
+                onChange={handleChange}
+                disabled={!form.localTreino}
+              >
+                <option value="">
+                  {form.localTreino
+                    ? "Selecione o horário"
+                    : "Selecione um local primeiro"}
+                </option>
+                {horariosDisponiveis.map((h) => (
+                  <option key={h.value} value={h.value}>
+                    {h.label}
+                  </option>
+                ))}
+              </select>
+
+              {/* Professor referência */}
+              <div className="mb-2">
+                <small className="text-muted">Professor referência</small>
+                <div
+                  className={`form-control-plaintext ${
+                    submitted && !form.professorReferencia ? "text-danger" : ""
+                  }`}
+                >
+                  {form.professorReferencia ||
+                    (submitted ? "Obrigatório" : "-")}
+                </div>
+              </div>
+
+              {/* CEP */}
+              <small className="text-muted">
+                Digite seu CEP e clique em Buscar
+              </small>
+              <div className="d-flex gap-2 mb-2">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Buscar por CEP"
+                  value={cep}
+                  onChange={(e) => setCep(e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  enterKeyHint="search"
+                />
+                <Button onClick={buscarEnderecoPorCep} disabled={buscandoCep}>
+                  {buscandoCep ? "Buscando..." : "Buscar"}
+                </Button>
+              </div>
+
+              {/* Endereço derivados do CEP */}
+              <input
+                type="text"
+                className={`form-control mb-2 ${
+                  errors.endereco ? "is-invalid" : ""
+                }`}
+                placeholder="Rua (preenchida pelo CEP)"
+                value={logradouro}
+                disabled
+                readOnly
+              />
+              <input
+                type="text"
+                className={`form-control mb-2 ${
+                  errors.endereco ? "is-invalid" : ""
+                }`}
+                placeholder="Bairro (preenchido pelo CEP)"
+                value={bairro}
+                disabled
+                readOnly
+              />
+              <input
+                type="text"
+                className={`form-control mb-2 ${
+                  errors.endereco ? "is-invalid" : ""
+                }`}
+                placeholder="Cidade (preenchida pelo CEP)"
+                value={cidade}
+                disabled
+                readOnly
+              />
+              <input
+                type="text"
+                className={`form-control mb-2 ${
+                  errors.endereco ? "is-invalid" : ""
+                }`}
+                placeholder="UF (preenchida pelo CEP)"
+                value={uf}
+                disabled
+                readOnly
+              />
+
+              {/* Complemento (opcional) */}
+              <small className="text-muted">Complemento (opcional)</small>
+              <input
+                type="text"
+                name="complemento"
+                className="form-control mb-2"
+                placeholder="Apartamento, bloco, casa, etc."
+                value={form.complemento}
+                onChange={handleChange}
+                autoComplete="address-line2"
+                enterKeyHint="next"
+              />
+
+              <small className="text-muted">Número do seu endereço</small>
+              <input
+                type="text"
+                className={fc("numero")}
+                placeholder="Número"
+                name="numero"
+                value={form.numero}
+                onChange={handleNumeroChange}
+                inputMode="numeric"
+                enterKeyHint="done"
+              />
+
+              <div className="form-check mt-3">
+                <input
+                  className={`form-check-input ${
+                    submitted && !aceitouTermos ? "is-invalid" : ""
+                  }`}
+                  type="checkbox"
+                  id="termos"
+                  checked={aceitouTermos}
+                  onChange={(e) => setAceitouTermos(e.target.checked)}
+                />
+                <label className="form-check-label" htmlFor="termos">
+                  Declaro que li e estou de acordo com os termos de uso e a
+                  política de privacidade. Autorizo o uso e armazenamento dos
+                  meus dados para fins administrativos da plataforma.
+                </label>
+                {submitted && !aceitouTermos && (
+                  <div
+                    className="invalid-feedback"
+                    style={{ display: "block" }}
+                  >
+                    Você precisa aceitar os termos.
+                  </div>
+                )}
+              </div>
+            </Col>
+          </Row>
+        </Modal.Body>
+
+        <Modal.Footer>
+          {/* INCREMENTO: botão de submit (não usa onClick) */}
+          <Button type="submit" variant="primary">
+            Salvar +
+          </Button>
+        </Modal.Footer>
+      </form>
     </Modal>
   );
 };

@@ -48,7 +48,7 @@ const CadastroInicial = ({ show, onSave }) => {
     nome: "",
     apelido: "",
     corda: "",
-    cpf: "", // <-- corrigido
+    cpf: "",
     genero: "",
     racaCor: "",
     dataNascimento: "",
@@ -59,7 +59,7 @@ const CadastroInicial = ({ show, onSave }) => {
     professorReferencia: "",
     endereco: "",
     numero: "",
-    complemento: "", // <-- NOVO (opcional)
+    complemento: "",
     inicioNoGrupo: "",
     permissaoEventos: "leitor",
   });
@@ -74,6 +74,7 @@ const CadastroInicial = ({ show, onSave }) => {
 
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // trava duplo clique
 
   const [cpfExists, setCpfExists] = useState(null); // null desconhecido | true/false
   const pendingCpfCheck = useRef(null);
@@ -83,6 +84,10 @@ const CadastroInicial = ({ show, onSave }) => {
     variant: "danger",
     message: "",
   });
+  const showInfo = useCallback(
+    (message) => setFeedback({ show: true, variant: "info", message }),
+    []
+  );
   const showError = useCallback(
     (message) => setFeedback({ show: true, variant: "danger", message }),
     []
@@ -114,6 +119,7 @@ const CadastroInicial = ({ show, onSave }) => {
       setUf("");
       setErrors({});
       setSubmitted(false);
+      setIsSubmitting(false);
       hideFeedback();
     }
   }, [show, hideFeedback]);
@@ -140,7 +146,6 @@ const CadastroInicial = ({ show, onSave }) => {
       if (name === "cpf") {
         setForm((prev) => ({ ...prev, cpf: maskCPF(value) }));
         setCpfExists(null);
-        // limpa erro se usuário está digitando algo
         if (errors.cpf && onlyDigits(value).length <= 11) {
           setErrors((prev) => {
             const n = { ...prev };
@@ -205,7 +210,6 @@ const CadastroInicial = ({ show, onSave }) => {
       });
       setCpfExists(Boolean(data?.exists));
     } catch {
-      // falha de rede não deve bloquear o fluxo de digitação
       setCpfExists(null);
     }
   }, [form.cpf]);
@@ -239,7 +243,6 @@ const CadastroInicial = ({ show, onSave }) => {
 
     hideFeedback();
 
-    // cache simples para evitar requisições repetidas
     if (cepCache.has(c)) {
       preencherEndereco(cepCache.get(c));
       return;
@@ -284,75 +287,104 @@ const CadastroInicial = ({ show, onSave }) => {
     [logradouro, bairro, cidade, uf, errors.numero, errors.endereco]
   );
 
-  // ------------------ INCREMENTO: ref do corpo do modal para rolar ao topo no mobile
-  const modalBodyRef = useRef(null);
-  const scrollBodyToTop = () => {
-    const el = modalBodyRef.current || document.querySelector(".modal-body");
-    if (el) {
-      try {
-        el.scrollTo({ top: 0, behavior: "smooth" });
-      } catch {
-        el.scrollTop = 0;
-      }
+  // rola até o primeiro erro no mobile
+  const scrollToFirstError = useCallback(() => {
+    const firstKey = Object.keys(errors)[0];
+    if (!firstKey) return;
+    const el = document.querySelector(`[name="${firstKey}"]`);
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  };
-  // -------------------------------------------------------------------------------
+  }, [errors]);
 
-  const handleSubmit = useCallback(
-    (e) => {
-      // ------------------ INCREMENTO: tratar como submit real (mobile-friendly)
-      if (e && typeof e.preventDefault === "function") e.preventDefault();
-      // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (submitted) scrollToFirstError();
+  }, [submitted, errors, scrollToFirstError]);
 
-      setSubmitted(true);
-      hideFeedback();
+  // handler único (usado por submit, click, touch e pointer)
+  const doSubmit = useCallback(async () => {
+    if (isSubmitting) return; // trava repetição
+    setIsSubmitting(true);
+    setSubmitted(true);
+    hideFeedback();
 
-      const newErrors = validateRequiredFields(form, OBRIGATORIOS);
+    // garante que nenhuma checagem pendente de CPF vai dar race condition
+    try {
+      if (pendingCpfCheck.current) pendingCpfCheck.current.abort();
+    } catch {}
 
-      // validação específica do CPF
-      const rawCpf = onlyDigits(form.cpf);
-      if (!isValidCPF(rawCpf)) {
-        newErrors.cpf = "CPF inválido";
-      }
+    const newErrors = validateRequiredFields(form, OBRIGATORIOS);
 
-      setErrors(newErrors);
+    // validação específica do CPF
+    const rawCpf = onlyDigits(form.cpf);
+    if (!isValidCPF(rawCpf)) {
+      newErrors.cpf = "CPF inválido";
+    }
 
-      if (Object.keys(newErrors).length > 0) {
-        showError("Preencha todos os campos obrigatórios corretamente.");
-        scrollBodyToTop(); // mostrar alerta no topo do modal no mobile
-        return;
-      }
+    setErrors(newErrors);
 
-      if (!aceitouTermos) {
-        showError(
-          "Você precisa aceitar os termos de uso e política de privacidade para continuar."
-        );
-        scrollBodyToTop();
-        return;
-      }
+    if (Object.keys(newErrors).length > 0) {
+      showError("Preencha todos os campos obrigatórios corretamente.");
+      setIsSubmitting(false);
+      return;
+    }
 
-      if (cpfExists === true) {
-        showError("Este CPF já está cadastrado. Verifique seus dados.");
-        scrollBodyToTop();
-        return;
-      }
+    if (!aceitouTermos) {
+      showError(
+        "Você precisa aceitar os termos de uso e política de privacidade para continuar."
+      );
+      setIsSubmitting(false);
+      return;
+    }
 
-      onSave({
+    if (cpfExists === true) {
+      showError("Este CPF já está cadastrado. Verifique seus dados.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // DEBUG visual: confirma que o clique chegou no iPhone
+    showInfo("Enviando…");
+
+    try {
+      await onSave?.({
         ...form,
         nome: form.nome.trim(),
         apelido: form.apelido.trim(),
-        cpf: rawCpf, // <-- envia normalizado
+        cpf: rawCpf,
         genero: form.genero.trim(),
         racaCor: form.racaCor?.trim(),
         endereco: form.endereco.trim(),
         numero: form.numero.trim(),
-        complemento: form.complemento?.trim() || "", // <-- envia complemento (opcional)
+        complemento: form.complemento?.trim() || "",
         corda: form.corda,
         aceitouTermos: true,
         nivelAcesso: "visitante",
       });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    form,
+    aceitouTermos,
+    cpfExists,
+    hideFeedback,
+    isSubmitting,
+    onSave,
+    showError,
+    showInfo,
+  ]);
+
+  // wrapper compatível com <form onSubmit>
+  const handleSubmit = useCallback(
+    (e) => {
+      if (e && typeof e.preventDefault === "function") e.preventDefault();
+      // Safari iOS: garantir que o gesto atual finalize antes de processar
+      setTimeout(() => {
+        doSubmit();
+      }, 0);
     },
-    [form, hideFeedback, aceitouTermos, cpfExists, onSave, showError]
+    [doSubmit]
   );
 
   return (
@@ -361,9 +393,9 @@ const CadastroInicial = ({ show, onSave }) => {
         <Modal.Title>Complete seu Cadastro</Modal.Title>
       </Modal.Header>
 
-      {/* INCREMENTO: envolver tudo em <form onSubmit={handleSubmit}> para funcionar melhor no mobile */}
-      <form onSubmit={handleSubmit}>
-        <Modal.Body ref={modalBodyRef}>
+      {/* FORM real para comportamento consistente no iOS */}
+      <form onSubmit={handleSubmit} noValidate>
+        <Modal.Body>
           {feedback.show && (
             <Alert
               variant={feedback.variant}
@@ -409,7 +441,6 @@ const CadastroInicial = ({ show, onSave }) => {
                 className={fc("corda")}
                 value={form.corda}
                 onChange={handleChange}
-                required
               >
                 <option value="">Selecione</option>
                 {gruposCordas.map((g) => (
@@ -713,10 +744,16 @@ const CadastroInicial = ({ show, onSave }) => {
           </Row>
         </Modal.Body>
 
-        <Modal.Footer>
-          {/* INCREMENTO: botão de submit (não usa onClick) */}
-          <Button type="submit" variant="primary">
-            Salvar +
+        <Modal.Footer style={{ position: "relative", zIndex: 1 }}>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSubmitting}
+            onClick={handleSubmit} // click normal
+            onTouchEnd={handleSubmit} // iOS fallback
+            onPointerUp={handleSubmit} // pointer fallback
+          >
+            {isSubmitting ? "Salvando…" : "Salvar +"}
           </Button>
         </Modal.Footer>
       </form>

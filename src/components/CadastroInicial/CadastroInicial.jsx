@@ -48,7 +48,7 @@ const CadastroInicial = ({ show, onSave }) => {
     nome: "",
     apelido: "",
     corda: "",
-    cpf: "",
+    cpf: "", // <-- corrigido
     genero: "",
     racaCor: "",
     dataNascimento: "",
@@ -59,7 +59,7 @@ const CadastroInicial = ({ show, onSave }) => {
     professorReferencia: "",
     endereco: "",
     numero: "",
-    complemento: "",
+    complemento: "", // <-- NOVO (opcional)
     inicioNoGrupo: "",
     permissaoEventos: "leitor",
   });
@@ -74,7 +74,7 @@ const CadastroInicial = ({ show, onSave }) => {
 
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); // trava duplo clique
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [cpfExists, setCpfExists] = useState(null); // null desconhecido | true/false
   const pendingCpfCheck = useRef(null);
@@ -146,6 +146,7 @@ const CadastroInicial = ({ show, onSave }) => {
       if (name === "cpf") {
         setForm((prev) => ({ ...prev, cpf: maskCPF(value) }));
         setCpfExists(null);
+        // limpa erro se usuário está digitando algo
         if (errors.cpf && onlyDigits(value).length <= 11) {
           setErrors((prev) => {
             const n = { ...prev };
@@ -210,6 +211,7 @@ const CadastroInicial = ({ show, onSave }) => {
       });
       setCpfExists(Boolean(data?.exists));
     } catch {
+      // falha de rede não deve bloquear o fluxo de digitação
       setCpfExists(null);
     }
   }, [form.cpf]);
@@ -243,6 +245,7 @@ const CadastroInicial = ({ show, onSave }) => {
 
     hideFeedback();
 
+    // cache simples para evitar requisições repetidas
     if (cepCache.has(c)) {
       preencherEndereco(cepCache.get(c));
       return;
@@ -301,12 +304,49 @@ const CadastroInicial = ({ show, onSave }) => {
     if (submitted) scrollToFirstError();
   }, [submitted, errors, scrollToFirstError]);
 
-  // handler único (usado por submit, click, touch e pointer)
+  // util: timeout para promessas (evita travar no iOS quando rede/CORS fica pendente)
+  const withTimeout = useCallback(async (promise, ms = 15000) => {
+    let timer;
+    const timeout = new Promise((_, rej) => {
+      timer = setTimeout(
+        () =>
+          rej(
+            new Error(
+              "Aguardando resposta da API há muito tempo. Isso pode ser CORS/redirect ou ‘Mixed Content’ em iPhone."
+            )
+          ),
+        ms
+      );
+    });
+    const res = await Promise.race([promise, timeout]);
+    clearTimeout(timer);
+    return res;
+  }, []);
+
+  // handler único
   const doSubmit = useCallback(async () => {
     if (isSubmitting) return; // trava repetição
     setIsSubmitting(true);
     setSubmitted(true);
     hideFeedback();
+
+    // 1) Detecção imediata de Mixed Content (https page -> http API)
+    try {
+      const isHttpsPage =
+        typeof window !== "undefined" &&
+        window.location &&
+        window.location.protocol === "https:";
+      const isApiHttp =
+        typeof API_URL === "string" &&
+        API_URL.trim().toLowerCase().startsWith("http://");
+      if (isHttpsPage && isApiHttp) {
+        showError(
+          "A página está em HTTPS, mas a API está em HTTP. O iPhone bloqueia por segurança (Mixed Content). Ajuste o VITE_API_URL para HTTPS."
+        );
+        setIsSubmitting(false);
+        return;
+      }
+    } catch {}
 
     // garante que nenhuma checagem pendente de CPF vai dar race condition
     try {
@@ -343,36 +383,54 @@ const CadastroInicial = ({ show, onSave }) => {
       return;
     }
 
-    // DEBUG visual: confirma que o clique chegou no iPhone
+    // DEBUG visual: confirma que o clique chegou — agora vamos chamar a API
     showInfo("Enviando…");
 
     try {
-      await onSave?.({
-        ...form,
-        nome: form.nome.trim(),
-        apelido: form.apelido.trim(),
-        cpf: rawCpf,
-        genero: form.genero.trim(),
-        racaCor: form.racaCor?.trim(),
-        endereco: form.endereco.trim(),
-        numero: form.numero.trim(),
-        complemento: form.complemento?.trim() || "",
-        corda: form.corda,
-        aceitouTermos: true,
-        nivelAcesso: "visitante",
-      });
+      await withTimeout(
+        Promise.resolve(
+          onSave?.({
+            ...form,
+            nome: form.nome.trim(),
+            apelido: form.apelido.trim(),
+            cpf: rawCpf, // <-- envia normalizado
+            genero: form.genero.trim(),
+            racaCor: form.racaCor?.trim(),
+            endereco: form.endereco.trim(),
+            numero: form.numero.trim(),
+            complemento: form.complemento?.trim() || "",
+            corda: form.corda,
+            aceitouTermos: true,
+            nivelAcesso: "visitante",
+          })
+        ),
+        15000
+      );
+    } catch (e) {
+      // mensagem rica para você ver no iPhone
+      const status =
+        e?.response?.status || e?.status || e?.code || e?.name || "erro";
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Falha ao comunicar com a API.";
+      showError(
+        `Não foi possível concluir o cadastro (${String(
+          status
+        )}). Motivo provável no iOS: CORS, redirect sem CORS, ou Mixed Content. Detalhes: ${msg}`
+      );
     } finally {
       setIsSubmitting(false);
     }
   }, [
+    isSubmitting,
+    hideFeedback,
+    showError,
+    withTimeout,
+    onSave,
     form,
     aceitouTermos,
     cpfExists,
-    hideFeedback,
-    isSubmitting,
-    onSave,
-    showError,
-    showInfo,
   ]);
 
   // wrapper compatível com <form onSubmit>
@@ -749,9 +807,9 @@ const CadastroInicial = ({ show, onSave }) => {
             type="submit"
             variant="primary"
             disabled={isSubmitting}
-            onClick={handleSubmit} // click normal
-            onTouchEnd={handleSubmit} // iOS fallback
-            onPointerUp={handleSubmit} // pointer fallback
+            onClick={handleSubmit}
+            onTouchEnd={handleSubmit}
+            onPointerUp={handleSubmit}
           >
             {isSubmitting ? "Salvando…" : "Salvar +"}
           </Button>

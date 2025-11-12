@@ -5,18 +5,21 @@
     <link rel="icon" type="image/png" href="/selo.png" />
 
     <!-- Título focado em busca -->
-    <title>Capoeira em BH | Aulas de Capoeira em Belo Horizonte | ICMBC</title>
+    <title>
+      Capoeira em BH | Venha treinar no ICMBC (Salgado Filho, Betânia,
+      Palmeiras)
+    </title>
 
-    <!-- Descrição com termos que já aparecem no Search Console -->
+    <!-- Descrição convidativa com locais -->
     <meta
       name="description"
-      content="Aulas de capoeira em BH para adultos e crianças, rodas, eventos e projetos culturais. Encontre capoeira perto de você com o Instituto Cultural Minas Bahia de Capoeira em Belo Horizonte."
+      content="Venha praticar capoeira em Belo Horizonte! Aulas para crianças, iniciantes e graduados no Centro Cultural Salgado Filho (região Betânia/Palmeiras), perto de Nova Sintra e Gameleira. Participe das nossas rodas, eventos e projetos culturais no ICMBC."
     />
 
-    <!-- Keywords hoje quase não contam, mas deixamos alinhadas -->
+    <!-- Keywords (ok manter) -->
     <meta
       name="keywords"
-      content="capoeira em bh, aula de capoeira em bh, capoeira belo horizonte, capoeira perto de mim, escola de capoeira, capoeira infantil bh, Instituto Cultural Minas Bahia de Capoeira"
+      content="capoeira em bh, aula de capoeira em bh, capoeira belo horizonte, capoeira perto de mim, escola de capoeira, capoeira infantil bh, Instituto Cultural Minas Bahia de Capoeira, Centro Cultural Salgado Filho, Betânia, Palmeiras, Nova Sintra, Gameleira"
     />
     <meta
       name="author"
@@ -26,33 +29,43 @@
     <!-- Canonical -->
     <link rel="canonical" href="https://www.icmbc.com.br/" />
 
+    <!-- Robots (explícito) -->
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+
     <!-- Open Graph -->
     <meta
       property="og:title"
-      content="Capoeira em BH | Aulas de Capoeira em Belo Horizonte | ICMBC"
+      content="Capoeira em BH | Venha treinar no ICMBC"
     />
     <meta
       property="og:description"
-      content="Treine capoeira em Belo Horizonte com o Instituto Cultural Minas Bahia de Capoeira. Turmas para iniciantes, infantil e graduados."
+      content="Treine capoeira no Centro Cultural Salgado Filho (Betânia/Palmeiras). Turmas infantil, iniciantes e graduados. Venha para a roda!"
     />
     <meta property="og:image" content="https://www.icmbc.com.br/selo.png" />
     <meta property="og:url" content="https://www.icmbc.com.br/" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ICMBC - Capoeira Minas Bahia" />
+    <meta property="og:locale" content="pt_BR" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="Capoeira em BH | Aulas de Capoeira em Belo Horizonte | ICMBC"
+      content="Capoeira em BH | Venha treinar no ICMBC"
     />
     <meta
       name="twitter:description"
-      content="Aulas de capoeira perto de você em BH. Conheça o Instituto Cultural Minas Bahia de Capoeira."
+      content="Aulas perto de você em BH (Salgado Filho/Betânia/Palmeiras). Experimente uma aula!"
     />
     <meta name="twitter:image" content="https://www.icmbc.com.br/selo.png" />
 
     <!-- Responsividade -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Ícones opcionais (se tiver os arquivos, mantêm compatibilidade) -->
+    <link rel="icon" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 
     <!-- Font Awesome e Bootstrap Icons -->
     <link
@@ -63,7 +76,59 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
       rel="stylesheet"
     />
+
+    <!-- JSON-LD (Organization + Local) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.icmbc.com.br/#org",
+            "name": "ICMBC - Instituto Cultural Minas Bahia de Capoeira",
+            "url": "https://www.icmbc.com.br/",
+            "logo": "https://www.icmbc.com.br/selo.png",
+            "image": "https://www.icmbc.com.br/selo.png",
+            "sameAs": []
+          },
+          {
+            "@type": "SportsClub",
+            "@id": "https://www.icmbc.com.br/#local",
+            "name": "ICMBC - Capoeira Minas Bahia",
+            "url": "https://www.icmbc.com.br/",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Centro Cultural Salgado Filho",
+              "addressLocality": "Belo Horizonte",
+              "addressRegion": "MG",
+              "addressCountry": "BR"
+            },
+            "areaServed": [
+              "Salgado Filho",
+              "Betânia",
+              "Palmeiras",
+              "Nova Sintra",
+              "Gameleira"
+            ],
+            "telephone": ""
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.icmbc.com.br/#website",
+            "url": "https://www.icmbc.com.br/",
+            "name": "ICMBC",
+            "publisher": { "@id": "https://www.icmbc.com.br/#org" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://www.icmbc.com.br/?s={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
+
   <!-- Google tag (gtag.js) -->
   <script
     async
@@ -78,6 +143,7 @@
 
     gtag("config", "G-ZKDDQBHQ55");
   </script>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>

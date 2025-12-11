@@ -11,7 +11,11 @@ const Login = () => {
   const handleMicrosoftLogin = async () => {
     try {
       // Ao retornar, AuthProvider faz a limpeza do path e manda para #/acesso-interno
+      // Envia no `state` a rota hash desejada para que o AuthProvider a restaure
+      // (evita que o usuário caia na página inicial após o redirect).
+      const desired = window.location.hash || "#/acesso-interno";
       await instance.loginRedirect({
+        state: JSON.stringify({ returnTo: desired }),
         redirectStartPage: window.location.href,
       });
     } catch (error) {

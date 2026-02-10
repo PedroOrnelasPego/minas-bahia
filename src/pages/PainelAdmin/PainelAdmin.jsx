@@ -80,6 +80,10 @@ const PainelAdmin = () => {
   const [dadosUsuarios, setDadosUsuarios] = useState({});
   const [carregando, setCarregando] = useState(false);
   const [loadingUsuarios, setLoadingUsuarios] = useState(true);
+  const [viewMode, setViewMode] = useState("list");
+  const [modalUserEmail, setModalUserEmail] = useState(null);
+  const [sortMode, setSortMode] = useState("nome-asc");
+  const [cordaFilter, setCordaFilter] = useState("all");
 
   // timeline (certificados) por usuário
   const [timelineUsuarios, setTimelineUsuarios] = useState({});
@@ -161,7 +165,7 @@ const PainelAdmin = () => {
   const atualizarPermissaoQuestionario = async (
     email,
     habilitado,
-    opts = {}
+    opts = {},
   ) => {
     const { silent = false } = opts;
     try {
@@ -206,7 +210,7 @@ const PainelAdmin = () => {
         [email]: { ...prev[email], cordaVerificada: !!novoValor },
       }));
       alert(
-        !!novoValor ? "Corda confirmada." : "Confirmação de corda revogada."
+        !!novoValor ? "Corda confirmada." : "Confirmação de corda revogada.",
       );
     } catch {
       alert("Erro ao atualizar verificação da corda.");
@@ -257,6 +261,26 @@ const PainelAdmin = () => {
     await listarTimeline(email);
   };
 
+  const openUserModal = async (email) => {
+    setModalUserEmail(email);
+
+    if (!dadosUsuarios[email]) {
+      try {
+        setCarregando(true);
+        const res = await http.get(`${API_URL}/perfil/${email}`);
+        setDadosUsuarios((prev) => ({ ...prev, [email]: res.data }));
+      } catch {
+        alert("Erro ao buscar dados do usuário.");
+      } finally {
+        setCarregando(false);
+      }
+    }
+
+    await listarTimeline(email);
+  };
+
+  const closeUserModal = () => setModalUserEmail(null);
+
   const listarTimeline = async (email) => {
     try {
       setTlLoading(email);
@@ -287,7 +311,7 @@ const PainelAdmin = () => {
       alert(
         status === "approved"
           ? "Certificado aprovado."
-          : "Certificado reprovado."
+          : "Certificado reprovado.",
       );
     } catch {
       alert("Falha ao atualizar o status do certificado.");
@@ -327,6 +351,17 @@ const PainelAdmin = () => {
     slugs: listarCordasPorGrupo(g.key),
   }));
 
+  const cordasDisponiveis = Array.from(
+    new Set(cordasOptions.flatMap((g) => g.slugs)),
+  );
+
+  const LOCAL_SALGADO = "Centro Cultural Salgado Filho";
+  const LOCAL_EFIGENIA = "E. M. Professora Efigênia Vidigal";
+
+  const normalizarLocal = (local) => (local || "").trim().toLowerCase();
+  const normalSalgado = normalizarLocal(LOCAL_SALGADO);
+  const normalEfigenia = normalizarLocal(LOCAL_EFIGENIA);
+
   function formatarTempoDeGrupo(data) {
     const anos = calcularIdade(data); // inteiro
     if (anos < 1) return "menos de 1 ano";
@@ -337,584 +372,758 @@ const PainelAdmin = () => {
   // helper do questionário (booleans)
   const b = (v) => (v === true ? "Sim" : v === false ? "Não" : "-");
 
-  return (
-    <Container className="py-4">
-      <h2 className="mb-4 text-center">Painel Administrativo</h2>
+  const getLocalTreinoUser = (user) =>
+    dadosUsuarios[user.email]?.localTreino || user.localTreino || "";
 
-      {usuarios.map((user) => {
-        const perfilSel = dadosUsuarios[user.email] || {};
-        const nivel = (perfilSel.nivelAcesso || "aluno").toLowerCase();
-        const permissaoEventos = perfilSel.permissaoEventos || "leitor";
-        const podeEditarQuest = rankNivel(nivel) >= rankNivel("aluno");
-        const podeEditarPerm = rankNivel(nivel) >= rankNivel("graduado");
+  const getCordaUser = (user) =>
+    dadosUsuarios[user.email]?.corda || user.corda || "";
 
-        const jaSemAvatar = !!semAvatar[user.email];
-        const url1x = jaSemAvatar ? fotoPadrao : avatarUrl1x(user.email);
-        const url2x = jaSemAvatar ? "" : avatarUrl2x(user.email);
+  const getNomeUser = (user) =>
+    (dadosUsuarios[user.email]?.nome || user.nome || "").trim();
 
-        const timeline = timelineUsuarios[user.email] || [];
+  const getIdadeUser = (user) => {
+    const data =
+      dadosUsuarios[user.email]?.dataNascimento || user.dataNascimento;
+    const idade = calcularIdade(data);
+    return Number.isFinite(idade) && idade >= 0 ? idade : null;
+  };
 
-        // flag de verificação disponível já na lista (se o back mandar) OU nos detalhes após expandir
-        const cordaVerificada =
-          perfilSel.cordaVerificada ??
-          (typeof user.cordaVerificada === "boolean"
-            ? user.cordaVerificada
-            : false);
+  const ordenarUsuarios = (lista) => {
+    const base = lista.slice();
+    if (sortMode === "nome-asc" || sortMode === "nome-desc") {
+      base.sort((a, b) => {
+        const nomeA = getNomeUser(a).toLowerCase();
+        const nomeB = getNomeUser(b).toLowerCase();
+        if (!nomeA && !nomeB) return 0;
+        if (!nomeA) return 1;
+        if (!nomeB) return -1;
+        const cmp = nomeA.localeCompare(nomeB);
+        return sortMode === "nome-asc" ? cmp : -cmp;
+      });
+      return base;
+    }
 
-        const aprovadoBadge = (
-          <span className="badge bg-success ms-2">Confirmada</span>
-        );
+    if (sortMode === "idade-asc" || sortMode === "idade-desc") {
+      base.sort((a, b) => {
+        const idadeA = getIdadeUser(a);
+        const idadeB = getIdadeUser(b);
+        if (idadeA === null && idadeB === null) return 0;
+        if (idadeA === null) return 1;
+        if (idadeB === null) return -1;
+        const cmp = idadeA - idadeB;
+        return sortMode === "idade-asc" ? cmp : -cmp;
+      });
+      return base;
+    }
 
-        return (
-          <div
-            key={user.email}
-            className="border rounded mb-3 p-3 bg-light shadow-sm"
-          >
-            {/* Cabeçalho do card */}
-            <div
-              className="d-flex justify-content-between align-items-center"
-              onClick={() => toggleAccordion(user.email)}
-              style={{ cursor: "pointer" }}
+    return base;
+  };
+
+  const usuariosFiltrados = usuarios.filter((user) => {
+    const corda = getCordaUser(user);
+    if (cordaFilter === "all") return true;
+    if (cordaFilter === "none") return !corda;
+    return corda === cordaFilter;
+  });
+
+  const gruposTreino = usuariosFiltrados.reduce(
+    (acc, user) => {
+      const local = normalizarLocal(getLocalTreinoUser(user));
+      if (local === normalSalgado) {
+        acc.salgado.push(user);
+      } else if (local === normalEfigenia) {
+        acc.efigenia.push(user);
+      } else {
+        acc.outros.push(user);
+      }
+      return acc;
+    },
+    { salgado: [], efigenia: [], outros: [] },
+  );
+
+  const renderUserDetails = (user) => {
+    const perfilSel = dadosUsuarios[user.email] || {};
+    const nivel = (perfilSel.nivelAcesso || "aluno").toLowerCase();
+    const permissaoEventos = perfilSel.permissaoEventos || "leitor";
+    const podeEditarQuest = rankNivel(nivel) >= rankNivel("aluno");
+    const podeEditarPerm = rankNivel(nivel) >= rankNivel("graduado");
+
+    const jaSemAvatar = !!semAvatar[user.email];
+    const url1x = jaSemAvatar ? fotoPadrao : avatarUrl1x(user.email);
+    const url2x = jaSemAvatar ? "" : avatarUrl2x(user.email);
+
+    const timeline = timelineUsuarios[user.email] || [];
+
+    const aprovadoBadge = (
+      <span className="badge bg-success ms-2">Confirmada</span>
+    );
+
+    return (
+      <Row className="g-3 align-items-start">
+        {/* FOTO */}
+        <Col
+          xs={12}
+          md="auto"
+          className="text-center text-md-start flex-shrink-0"
+        >
+          <div style={{ width: 150, marginInline: "auto" }}>
+            <img
+              src={url1x}
+              srcSet={jaSemAvatar ? undefined : `${url1x} 1x, ${url2x} 2x`}
+              alt="Foto de perfil"
+              className="rounded"
+              style={{
+                display: "block",
+                width: "100%",
+                height: 200,
+                objectFit: "cover",
+                border: "2px solid #ccc",
+                cursor: "zoom-in",
+              }}
+              onClick={() => {
+                setAvatarModalUrl(jaSemAvatar ? fotoPadrao : url2x);
+                setShowAvatarModal(true);
+              }}
+              onError={(e) => {
+                setSemAvatar((prev) => ({
+                  ...prev,
+                  [user.email]: true,
+                }));
+                const img = e.currentTarget;
+                img.onerror = null;
+                img.removeAttribute("srcset");
+                img.src = fotoPadrao;
+              }}
+            />
+          </div>
+
+          {/* envio pelo admin */}
+          <div className="mt-3 text-center">
+            <button
+              type="button"
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => setEnvioModalOpenForEmail(user.email)}
+              title="Enviar certificado para este aluno"
             >
-              <span className="text-truncate">
-                <strong>{user.nome}</strong> ({user.email})
-              </span>
+              📎 Enviar certificado
+            </button>
+          </div>
+        </Col>
 
-              {/* canto direito: bolinha + chevron */}
-              <span className="d-flex align-items-center gap-2">
-                <StatusDot verificada={!!cordaVerificada} />
-                <span>{usuarioExpandido === user.email ? "▲" : "▼"}</span>
-              </span>
-            </div>
+        {/* DADOS */}
+        <Col xs={12} md={9}>
+          <p>
+            <strong>Nome: </strong>
+            {perfilSel?.nome || "-"}
+          </p>
+          <p>
+            <strong>Apelido: </strong>
+            {perfilSel?.apelido || "-"}
+          </p>
 
-            {usuarioExpandido === user.email && (
-              <div className="mt-3">
-                {carregando && !dadosUsuarios[user.email] ? (
-                  <Loading
-                    variant="block"
-                    size="sm"
-                    message="Carregando dados do usuário..."
-                  />
-                ) : (
-                  <>
-                    <Row className="g-3 align-items-start">
-                      {/* FOTO */}
-                      <Col
-                        xs={12}
-                        md="auto"
-                        className="text-center text-md-start flex-shrink-0"
+          {/* Corda + verificação */}
+          <div className="mb-2">
+            <strong>Corda: </strong>
+            <select
+              className="form-select d-inline w-auto ms-2"
+              value={perfilSel?.corda || ""}
+              onChange={(e) => atualizarCordaPerfil(user.email, e.target.value)}
+            >
+              <option value="">Selecione…</option>
+              {cordasOptions.map((g) => (
+                <optgroup key={g.key} label={g.label}>
+                  {g.slugs.map((slug) => (
+                    <option key={slug} value={slug}>
+                      {getCordaNome(slug)}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            {perfilSel?.cordaVerificada ? (
+              <>
+                {aprovadoBadge}
+                <button
+                  className="btn btn-sm btn-outline-danger ms-2"
+                  onClick={() => toggleVerificacaoCorda(user.email, false)}
+                  title="Revogar confirmação da corda"
+                >
+                  ↺ Revogar
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn btn-sm btn-outline-success ms-2"
+                onClick={() => toggleVerificacaoCorda(user.email, true)}
+                title="Marcar corda como verificada"
+              >
+                ✓ Confirmar corda
+              </button>
+            )}
+          </div>
+
+          <p className="mt-2">
+            <strong>Quando iniciou no grupo: </strong>
+            {perfilSel.inicioNoGrupo
+              ? `${formatarData(perfilSel.inicioNoGrupo)} | ${formatarTempoDeGrupo(
+                  perfilSel.inicioNoGrupo,
+                )}`
+              : "-"}
+          </p>
+
+          <p>
+            <strong>Gênero: </strong>
+            {perfilSel?.genero || "-"}
+          </p>
+          <p>
+            <strong>Raça/Cor:</strong> {perfilSel?.racaCor || "-"}
+          </p>
+          <p>
+            <strong>Data de Nascimento e Idade: </strong>
+            {formatarData(perfilSel?.dataNascimento)}{" "}
+            {(() => {
+              const idade = calcularIdade(perfilSel?.dataNascimento);
+              return idade >= 0 ? `| ${idade} anos` : "";
+            })()}
+          </p>
+
+          <p>
+            <strong>WhatsApp (pessoal):</strong> {perfilSel?.whatsapp || "-"}
+          </p>
+          <p>
+            <strong>Contato de emergência / responsável:</strong>{" "}
+            {perfilSel?.contatoEmergencia || "-"}
+          </p>
+
+          <p>
+            <strong>Endereço: </strong>
+            {perfilSel?.endereco || "-"} / {perfilSel?.complemento}
+          </p>
+          <p>
+            <strong>Local e horário de treino: </strong>
+            {perfilSel?.localTreino || "-"} |{" "}
+            {getHorarioLabel(
+              perfilSel?.localTreino,
+              perfilSel?.horarioTreino,
+            ) || "-"}
+          </p>
+          <p>
+            <strong>Professor referência: </strong>
+            {perfilSel?.professorReferencia || "-"}
+          </p>
+        </Col>
+
+        {/* CERTIFICADOS / TIMELINE */}
+        <Col xs={12}>
+          {tlLoading === user.email ? (
+            <Loading
+              variant="block"
+              size="sm"
+              message="Carregando certificados..."
+            />
+          ) : timeline.length > 0 ? (
+            <>
+              <h5 className="mt-3">Certificados</h5>
+              <ul className="list-unstyled">
+                {timeline
+                  .slice()
+                  .sort((a, b) => (b.data || "").localeCompare(a.data || ""))
+                  .map((item) => {
+                    const isPdf = (item.fileName || "")
+                      .toLowerCase()
+                      .endsWith(".pdf");
+                    const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${
+                      user.email
+                    }/certificados/${encodeURIComponent(item.data)}/${encodeURIComponent(
+                      item.fileName,
+                    )}`;
+
+                    const aprovado = item.status === "approved";
+                    const rejeitado = item.status === "rejected";
+
+                    return (
+                      <li
+                        key={item.id}
+                        className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
                       >
-                        <div style={{ width: 150, marginInline: "auto" }}>
-                          <img
-                            src={url1x}
-                            srcSet={
-                              jaSemAvatar
-                                ? undefined
-                                : `${url1x} 1x, ${url2x} 2x`
-                            }
-                            alt="Foto de perfil"
-                            className="rounded"
+                        <div className="d-flex align-items-center gap-3">
+                          <div
                             style={{
-                              display: "block",
-                              width: "100%",
-                              height: 200,
-                              objectFit: "cover",
-                              border: "2px solid #ccc",
-                              cursor: "zoom-in",
-                            }}
-                            onClick={() => {
-                              setAvatarModalUrl(
-                                jaSemAvatar ? fotoPadrao : url2x
-                              );
-                              setShowAvatarModal(true);
-                            }}
-                            onError={(e) => {
-                              setSemAvatar((prev) => ({
-                                ...prev,
-                                [user.email]: true,
-                              }));
-                              const img = e.currentTarget;
-                              img.onerror = null;
-                              img.removeAttribute("srcset");
-                              img.src = fotoPadrao;
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              background: aprovado
+                                ? "#198754"
+                                : rejeitado
+                                  ? "#dc3545"
+                                  : "#6c757d",
                             }}
                           />
-                        </div>
-
-                        {/* envio pelo admin */}
-                        <div className="mt-3 text-center">
-                          <button
-                            type="button"
-                            className="btn btn-outline-primary btn-sm"
-                            onClick={() =>
-                              setEnvioModalOpenForEmail(user.email)
-                            }
-                            title="Enviar certificado para este aluno"
-                          >
-                            📎 Enviar certificado
-                          </button>
-                        </div>
-                      </Col>
-
-                      {/* DADOS */}
-                      <Col xs={12} md={9}>
-                        <p>
-                          <strong>Nome: </strong>
-                          {perfilSel?.nome || "-"}
-                        </p>
-                        <p>
-                          <strong>Apelido: </strong>
-                          {perfilSel?.apelido || "-"}
-                        </p>
-
-                        {/* Corda + verificação */}
-                        <div className="mb-2">
-                          <strong>Corda: </strong>
-                          <select
-                            className="form-select d-inline w-auto ms-2"
-                            value={perfilSel?.corda || ""}
-                            onChange={(e) =>
-                              atualizarCordaPerfil(user.email, e.target.value)
-                            }
-                          >
-                            <option value="">Selecione…</option>
-                            {cordasOptions.map((g) => (
-                              <optgroup key={g.key} label={g.label}>
-                                {g.slugs.map((slug) => (
-                                  <option key={slug} value={slug}>
-                                    {getCordaNome(slug)}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))}
-                          </select>
-                          {perfilSel?.cordaVerificada ? (
-                            <>
-                              {aprovadoBadge}
-                              <button
-                                className="btn btn-sm btn-outline-danger ms-2"
-                                onClick={() =>
-                                  toggleVerificacaoCorda(user.email, false)
-                                }
-                                title="Revogar confirmação da corda"
-                              >
-                                ↺ Revogar
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              className="btn btn-sm btn-outline-success ms-2"
-                              onClick={() =>
-                                toggleVerificacaoCorda(user.email, true)
-                              }
-                              title="Marcar corda como verificada"
-                            >
-                              ✓ Confirmar corda
-                            </button>
-                          )}
-                        </div>
-
-                        <p className="mt-2">
-                          <strong>Quando iniciou no grupo: </strong>
-                          {perfilSel.inicioNoGrupo
-                            ? `${formatarData(
-                                perfilSel.inicioNoGrupo
-                              )} | ${formatarTempoDeGrupo(
-                                perfilSel.inicioNoGrupo
-                              )}`
-                            : "-"}
-                        </p>
-
-                        <p>
-                          <strong>Gênero: </strong>
-                          {perfilSel?.genero || "-"}
-                        </p>
-                        <p>
-                          <strong>Raça/Cor:</strong> {perfilSel?.racaCor || "-"}
-                        </p>
-                        <p>
-                          <strong>Data de Nascimento e Idade: </strong>
-                          {formatarData(perfilSel?.dataNascimento)}{" "}
-                          {(() => {
-                            const idade = calcularIdade(
-                              perfilSel?.dataNascimento
-                            );
-                            return idade >= 0 ? `| ${idade} anos` : "";
-                          })()}
-                        </p>
-
-                        <p>
-                          <strong>WhatsApp (pessoal):</strong>{" "}
-                          {perfilSel?.whatsapp || "-"}
-                        </p>
-                        <p>
-                          <strong>Contato de emergência / responsável:</strong>{" "}
-                          {perfilSel?.contatoEmergencia || "-"}
-                        </p>
-
-                        <p>
-                          <strong>Endereço: </strong>
-                          {perfilSel?.endereco || "-"} /{" "}
-                          {perfilSel?.complemento}
-                        </p>
-                        <p>
-                          <strong>Local e horário de treino: </strong>
-                          {perfilSel?.localTreino || "-"} |{" "}
-                          {getHorarioLabel(
-                            perfilSel?.localTreino,
-                            perfilSel?.horarioTreino
-                          ) || "-"}
-                        </p>
-                        <p>
-                          <strong>Professor referência: </strong>
-                          {perfilSel?.professorReferencia || "-"}
-                        </p>
-                      </Col>
-
-                      {/* CERTIFICADOS / TIMELINE */}
-                      <Col xs={12}>
-                        {tlLoading === user.email ? (
-                          <Loading
-                            variant="block"
-                            size="sm"
-                            message="Carregando certificados..."
-                          />
-                        ) : timeline.length > 0 ? (
-                          <>
-                            <h5 className="mt-3">Certificados</h5>
-                            <ul className="list-unstyled">
-                              {timeline
-                                .slice()
-                                .sort((a, b) =>
-                                  (b.data || "").localeCompare(a.data || "")
-                                )
-                                .map((item) => {
-                                  const isPdf = (item.fileName || "")
-                                    .toLowerCase()
-                                    .endsWith(".pdf");
-                                  const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${
-                                    user.email
-                                  }/certificados/${encodeURIComponent(
-                                    item.data
-                                  )}/${encodeURIComponent(item.fileName)}`;
-
-                                  const aprovado = item.status === "approved";
-                                  const rejeitado = item.status === "rejected";
-
-                                  return (
-                                    <li
-                                      key={item.id}
-                                      className="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-2"
-                                    >
-                                      <div className="d-flex align-items-center gap-3">
-                                        <div
-                                          style={{
-                                            width: 10,
-                                            height: 10,
-                                            borderRadius: "50%",
-                                            background: aprovado
-                                              ? "#198754"
-                                              : rejeitado
-                                              ? "#dc3545"
-                                              : "#6c757d",
-                                          }}
-                                        />
-                                        <div>
-                                          <div className="fw-semibold">
-                                            {getCordaNome(item.corda) ||
-                                              "(sem corda)"}
-                                          </div>
-                                          <small className="text-muted">
-                                            Data: {formatarData(item.data)} •{" "}
-                                            <span
-                                              className={`badge ${
-                                                aprovado
-                                                  ? "bg-success"
-                                                  : rejeitado
-                                                  ? "bg-danger"
-                                                  : "bg-warning text-dark"
-                                              }`}
-                                            >
-                                              {aprovado
-                                                ? "Confirmada"
-                                                : rejeitado
-                                                ? "Reprovada"
-                                                : "Pendente de confirmação"}
-                                            </span>
-                                          </small>
-                                        </div>
-                                      </div>
-
-                                      <div className="d-flex gap-2">
-                                        <button
-                                          className="btn btn-sm btn-outline-primary"
-                                          onClick={() => {
-                                            setPreviewIsPdf(isPdf);
-                                            setPreviewUrl(fullUrl);
-                                            setShowPreview(true);
-                                          }}
-                                        >
-                                          {isPdf
-                                            ? "📄 Visualizar"
-                                            : "🔍 Visualizar"}
-                                        </button>
-                                        <button
-                                          className="btn btn-sm btn-outline-success"
-                                          onClick={() =>
-                                            handleDownload(fullUrl)
-                                          }
-                                        >
-                                          ⬇️ Download
-                                        </button>
-                                        <button
-                                          className="btn btn-sm btn-outline-success"
-                                          onClick={() =>
-                                            aprovarOuReprovar(
-                                              user.email,
-                                              item,
-                                              "approved"
-                                            )
-                                          }
-                                          disabled={aprovado}
-                                          title="Confirmar certificado"
-                                        >
-                                          ✅ Confirmar
-                                        </button>
-                                        <button
-                                          className="btn btn-sm btn-outline-danger"
-                                          onClick={() =>
-                                            aprovarOuReprovar(
-                                              user.email,
-                                              item,
-                                              "rejected"
-                                            )
-                                          }
-                                          disabled={rejeitado}
-                                          title="Reprovar certificado"
-                                        >
-                                          ✖ Reprovar
-                                        </button>
-                                      </div>
-                                    </li>
-                                  );
-                                })}
-                            </ul>
-                          </>
-                        ) : (
-                          <p className="text-muted mt-3 mb-0">
-                            Nenhum certificado enviado.
-                          </p>
-                        )}
-                      </Col>
-
-                      {/* ACORDEON: Questionário do aluno */}
-                      <Col xs={12} className="mt-3">
-                        <div className="border rounded">
-                          <button
-                            className="w-100 text-start bg-white border-0 px-3 py-2 d-flex justify-content-between align-items-center"
-                            onClick={() =>
-                              setQuestionarioOpen((prev) => ({
-                                ...prev,
-                                [user.email]: !prev[user.email],
-                              }))
-                            }
-                            aria-expanded={!!questionarioOpen[user.email]}
-                            aria-controls={`q-aluno-${user.email}`}
-                            style={{ cursor: "pointer" }}
-                            title="Ver respostas do questionário"
-                          >
-                            <span className="fw-semibold">Questionário</span>
-                            <span>
-                              {questionarioOpen[user.email] ? "▲" : "▼"}
-                            </span>
-                          </button>
-
-                          {questionarioOpen[user.email] && (
-                            <div
-                              id={`q-aluno-${user.email}`}
-                              className="px-3 pb-3"
-                            >
-                              {(() => {
-                                const q =
-                                  (
-                                    dadosUsuarios[user.email]?.questionarios ||
-                                    {}
-                                  ).aluno || {};
-                                return (
-                                  <div className="row g-2 pt-2">
-                                    <div className="col-12">
-                                      <p className="mb-2">
-                                        <strong>Problema de saúde: </strong>
-                                        {b(q.problemaSaude)}
-                                      </p>
-                                    </div>
-                                    <div className="col-12">
-                                      <p className="mb-2">
-                                        <strong>Detalhe:</strong>{" "}
-                                        {q.problemaSaudeDetalhe || "-"}
-                                      </p>
-                                    </div>
-
-                                    <div className="col-12">
-                                      <p className="mb-2">
-                                        <strong>Já praticou capoeira?: </strong>
-                                        {b(q.praticouCapoeira)}
-                                      </p>
-                                    </div>
-                                    <div className="col-12">
-                                      <p className="mb-2">
-                                        <strong>Histórico na capoeira: </strong>
-                                        {q.historicoCapoeira || "-"}
-                                      </p>
-                                    </div>
-
-                                    <div className="col-12">
-                                      <p className="mb-2">
-                                        <strong>
-                                          Outro esporte/atividade cultural?{" "}
-                                        </strong>
-                                        {b(q.outroEsporte)}
-                                      </p>
-                                    </div>
-                                    <div className="col-12">
-                                      <p className="mb-2">
-                                        <strong>
-                                          Detalhe do outro esporte:{" "}
-                                        </strong>
-                                        {q.outroEsporteDetalhe || "-"}
-                                      </p>
-                                    </div>
-
-                                    <div className="col-12">
-                                      <p className="mb-2">
-                                        <strong>
-                                          Já ficou algum tempo sem treinar
-                                          capoeira? Por quanto tempo? Motivo?:{" "}
-                                        </strong>
-                                        {q.hiatoSemTreinar || "-"}
-                                      </p>
-                                    </div>
-
-                                    <div className="col-12">
-                                      <p className="mb-2">
-                                        <strong>
-                                          Objetivos com a capoeira:{" "}
-                                        </strong>
-                                        {q.objetivosCapoeira || "-"}
-                                      </p>
-                                    </div>
-
-                                    <div className="col-12">
-                                      <p className="mb-0">
-                                        <strong>
-                                          Sugestões para o ICMBC crescer
-                                          positivamente:
-                                        </strong>{" "}
-                                        {q.sugestoesPontoDeCultura || "-"}
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
+                          <div>
+                            <div className="fw-semibold">
+                              {getCordaNome(item.corda) || "(sem corda)"}
                             </div>
-                          )}
-                        </div>
-                      </Col>
-
-                      {/* Controles de Nível e Permissões */}
-                      <Col xs={12}>
-                        <div className="pt-3 mt-2 border-top d-flex flex-wrap align-items-center gap-3">
-                          <div>
-                            <strong>Nível de Acesso: </strong>
-                            {user.email === mestreEmail ? (
-                              <span className="badge bg-dark ms-2">Mestre</span>
-                            ) : (
-                              <select
-                                className="form-select d-inline w-auto ms-2"
-                                value={nivel}
-                                onChange={(e) =>
-                                  atualizarNivel(user.email, e.target.value)
-                                }
+                            <small className="text-muted">
+                              Data: {formatarData(item.data)} •{" "}
+                              <span
+                                className={`badge ${
+                                  aprovado
+                                    ? "bg-success"
+                                    : rejeitado
+                                      ? "bg-danger"
+                                      : "bg-warning text-dark"
+                                }`}
                               >
-                                {NIVEIS.map((n) => (
-                                  <option key={n} value={n}>
-                                    {n[0].toUpperCase() + n.slice(1)}
-                                  </option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-
-                          <div>
-                            <strong>Permissão nos eventos: </strong>
-                            <select
-                              className="form-select d-inline w-auto ms-2"
-                              value={permissaoEventos}
-                              onChange={(e) =>
-                                atualizarPermissaoEventos(
-                                  user.email,
-                                  e.target.value
-                                )
-                              }
-                              disabled={!podeEditarPerm}
-                              title={
-                                podeEditarPerm
-                                  ? "Defina se é leitor ou editor dos álbuns"
-                                  : "Disponível apenas para nível 'Graduado' ou acima"
-                              }
-                            >
-                              <option value="leitor">Leitor</option>
-                              <option value="editor">Editor</option>
-                            </select>
-                            {!podeEditarPerm && (
-                              <small className="text-muted ms-2">
-                                (bloqueado: requer nível ≥ Graduado)
-                              </small>
-                            )}
-                          </div>
-
-                          <div>
-                            <strong>Permitir edição do Questionário: </strong>
-                            <select
-                              className="form-select d-inline w-auto ms-2"
-                              value={
-                                dadosUsuarios[user.email]
-                                  ?.podeEditarQuestionario
-                                  ? "true"
-                                  : "false"
-                              }
-                              onChange={(e) =>
-                                atualizarPermissaoQuestionario(
-                                  user.email,
-                                  e.target.value === "true"
-                                )
-                              }
-                              disabled={!podeEditarQuest}
-                              title={
-                                podeEditarQuest
-                                  ? "Controla se o aluno pode reabrir e editar o próprio questionário"
-                                  : "Disponível apenas para nível 'Aluno' ou acima"
-                              }
-                            >
-                              <option value="false">Desativado</option>
-                              <option value="true">Ativado</option>
-                            </select>
-                            {!podeEditarQuest && (
-                              <small className="text-muted ms-2">
-                                (bloqueado: requer nível ≥ Aluno)
-                              </small>
-                            )}
+                                {aprovado
+                                  ? "Confirmada"
+                                  : rejeitado
+                                    ? "Reprovada"
+                                    : "Pendente de confirmação"}
+                              </span>
+                            </small>
                           </div>
                         </div>
-                      </Col>
-                    </Row>
-                  </>
-                )}
+
+                        <div className="d-flex gap-2">
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => {
+                              setPreviewIsPdf(isPdf);
+                              setPreviewUrl(fullUrl);
+                              setShowPreview(true);
+                            }}
+                          >
+                            {isPdf ? "📄 Visualizar" : "🔍 Visualizar"}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-success"
+                            onClick={() => handleDownload(fullUrl)}
+                          >
+                            ⬇️ Download
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-success"
+                            onClick={() =>
+                              aprovarOuReprovar(user.email, item, "approved")
+                            }
+                            disabled={aprovado}
+                            title="Confirmar certificado"
+                          >
+                            ✅ Confirmar
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() =>
+                              aprovarOuReprovar(user.email, item, "rejected")
+                            }
+                            disabled={rejeitado}
+                            title="Reprovar certificado"
+                          >
+                            ✖ Reprovar
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </>
+          ) : (
+            <p className="text-muted mt-3 mb-0">Nenhum certificado enviado.</p>
+          )}
+        </Col>
+
+        {/* ACORDEON: Questionário do aluno */}
+        <Col xs={12} className="mt-3">
+          <div className="border rounded">
+            <button
+              className="w-100 text-start bg-white border-0 px-3 py-2 d-flex justify-content-between align-items-center"
+              onClick={() =>
+                setQuestionarioOpen((prev) => ({
+                  ...prev,
+                  [user.email]: !prev[user.email],
+                }))
+              }
+              aria-expanded={!!questionarioOpen[user.email]}
+              aria-controls={`q-aluno-${user.email}`}
+              style={{ cursor: "pointer" }}
+              title="Ver respostas do questionário"
+            >
+              <span className="fw-semibold">Questionário</span>
+              <span>{questionarioOpen[user.email] ? "▲" : "▼"}</span>
+            </button>
+
+            {questionarioOpen[user.email] && (
+              <div id={`q-aluno-${user.email}`} className="px-3 pb-3">
+                {(() => {
+                  const q =
+                    (dadosUsuarios[user.email]?.questionarios || {}).aluno ||
+                    {};
+                  return (
+                    <div className="row g-2 pt-2">
+                      <div className="col-12">
+                        <p className="mb-2">
+                          <strong>Problema de saúde: </strong>
+                          {b(q.problemaSaude)}
+                        </p>
+                      </div>
+                      <div className="col-12">
+                        <p className="mb-2">
+                          <strong>Detalhe:</strong>{" "}
+                          {q.problemaSaudeDetalhe || "-"}
+                        </p>
+                      </div>
+
+                      <div className="col-12">
+                        <p className="mb-2">
+                          <strong>Já praticou capoeira?: </strong>
+                          {b(q.praticouCapoeira)}
+                        </p>
+                      </div>
+                      <div className="col-12">
+                        <p className="mb-2">
+                          <strong>Histórico na capoeira: </strong>
+                          {q.historicoCapoeira || "-"}
+                        </p>
+                      </div>
+
+                      <div className="col-12">
+                        <p className="mb-2">
+                          <strong>Outro esporte/atividade cultural? </strong>
+                          {b(q.outroEsporte)}
+                        </p>
+                      </div>
+                      <div className="col-12">
+                        <p className="mb-2">
+                          <strong>Detalhe do outro esporte: </strong>
+                          {q.outroEsporteDetalhe || "-"}
+                        </p>
+                      </div>
+
+                      <div className="col-12">
+                        <p className="mb-2">
+                          <strong>
+                            Já ficou algum tempo sem treinar capoeira? Por
+                            quanto tempo? Motivo?:{" "}
+                          </strong>
+                          {q.hiatoSemTreinar || "-"}
+                        </p>
+                      </div>
+
+                      <div className="col-12">
+                        <p className="mb-2">
+                          <strong>Objetivos com a capoeira: </strong>
+                          {q.objetivosCapoeira || "-"}
+                        </p>
+                      </div>
+
+                      <div className="col-12">
+                        <p className="mb-0">
+                          <strong>
+                            Sugestões para o ICMBC crescer positivamente:
+                          </strong>{" "}
+                          {q.sugestoesPontoDeCultura || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
-        );
-      })}
+        </Col>
+
+        {/* Controles de Nível e Permissões */}
+        <Col xs={12}>
+          <div className="pt-3 mt-2 border-top d-flex flex-wrap align-items-center gap-3">
+            <div>
+              <strong>Nível de Acesso: </strong>
+              {user.email === mestreEmail ? (
+                <span className="badge bg-dark ms-2">Mestre</span>
+              ) : (
+                <select
+                  className="form-select d-inline w-auto ms-2"
+                  value={nivel}
+                  onChange={(e) => atualizarNivel(user.email, e.target.value)}
+                >
+                  {NIVEIS.map((n) => (
+                    <option key={n} value={n}>
+                      {n[0].toUpperCase() + n.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div>
+              <strong>Permissão nos eventos: </strong>
+              <select
+                className="form-select d-inline w-auto ms-2"
+                value={permissaoEventos}
+                onChange={(e) =>
+                  atualizarPermissaoEventos(user.email, e.target.value)
+                }
+                disabled={!podeEditarPerm}
+                title={
+                  podeEditarPerm
+                    ? "Defina se é leitor ou editor dos álbuns"
+                    : "Disponível apenas para nível 'Graduado' ou acima"
+                }
+              >
+                <option value="leitor">Leitor</option>
+                <option value="editor">Editor</option>
+              </select>
+              {!podeEditarPerm && (
+                <small className="text-muted ms-2">
+                  (bloqueado: requer nível ≥ Graduado)
+                </small>
+              )}
+            </div>
+
+            <div>
+              <strong>Permitir edição do Questionário: </strong>
+              <select
+                className="form-select d-inline w-auto ms-2"
+                value={
+                  dadosUsuarios[user.email]?.podeEditarQuestionario
+                    ? "true"
+                    : "false"
+                }
+                onChange={(e) =>
+                  atualizarPermissaoQuestionario(
+                    user.email,
+                    e.target.value === "true",
+                  )
+                }
+                disabled={!podeEditarQuest}
+                title={
+                  podeEditarQuest
+                    ? "Controla se o aluno pode reabrir e editar o próprio questionário"
+                    : "Disponível apenas para nível 'Aluno' ou acima"
+                }
+              >
+                <option value="false">Desativado</option>
+                <option value="true">Ativado</option>
+              </select>
+              {!podeEditarQuest && (
+                <small className="text-muted ms-2">
+                  (bloqueado: requer nível ≥ Aluno)
+                </small>
+              )}
+            </div>
+          </div>
+        </Col>
+      </Row>
+    );
+  };
+
+  const renderUserListItem = (user) => {
+    const perfilSel = dadosUsuarios[user.email] || {};
+
+    const cordaVerificada =
+      perfilSel.cordaVerificada ??
+      (typeof user.cordaVerificada === "boolean"
+        ? user.cordaVerificada
+        : false);
+
+    const aprovadoBadge = (
+      <span className="badge bg-success ms-2">Confirmada</span>
+    );
+
+    return (
+      <div
+        key={user.email}
+        className="border rounded mb-3 p-3 bg-light shadow-sm"
+      >
+        {/* Cabeçalho do card */}
+        <div
+          className="d-flex justify-content-between align-items-center"
+          onClick={() => toggleAccordion(user.email)}
+          style={{ cursor: "pointer" }}
+        >
+          <span className="text-truncate">
+            <strong>{user.nome}</strong> ({user.email})
+          </span>
+
+          {/* canto direito: bolinha + chevron */}
+          <span className="d-flex align-items-center gap-2">
+            <StatusDot verificada={!!cordaVerificada} />
+            <span>{usuarioExpandido === user.email ? "▲" : "▼"}</span>
+          </span>
+        </div>
+
+        {usuarioExpandido === user.email && (
+          <div className="mt-3">
+            {carregando && !dadosUsuarios[user.email] ? (
+              <Loading
+                variant="block"
+                size="sm"
+                message="Carregando dados do usuário..."
+              />
+            ) : (
+              renderUserDetails(user)
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderUserCard = (user) => {
+    const perfilSel = dadosUsuarios[user.email] || {};
+    const jaSemAvatar = !!semAvatar[user.email];
+    const url1x = jaSemAvatar ? fotoPadrao : avatarUrl1x(user.email);
+    const url2x = jaSemAvatar ? "" : avatarUrl2x(user.email);
+
+    const cordaSlug = perfilSel?.corda || user.corda || "";
+    const cordaNome = getCordaNome(cordaSlug) || "-";
+
+    return (
+      <Col key={user.email} xs={12} sm={6} lg={4} className="mb-3">
+        <div
+          className="border rounded bg-white shadow-sm h-100 p-3"
+          role="button"
+          tabIndex={0}
+          style={{ cursor: "pointer" }}
+          onClick={() => openUserModal(user.email)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openUserModal(user.email);
+            }
+          }}
+        >
+          <div className="d-flex align-items-center gap-3">
+            <img
+              src={url1x}
+              srcSet={jaSemAvatar ? undefined : `${url1x} 1x, ${url2x} 2x`}
+              alt="Foto de perfil"
+              className="rounded-circle flex-shrink-0"
+              style={{ width: 64, height: 64, objectFit: "cover" }}
+              onError={(e) => {
+                setSemAvatar((prev) => ({
+                  ...prev,
+                  [user.email]: true,
+                }));
+                const img = e.currentTarget;
+                img.onerror = null;
+                img.removeAttribute("srcset");
+                img.src = fotoPadrao;
+              }}
+            />
+            <div className="flex-grow-1">
+              <div className="fw-semibold text-truncate">{user.nome}</div>
+              <div className="text-muted small">Corda: {cordaNome}</div>
+            </div>
+          </div>
+        </div>
+      </Col>
+    );
+  };
+
+  const renderSection = (title, users) => (
+    <section className="mb-4">
+      <h4 className="mb-3">{title}</h4>
+      {users.length === 0 ? (
+        <p className="text-muted">Nenhum aluno neste local.</p>
+      ) : viewMode === "list" ? (
+        ordenarUsuarios(users).map((user) => renderUserListItem(user))
+      ) : (
+        <Row className="g-3">
+          {ordenarUsuarios(users).map((user) => renderUserCard(user))}
+        </Row>
+      )}
+    </section>
+  );
+
+  const modalUser = modalUserEmail
+    ? usuarios.find((u) => u.email === modalUserEmail)
+    : null;
+
+  return (
+    <Container className="py-4">
+      <h2 className="mb-4 text-center">Painel Administrativo</h2>
+      <div className="d-flex flex-wrap justify-content-center gap-2 mb-4">
+        <button
+          type="button"
+          className={`btn btn-sm ${
+            viewMode === "list" ? "btn-primary" : "btn-outline-primary"
+          }`}
+          onClick={() => setViewMode("list")}
+        >
+          Lista
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${
+            viewMode === "cards" ? "btn-primary" : "btn-outline-primary"
+          }`}
+          onClick={() => setViewMode("cards")}
+        >
+          Blocos
+        </button>
+
+        <select
+          className="form-select form-select-sm w-auto"
+          value={sortMode}
+          onChange={(e) => setSortMode(e.target.value)}
+          aria-label="Ordenacao"
+        >
+          <option value="nome-asc">Nome (A-Z)</option>
+          <option value="nome-desc">Nome (Z-A)</option>
+          <option value="idade-asc">Idade (crescente)</option>
+          <option value="idade-desc">Idade (decrescente)</option>
+        </select>
+
+        <select
+          className="form-select form-select-sm w-auto"
+          value={cordaFilter}
+          onChange={(e) => setCordaFilter(e.target.value)}
+          aria-label="Filtrar por corda"
+        >
+          <option value="all">Todas as cordas</option>
+          <option value="none">Sem corda</option>
+          {cordasOptions.map((g) => (
+            <optgroup key={g.key} label={g.label}>
+              {g.slugs.map((slug) => (
+                <option key={slug} value={slug}>
+                  {getCordaNome(slug)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+
+      {renderSection(LOCAL_SALGADO, gruposTreino.salgado)}
+      {renderSection(LOCAL_EFIGENIA, gruposTreino.efigenia)}
+      {gruposTreino.outros.length > 0 &&
+        renderSection("Outros locais / Não Informado", gruposTreino.outros)}
+
+      {/* Modal: detalhes do aluno (visualizacao em blocos) */}
+      <Modal
+        show={!!modalUserEmail}
+        onHide={closeUserModal}
+        size="xl"
+        centered
+        scrollable
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>{modalUser?.nome || "Detalhes do aluno"}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {modalUserEmail && carregando && !dadosUsuarios[modalUserEmail] ? (
+            <Loading
+              variant="block"
+              size="sm"
+              message="Carregando dados do usuário..."
+            />
+          ) : modalUser ? (
+            renderUserDetails(modalUser)
+          ) : modalUserEmail ? (
+            <p className="text-muted mb-0">Aluno não encontrado.</p>
+          ) : null}
+        </Modal.Body>
+      </Modal>
 
       {/* Modal de preview de arquivo */}
       <Modal

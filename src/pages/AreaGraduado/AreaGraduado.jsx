@@ -1648,13 +1648,13 @@ const AreaGraduado = () => {
                         <tr>
                           <th style={{ minWidth: 220 }}>Nome</th>
                           <th className="text-center" style={{ minWidth: 90 }}>
-                            Presenças
+                            Presenças (mês)
                           </th>
                           <th className="text-center" style={{ minWidth: 90 }}>
-                            Faltas
+                            Faltas (mês)
                           </th>
                           <th className="text-center" style={{ minWidth: 70 }}>
-                            %
+                            % (mês)
                           </th>
                           <th className="text-center" style={{ minWidth: 110 }}>
                             Presenças (ano)

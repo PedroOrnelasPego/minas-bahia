@@ -433,12 +433,28 @@ const AreaGraduado = () => {
       const dias = getDiasDeAulaNoMes(monthISO);
       setChamadaDias(dias);
 
-      const raw = localStorage.getItem(getChamadaKey(monthISO));
-      const saved = raw ? JSON.parse(raw) : null;
-      const entries =
-        saved?.entries && typeof saved.entries === "object"
-          ? saved.entries
-          : {};
+      // tenta carregar do backend (Azure Blob). Se não existir/der erro, cai no localStorage.
+      let entries = {};
+      try {
+        const res = await http.get(`${API_URL}/chamada`, {
+          params: { month: monthISO },
+        });
+        const serverData = res?.data?.data;
+        if (serverData?.entries && typeof serverData.entries === "object") {
+          entries = serverData.entries;
+        }
+      } catch {
+        // fallback local (compatibilidade)
+        try {
+          const raw = localStorage.getItem(getChamadaKey(monthISO));
+          const saved = raw ? JSON.parse(raw) : null;
+          if (saved?.entries && typeof saved.entries === "object") {
+            entries = saved.entries;
+          }
+        } catch {
+          entries = {};
+        }
+      }
 
       const base = {};
       for (const d of dias) {
@@ -488,15 +504,30 @@ const AreaGraduado = () => {
     }
 
     try {
+      // 1) salva local (backup / compatibilidade)
       localStorage.setItem(
         getChamadaKey(chamadaMonthISO),
         JSON.stringify(payload),
       );
-      showSuccess("Chamada salva.");
-      setShowChamada(false);
     } catch {
-      showError("Não foi possível salvar a chamada neste dispositivo.");
+      // não bloqueia: ainda tentaremos salvar no servidor
     }
+
+    // 2) salva no servidor (Azure Blob)
+    http
+      .put(`${API_URL}/chamada`, payload, {
+        params: { month: chamadaMonthISO },
+      })
+      .then(() => {
+        showSuccess("Chamada salva.");
+        setShowChamada(false);
+      })
+      .catch((e) => {
+        console.error(e);
+        showError(
+          "Não foi possível salvar a chamada no servidor. Ela pode ter ficado salva apenas neste dispositivo.",
+        );
+      });
   };
 
   // ===== Foto: seleção / corte / upload =====

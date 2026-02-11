@@ -118,6 +118,17 @@ const AreaGraduado = () => {
   const [showCalendario, setShowCalendario] = useState(false);
   const [aniversarios, setAniversarios] = useState([]);
 
+  // ===== Chamada (Monitor+) =====
+  const [showChamada, setShowChamada] = useState(false);
+  const [chamadaLoading, setChamadaLoading] = useState(false);
+  const [chamadaMonthISO, setChamadaMonthISO] = useState(() =>
+    new Date().toISOString().slice(0, 7),
+  ); // YYYY-MM
+  const [chamadaView, setChamadaView] = useState("chamada"); // 'chamada' | 'frequencia'
+  const [chamadaLista, setChamadaLista] = useState([]); // [{ email, nome }]
+  const [chamadaDias, setChamadaDias] = useState([]); // [{ dateISO, label, weekday }]
+  const [chamadaPresencas, setChamadaPresencas] = useState({}); // { [dateISO]: { [email]: true } }
+
   const [cep, setCep] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [logradouro, setLogradouro] = useState("");
@@ -154,7 +165,7 @@ const AreaGraduado = () => {
     if (!item?.nome || !userData?.email) return;
     const isPdf = item.nome.toLowerCase().endsWith(".pdf");
     const url = `${BLOB_BASE}/${encodeURIComponent(
-      userData.email
+      userData.email,
     )}/laudos/${encodeURIComponent(item.nome)}`;
     setLaudoPreviewIsPdf(isPdf);
     setLaudoPreviewUrl(url);
@@ -201,9 +212,9 @@ const AreaGraduado = () => {
   const openTimelinePreview = (item) => {
     const isPdf = (item.fileName || "").toLowerCase().endsWith(".pdf");
     const url = `${BLOB_BASE}/${encodeURIComponent(
-      userData.email
+      userData.email,
     )}/certificados/${encodeURIComponent(item.data)}/${encodeURIComponent(
-      item.fileName
+      item.fileName,
     )}`;
     setTlPreviewIsPdf(isPdf);
     setTlPreviewUrl(url);
@@ -215,7 +226,7 @@ const AreaGraduado = () => {
     // trava: não excluir certificados já verificados pelo Mestre
     if (item?.status === "approved") {
       showError(
-        "Este certificado já foi confirmado pelo Mestre e não pode ser excluído."
+        "Este certificado já foi confirmado pelo Mestre e não pode ser excluído.",
       );
       return;
     }
@@ -224,8 +235,8 @@ const AreaGraduado = () => {
       const blobPath = buildBlobPath(item);
       await http.delete(
         `${API_URL}/upload?email=${encodeURIComponent(
-          userData.email
-        )}&arquivo=${encodeURIComponent(blobPath)}`
+          userData.email,
+        )}&arquivo=${encodeURIComponent(blobPath)}`,
       );
 
       setCertTimeline((prev) => prev.filter((x) => x.id !== item.id));
@@ -370,6 +381,124 @@ const AreaGraduado = () => {
       .catch(() => setAniversarios([]));
   }, [showCalendario]);
 
+  // ===== Chamada (Monitor+) =====
+  const getChamadaKey = (monthISO) => `mbc_chamada_v2:${monthISO}`;
+
+  const getDiasDeAulaNoMes = (monthISO) => {
+    const [yy, mm] = String(monthISO)
+      .split("-")
+      .map((x) => Number(x));
+    if (!yy || !mm) return [];
+
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const dias = [];
+    const lastDay = new Date(yy, mm, 0).getDate();
+
+    for (let day = 1; day <= lastDay; day++) {
+      const d = new Date(yy, mm - 1, day);
+      const dow = d.getDay();
+      // aulas: terça (2) e quinta (4)
+      if (dow !== 2 && dow !== 4) continue;
+
+      const dateISO = `${yy}-${pad2(mm)}-${pad2(day)}`;
+      dias.push({
+        dateISO,
+        label: d.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+        }),
+        weekday: d.toLocaleDateString("pt-BR", { weekday: "short" }),
+      });
+    }
+
+    return dias;
+  };
+
+  const carregarChamada = async (monthISO = chamadaMonthISO) => {
+    setChamadaLoading(true);
+    try {
+      const { data } = await http.get(`${API_URL}/perfil`);
+      const list = Array.isArray(data) ? data : data?.data || [];
+      const normalized = (Array.isArray(list) ? list : [])
+        .filter((u) => !isPerfilIncompleto(u))
+        .map((u) => ({
+          email: u.email || u.id || "",
+          nome: (u.nome || "").trim(),
+        }))
+        .filter((u) => !!u.email)
+        .sort((a, b) => (a.nome || a.email).localeCompare(b.nome || b.email));
+
+      setChamadaLista(normalized);
+
+      const dias = getDiasDeAulaNoMes(monthISO);
+      setChamadaDias(dias);
+
+      const raw = localStorage.getItem(getChamadaKey(monthISO));
+      const saved = raw ? JSON.parse(raw) : null;
+      const entries =
+        saved?.entries && typeof saved.entries === "object"
+          ? saved.entries
+          : {};
+
+      const base = {};
+      for (const d of dias) {
+        const presentesNoDia = new Set(
+          Array.isArray(entries?.[d.dateISO]) ? entries[d.dateISO] : [],
+        );
+        base[d.dateISO] = {};
+        for (const u of normalized) {
+          base[d.dateISO][u.email] = presentesNoDia.has(u.email);
+        }
+      }
+
+      setChamadaPresencas(base);
+    } catch (e) {
+      console.error(e);
+      showError("Não foi possível carregar a lista para chamada.");
+      setChamadaLista([]);
+      setChamadaDias([]);
+      setChamadaPresencas({});
+    } finally {
+      setChamadaLoading(false);
+    }
+  };
+
+  const abrirChamada = async () => {
+    const monthISO = new Date().toISOString().slice(0, 7);
+    setChamadaMonthISO(monthISO);
+    setChamadaView("chamada");
+    setShowChamada(true);
+    await carregarChamada(monthISO);
+  };
+
+  const salvarChamada = () => {
+    const payload = {
+      monthISO: chamadaMonthISO,
+      preenchidoPor: userData.email,
+      entries: {},
+      totalPessoas: chamadaLista.length,
+      updatedAt: new Date().toISOString(),
+    };
+
+    for (const d of chamadaDias) {
+      const presentes = Object.entries(chamadaPresencas?.[d.dateISO] || {})
+        .filter(([, v]) => v === true)
+        .map(([email]) => email);
+      payload.entries[d.dateISO] = presentes;
+    }
+
+    try {
+      localStorage.setItem(
+        getChamadaKey(chamadaMonthISO),
+        JSON.stringify(payload),
+      );
+      showSuccess("Chamada salva.");
+      setShowChamada(false);
+    } catch {
+      showError("Não foi possível salvar a chamada neste dispositivo.");
+    }
+  };
+
   // ===== Foto: seleção / corte / upload =====
   const handleFotoChange = (e) => {
     hideFeedback();
@@ -422,7 +551,7 @@ const AreaGraduado = () => {
       setAvatar2x(null);
       setTemFotoRemota(true);
       setFotoPreview(
-        `${BLOB_BASE}/${userData.email}/foto-perfil@1x.jpg?${Date.now()}`
+        `${BLOB_BASE}/${userData.email}/foto-perfil@1x.jpg?${Date.now()}`,
       );
     } catch (e) {
       console.error(e);
@@ -434,7 +563,7 @@ const AreaGraduado = () => {
     hideFeedback();
     try {
       await http.delete(
-        `${API_URL}/upload/foto-perfil?email=${userData.email}`
+        `${API_URL}/upload/foto-perfil?email=${userData.email}`,
       );
       setFotoPreview(fotoPadrao);
       setAvatar1x(null);
@@ -532,7 +661,7 @@ const AreaGraduado = () => {
       "corda",
     ];
     const vazios = obrigatorios.filter(
-      (campo) => !formEdit[campo] || formEdit[campo].trim() === ""
+      (campo) => !formEdit[campo] || formEdit[campo].trim() === "",
     );
     if (vazios?.length > 0) {
       showError("Preencha todos os campos obrigatórios.");
@@ -567,11 +696,11 @@ const AreaGraduado = () => {
 
       if (status === 401) {
         showError(
-          "Não foi possível salvar (401). Isso pode acontecer no celular se o navegador bloqueou a sessão. Tente novamente."
+          "Não foi possível salvar (401). Isso pode acontecer no celular se o navegador bloqueou a sessão. Tente novamente.",
         );
       } else if (status === 409) {
         showError(
-          "Não foi possível salvar: CPF já cadastrado em outra conta. Verifique."
+          "Não foi possível salvar: CPF já cadastrado em outra conta. Verifique.",
         );
       } else {
         showError(detalhe);
@@ -632,7 +761,7 @@ const AreaGraduado = () => {
   const b = (v) => (v === true ? "Sim" : v === false ? "Não" : "-");
 
   const sortedTimeline = [...certTimeline].sort((a, b) =>
-    (b.data || "").localeCompare(a.data || "")
+    (b.data || "").localeCompare(a.data || ""),
   );
 
   // 🔒 trava de envio/exclusão após verificação da corda
@@ -682,8 +811,8 @@ const AreaGraduado = () => {
                 !canAccess(1)
                   ? "Disponível apenas para nível 'Aluno' ou superior"
                   : !podeEditarQuestionario
-                  ? "Edição desativada pelo Mestre no Painel Admin"
-                  : ""
+                    ? "Edição desativada pelo Mestre no Painel Admin"
+                    : ""
               }
               onClick={() => setShowQuestionarioAluno(true)}
             >
@@ -726,7 +855,7 @@ const AreaGraduado = () => {
                     isRemotePreview && fotoPreview.includes("@1x")
                       ? `${fotoPreview} 1x, ${fotoPreview.replace(
                           "@1x",
-                          "@2x"
+                          "@2x",
                         )} 2x`
                       : undefined
                   }
@@ -800,7 +929,7 @@ const AreaGraduado = () => {
                   <strong>Quando iniciou no grupo: </strong>
                   {perfil.inicioNoGrupo
                     ? `${formatarData(
-                        perfil.inicioNoGrupo
+                        perfil.inicioNoGrupo,
                       )} | ${formatarTempoDeGrupo(perfil.inicioNoGrupo)}`
                     : "-"}
                 </p>
@@ -815,7 +944,7 @@ const AreaGraduado = () => {
                   <strong>Data de Nascimento e Idade: </strong>
                   {perfil.dataNascimento
                     ? `${formatarData(perfil.dataNascimento)} | ${calcularIdade(
-                        perfil.dataNascimento
+                        perfil.dataNascimento,
                       )} anos`
                     : "-"}
                 </p>
@@ -872,7 +1001,8 @@ const AreaGraduado = () => {
                               <div className="col-12">
                                 <p className="mb-2">
                                   <strong>
-                                    Se sim, qual problema de saúde você possui?:{" "}
+                                    Se sim, qual problema de saúde você
+                                    possui?:{" "}
                                   </strong>
                                   {q.problemaSaudeDetalhe || "-"}
                                 </p>
@@ -926,7 +1056,8 @@ const AreaGraduado = () => {
                               <div className="col-12">
                                 <p className="mb-2">
                                   <strong>
-                                    Quais os seus objetivos com a capoeira?:{" "}
+                                    Quais os seus objetivos com a
+                                    capoeira?:{" "}
                                   </strong>
                                   {q.objetivosCapoeira || "-"}
                                 </p>
@@ -1035,7 +1166,6 @@ const AreaGraduado = () => {
 
                     const aprovado = item.status === "approved";
                     const rejeitado = item.status === "rejected";
-                    const pendente = !aprovado && !rejeitado;
                     const bloqueadoPorAprovacao = aprovado;
 
                     return (
@@ -1052,8 +1182,8 @@ const AreaGraduado = () => {
                               background: aprovado
                                 ? "#198754"
                                 : rejeitado
-                                ? "#dc3545"
-                                : "#6c757d",
+                                  ? "#dc3545"
+                                  : "#6c757d",
                             }}
                           />
                           <div>
@@ -1065,15 +1195,15 @@ const AreaGraduado = () => {
                                   aprovado
                                     ? "bg-success"
                                     : rejeitado
-                                    ? "bg-danger"
-                                    : "bg-warning text-dark"
+                                      ? "bg-danger"
+                                      : "bg-warning text-dark"
                                 }`}
                               >
                                 {aprovado
                                   ? "Confirmada"
                                   : rejeitado
-                                  ? "Reprovada"
-                                  : "Pendente de confirmação"}
+                                    ? "Reprovada"
+                                    : "Pendente de confirmação"}
                               </span>
                             </small>
                           </div>
@@ -1097,8 +1227,8 @@ const AreaGraduado = () => {
                               envioBloqueado
                                 ? "Envio/exclusão desativados: sua corda já foi confirmada."
                                 : bloqueadoPorAprovacao
-                                ? "Este certificado foi confirmado pelo Mestre e não pode ser excluído."
-                                : "Excluir este arquivo"
+                                  ? "Este certificado foi confirmado pelo Mestre e não pode ser excluído."
+                                  : "Excluir este arquivo"
                             }
                           >
                             🗑 Excluir
@@ -1139,27 +1269,34 @@ const AreaGraduado = () => {
 
       {canAccess(3) && (
         <Row className="mt-4">
-          <Col md={12} className="border p-3">
-            <div
-              className="align-items-center"
-              style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr" }}
-            >
-              <div />
+          <Col md={12} className="border p-4">
+            <div className="d-flex flex-column align-items-center gap-2">
+              <div className="d-flex justify-content-center gap-2 flex-wrap w-100">
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm d-inline-flex flex-row align-items-center gap-1 text-nowrap"
+                  onClick={() => setShowCalendario(true)}
+                  title="Abrir calendário de aniversários"
+                >
+                  <span aria-hidden="true">🎂</span>
+                  <span>Aniversários</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm d-inline-flex flex-row align-items-center gap-1 text-nowrap"
+                  onClick={abrirChamada}
+                  title="Abrir lista de chamada"
+                >
+                  <span aria-hidden="true">📋</span>
+                  <span>Chamada (em teste)</span>
+                </button>
+              </div>
+
               <div className="text-center">
                 <h5 className="mb-1">Arquivos para Monitores(as)</h5>
                 <p className="mb-0 text-muted">
                   Área para documentos de download público
                 </p>
-              </div>
-              <div className="text-end">
-                <button
-                  type="button"
-                  className="btn btn-outline-primary btn-sm"
-                  onClick={() => setShowCalendario(true)}
-                  title="Abrir calendário de aniversários"
-                >
-                  🎂 Calendário de Aniversário
-                </button>
               </div>
             </div>
 
@@ -1315,6 +1452,293 @@ const AreaGraduado = () => {
         <Modal.Body>
           <CalendarioAniversarios aniversarios={aniversarios} />
         </Modal.Body>
+      </Modal>
+
+      {/* Modal: Chamada (Monitor+) */}
+      <Modal
+        show={showChamada}
+        onHide={() => setShowChamada(false)}
+        size="xl"
+        fullscreen="sm-down"
+        centered
+        scrollable
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Chamada</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="d-flex align-items-end justify-content-between gap-2 flex-wrap mb-2">
+            <div className="text-muted">
+              Hoje: {new Date().toLocaleDateString("pt-BR")}
+            </div>
+            <label className="d-flex flex-column" style={{ minWidth: 180 }}>
+              <span className="small text-muted">Mês</span>
+              <input
+                type="month"
+                className="form-control form-control-sm"
+                value={chamadaMonthISO}
+                onChange={async (e) => {
+                  const next = e.target.value;
+                  setChamadaMonthISO(next);
+                  await carregarChamada(next);
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="d-flex justify-content-end mb-2">
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() =>
+                setChamadaView((v) =>
+                  v === "frequencia" ? "chamada" : "frequencia",
+                )
+              }
+              disabled={chamadaLoading}
+              title={
+                chamadaView === "frequencia"
+                  ? "Voltar para edição da chamada"
+                  : "Ver frequência do mês selecionado"
+              }
+            >
+              {chamadaView === "frequencia" ? "Voltar" : "Ver frequência"}
+            </button>
+          </div>
+
+          <div className="small text-muted mb-2">
+            Observação: quem ainda não concluiu o cadastro não aparece aqui.
+          </div>
+
+          <div className="small text-muted d-sm-none mb-2">
+            Arraste a tabela para o lado (ou gire o celular na horizontal).
+          </div>
+
+          {chamadaLoading ? (
+            <Loading variant="block" size="sm" message="Carregando lista..." />
+          ) : chamadaLista.length === 0 ? (
+            <p className="text-muted mb-0">Nenhuma pessoa encontrada.</p>
+          ) : chamadaDias.length === 0 ? (
+            <p className="text-muted mb-0">
+              Não há dias de aula (terça/quinta) neste mês.
+            </p>
+          ) : chamadaView === "frequencia" ? (
+            (() => {
+              const totalAulas = chamadaDias.length;
+
+              const year = String(chamadaMonthISO || "").slice(0, 4);
+              const pad2 = (n) => String(n).padStart(2, "0");
+
+              const annualPresencasByEmail = {};
+              let annualTotalAulas = 0;
+              let annualMesesRegistrados = 0;
+
+              for (let m = 1; m <= 12; m++) {
+                const monthISO = `${year}-${pad2(m)}`;
+                const raw = localStorage.getItem(getChamadaKey(monthISO));
+                if (!raw) continue;
+
+                let saved = null;
+                try {
+                  saved = JSON.parse(raw);
+                } catch {
+                  saved = null;
+                }
+
+                const entries =
+                  saved?.entries && typeof saved.entries === "object"
+                    ? saved.entries
+                    : {};
+
+                const diasMes = getDiasDeAulaNoMes(monthISO);
+                annualTotalAulas += diasMes.length;
+                annualMesesRegistrados += 1;
+
+                for (const d of diasMes) {
+                  const presentes = Array.isArray(entries?.[d.dateISO])
+                    ? entries[d.dateISO]
+                    : [];
+                  for (const email of presentes) {
+                    annualPresencasByEmail[email] =
+                      (annualPresencasByEmail[email] || 0) + 1;
+                  }
+                }
+              }
+
+              const rows = chamadaLista
+                .map((u) => {
+                  const presencas = chamadaDias.reduce(
+                    (acc, d) =>
+                      acc + (chamadaPresencas?.[d.dateISO]?.[u.email] ? 1 : 0),
+                    0,
+                  );
+
+                  const presencasAno = annualPresencasByEmail[u.email] || 0;
+                  return {
+                    ...u,
+                    presencas,
+                    faltas: Math.max(0, totalAulas - presencas),
+                    percentual: totalAulas
+                      ? Math.round((presencas / totalAulas) * 100)
+                      : 0,
+                    presencasAno,
+                    percentualAno: annualTotalAulas
+                      ? Math.round((presencasAno / annualTotalAulas) * 100)
+                      : 0,
+                  };
+                })
+                .sort(
+                  (a, b) =>
+                    b.presencas - a.presencas ||
+                    (a.nome || a.email).localeCompare(b.nome || b.email),
+                );
+
+              return (
+                <>
+                  <div className="small text-muted mb-2">
+                    Total de aulas no mês: <strong>{totalAulas}</strong>
+                  </div>
+                  <div className="small text-muted mb-2">
+                    Ano {year}: <strong>{annualTotalAulas}</strong> aulas
+                    {annualMesesRegistrados > 0
+                      ? ` (meses registrados: ${annualMesesRegistrados})`
+                      : ""}
+                  </div>
+                  <div
+                    className="border rounded table-responsive"
+                    style={{
+                      overflowX: "auto",
+                      WebkitOverflowScrolling: "touch",
+                    }}
+                  >
+                    <table className="table table-sm mb-0 align-middle">
+                      <thead>
+                        <tr>
+                          <th style={{ minWidth: 220 }}>Nome</th>
+                          <th className="text-center" style={{ minWidth: 90 }}>
+                            Presenças
+                          </th>
+                          <th className="text-center" style={{ minWidth: 90 }}>
+                            Faltas
+                          </th>
+                          <th className="text-center" style={{ minWidth: 70 }}>
+                            %
+                          </th>
+                          <th className="text-center" style={{ minWidth: 110 }}>
+                            Presenças (ano)
+                          </th>
+                          <th className="text-center" style={{ minWidth: 90 }}>
+                            % (ano)
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((u) => (
+                          <tr key={u.email}>
+                            <td style={{ maxWidth: 260 }}>
+                              <div
+                                className="text-truncate"
+                                title={u.nome || u.email}
+                              >
+                                {u.nome ? u.nome : u.email}
+                              </div>
+                            </td>
+                            <td className="text-center">{u.presencas}</td>
+                            <td className="text-center">{u.faltas}</td>
+                            <td className="text-center">{u.percentual}%</td>
+                            <td className="text-center">{u.presencasAno}</td>
+                            <td className="text-center">{u.percentualAno}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()
+          ) : (
+            <div
+              className="border rounded table-responsive"
+              style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}
+            >
+              <table className="table table-sm mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th style={{ minWidth: 220 }}>Nome</th>
+                    {chamadaDias.map((d) => (
+                      <th
+                        key={d.dateISO}
+                        className="text-center"
+                        style={{ minWidth: 90 }}
+                      >
+                        <div className="small">{d.weekday}</div>
+                        <div>{d.label}</div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {chamadaLista.map((u) => (
+                    <tr key={u.email}>
+                      <td style={{ maxWidth: 260 }}>
+                        <div
+                          className="text-truncate"
+                          title={u.nome || u.email}
+                        >
+                          {u.nome ? u.nome : u.email}
+                        </div>
+                      </td>
+                      {chamadaDias.map((d) => (
+                        <td key={d.dateISO} className="text-center">
+                          <input
+                            type="checkbox"
+                            checked={!!chamadaPresencas?.[d.dateISO]?.[u.email]}
+                            onChange={(e) =>
+                              setChamadaPresencas((prev) => ({
+                                ...(prev || {}),
+                                [d.dateISO]: {
+                                  ...((prev || {})[d.dateISO] || {}),
+                                  [u.email]: e.target.checked,
+                                },
+                              }))
+                            }
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={() => setShowChamada(false)}
+            disabled={chamadaLoading}
+          >
+            Fechar
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={salvarChamada}
+            disabled={
+              chamadaLoading ||
+              chamadaLista.length === 0 ||
+              chamadaView === "frequencia"
+            }
+            title={
+              chamadaView === "frequencia"
+                ? "Volte para a chamada para salvar"
+                : "Salvar chamada"
+            }
+          >
+            Salvar
+          </button>
+        </Modal.Footer>
       </Modal>
 
       {/* Modal de preview da timeline */}

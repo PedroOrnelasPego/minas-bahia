@@ -417,10 +417,10 @@ const AreaGraduado = () => {
   const carregarChamada = async (monthISO = chamadaMonthISO) => {
     setChamadaLoading(true);
     try {
-      const { data } = await http.get(`${API_URL}/perfil`);
-      const list = Array.isArray(data) ? data : data?.data || [];
+      // busca lista mínima (nome + email) no backend, evitando puxar dados sensíveis
+      const { data } = await http.get(`${API_URL}/chamada/pessoas`);
+      const list = Array.isArray(data?.items) ? data.items : [];
       const normalized = (Array.isArray(list) ? list : [])
-        .filter((u) => !isPerfilIncompleto(u))
         .map((u) => ({
           email: u.email || u.id || "",
           nome: (u.nome || "").trim(),

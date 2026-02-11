@@ -125,9 +125,9 @@ const AreaGraduado = () => {
     new Date().toISOString().slice(0, 7),
   ); // YYYY-MM
   const [chamadaView, setChamadaView] = useState("chamada"); // 'chamada' | 'frequencia'
-  const [chamadaLista, setChamadaLista] = useState([]); // [{ email, nome }]
+  const [chamadaLista, setChamadaLista] = useState([]); // [{ id, nome }]
   const [chamadaDias, setChamadaDias] = useState([]); // [{ dateISO, label, weekday }]
-  const [chamadaPresencas, setChamadaPresencas] = useState({}); // { [dateISO]: { [email]: true } }
+  const [chamadaPresencas, setChamadaPresencas] = useState({}); // { [dateISO]: { [id]: true } }
 
   const [cep, setCep] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
@@ -417,16 +417,16 @@ const AreaGraduado = () => {
   const carregarChamada = async (monthISO = chamadaMonthISO) => {
     setChamadaLoading(true);
     try {
-      // busca lista mínima (nome + email) no backend, evitando puxar dados sensíveis
+      // busca lista mínima (nome + id pseudônimo) no backend
       const { data } = await http.get(`${API_URL}/chamada/pessoas`);
       const list = Array.isArray(data?.items) ? data.items : [];
       const normalized = (Array.isArray(list) ? list : [])
         .map((u) => ({
-          email: u.email || u.id || "",
+          id: u.id || "",
           nome: (u.nome || "").trim(),
         }))
-        .filter((u) => !!u.email)
-        .sort((a, b) => (a.nome || a.email).localeCompare(b.nome || b.email));
+        .filter((u) => !!u.id)
+        .sort((a, b) => (a.nome || a.id).localeCompare(b.nome || b.id));
 
       setChamadaLista(normalized);
 
@@ -463,7 +463,7 @@ const AreaGraduado = () => {
         );
         base[d.dateISO] = {};
         for (const u of normalized) {
-          base[d.dateISO][u.email] = presentesNoDia.has(u.email);
+          base[d.dateISO][u.id] = presentesNoDia.has(u.id);
         }
       }
 
@@ -488,9 +488,10 @@ const AreaGraduado = () => {
   };
 
   const salvarChamada = () => {
+    const preenchidoPorNome = (perfil?.nome || userData.nome || "").trim();
     const payload = {
       monthISO: chamadaMonthISO,
-      preenchidoPor: userData.email,
+      preenchidoPorNome,
       entries: {},
       totalPessoas: chamadaLista.length,
       updatedAt: new Date().toISOString(),
@@ -499,7 +500,7 @@ const AreaGraduado = () => {
     for (const d of chamadaDias) {
       const presentes = Object.entries(chamadaPresencas?.[d.dateISO] || {})
         .filter(([, v]) => v === true)
-        .map(([email]) => email);
+        .map(([id]) => id);
       payload.entries[d.dateISO] = presentes;
     }
 
@@ -1560,7 +1561,7 @@ const AreaGraduado = () => {
               const year = String(chamadaMonthISO || "").slice(0, 4);
               const pad2 = (n) => String(n).padStart(2, "0");
 
-              const annualPresencasByEmail = {};
+              const annualPresencasById = {};
               let annualTotalAulas = 0;
               let annualMesesRegistrados = 0;
 
@@ -1589,9 +1590,9 @@ const AreaGraduado = () => {
                   const presentes = Array.isArray(entries?.[d.dateISO])
                     ? entries[d.dateISO]
                     : [];
-                  for (const email of presentes) {
-                    annualPresencasByEmail[email] =
-                      (annualPresencasByEmail[email] || 0) + 1;
+                  for (const id of presentes) {
+                    annualPresencasById[id] =
+                      (annualPresencasById[id] || 0) + 1;
                   }
                 }
               }
@@ -1600,11 +1601,11 @@ const AreaGraduado = () => {
                 .map((u) => {
                   const presencas = chamadaDias.reduce(
                     (acc, d) =>
-                      acc + (chamadaPresencas?.[d.dateISO]?.[u.email] ? 1 : 0),
+                      acc + (chamadaPresencas?.[d.dateISO]?.[u.id] ? 1 : 0),
                     0,
                   );
 
-                  const presencasAno = annualPresencasByEmail[u.email] || 0;
+                  const presencasAno = annualPresencasById[u.id] || 0;
                   return {
                     ...u,
                     presencas,
@@ -1665,13 +1666,13 @@ const AreaGraduado = () => {
                       </thead>
                       <tbody>
                         {rows.map((u) => (
-                          <tr key={u.email}>
+                          <tr key={u.id}>
                             <td style={{ maxWidth: 260 }}>
                               <div
                                 className="text-truncate"
-                                title={u.nome || u.email}
+                                title={u.nome || u.id}
                               >
-                                {u.nome ? u.nome : u.email}
+                                {u.nome ? u.nome : "-"}
                               </div>
                             </td>
                             <td className="text-center">{u.presencas}</td>
@@ -1710,26 +1711,23 @@ const AreaGraduado = () => {
                 </thead>
                 <tbody>
                   {chamadaLista.map((u) => (
-                    <tr key={u.email}>
+                    <tr key={u.id}>
                       <td style={{ maxWidth: 260 }}>
-                        <div
-                          className="text-truncate"
-                          title={u.nome || u.email}
-                        >
-                          {u.nome ? u.nome : u.email}
+                        <div className="text-truncate" title={u.nome || u.id}>
+                          {u.nome ? u.nome : "-"}
                         </div>
                       </td>
                       {chamadaDias.map((d) => (
                         <td key={d.dateISO} className="text-center">
                           <input
                             type="checkbox"
-                            checked={!!chamadaPresencas?.[d.dateISO]?.[u.email]}
+                            checked={!!chamadaPresencas?.[d.dateISO]?.[u.id]}
                             onChange={(e) =>
                               setChamadaPresencas((prev) => ({
                                 ...(prev || {}),
                                 [d.dateISO]: {
                                   ...((prev || {})[d.dateISO] || {}),
-                                  [u.email]: e.target.checked,
+                                  [u.id]: e.target.checked,
                                 },
                               }))
                             }

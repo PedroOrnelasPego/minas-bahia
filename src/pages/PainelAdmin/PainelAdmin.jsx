@@ -10,6 +10,7 @@ import Loading from "../../components/Loading/Loading";
 import { formatarData } from "../../utils/formatarData";
 import calcularIdade from "../../utils/calcularIdade";
 import { getHorarioLabel } from "../../helpers/agendaTreino";
+import ExportadorDeDados from "../../components/ExportadorDeDados";
 
 // === cordas ===
 import {
@@ -361,6 +362,15 @@ const PainelAdmin = () => {
   const normalizarLocal = (local) => (local || "").trim().toLowerCase();
   const normalSalgado = normalizarLocal(LOCAL_SALGADO);
   const normalEfigenia = normalizarLocal(LOCAL_EFIGENIA);
+
+  const fetchPerfilByEmail = async (email) => {
+    const res = await http.get(`${API_URL}/perfil/${email}`);
+    return res.data;
+  };
+
+  const onMergeDadosUsuarios = (novos) => {
+    setDadosUsuarios((prev) => ({ ...prev, ...(novos || {}) }));
+  };
 
   function formatarTempoDeGrupo(data) {
     const anos = calcularIdade(data); // inteiro
@@ -974,16 +984,23 @@ const PainelAdmin = () => {
     const url1x = jaSemAvatar ? fotoPadrao : avatarUrl1x(user.email);
     const url2x = jaSemAvatar ? "" : avatarUrl2x(user.email);
 
+    const cordaVerificada =
+      perfilSel.cordaVerificada ??
+      (typeof user.cordaVerificada === "boolean"
+        ? user.cordaVerificada
+        : false);
+
     const cordaSlug = perfilSel?.corda || user.corda || "";
     const cordaNome = getCordaNome(cordaSlug) || "-";
+    const apelido = perfilSel?.apelido || user.apelido || "";
 
     return (
       <Col key={user.email} xs={12} sm={6} lg={4} className="mb-3">
         <div
-          className="border rounded bg-white shadow-sm h-100 p-3"
+          className="border rounded bg-white shadow-sm h-100 p-3 position-relative"
           role="button"
           tabIndex={0}
-          style={{ cursor: "pointer" }}
+          style={{ cursor: "pointer", minHeight: 112 }}
           onClick={() => openUserModal(user.email)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -992,6 +1009,10 @@ const PainelAdmin = () => {
             }
           }}
         >
+          <div className="position-absolute top-0 end-0 m-2">
+            <StatusDot verificada={!!cordaVerificada} />
+          </div>
+
           <div className="d-flex align-items-center gap-3">
             <img
               src={url1x}
@@ -1010,9 +1031,16 @@ const PainelAdmin = () => {
                 img.src = fotoPadrao;
               }}
             />
-            <div className="flex-grow-1">
+            <div className="flex-grow-1" style={{ minWidth: 0 }}>
               <div className="fw-semibold text-truncate">{user.nome}</div>
-              <div className="text-muted small">Corda: {cordaNome}</div>
+              {apelido ? (
+                <div className="text-muted small text-truncate">
+                  Apelido: {apelido}
+                </div>
+              ) : null}
+              <div className="text-muted small text-truncate">
+                Corda: {cordaNome}
+              </div>
             </div>
           </div>
         </div>
@@ -1092,6 +1120,23 @@ const PainelAdmin = () => {
             </optgroup>
           ))}
         </select>
+
+        <ExportadorDeDados
+          usuarios={usuariosFiltrados}
+          dadosUsuarios={dadosUsuarios}
+          ordenarUsuarios={ordenarUsuarios}
+          getNomeUser={getNomeUser}
+          getLocalTreinoUser={getLocalTreinoUser}
+          getCordaUser={getCordaUser}
+          getCordaNome={getCordaNome}
+          normalizarLocal={normalizarLocal}
+          normalSalgado={normalSalgado}
+          normalEfigenia={normalEfigenia}
+          LOCAL_SALGADO={LOCAL_SALGADO}
+          LOCAL_EFIGENIA={LOCAL_EFIGENIA}
+          fetchPerfilByEmail={fetchPerfilByEmail}
+          onMergeDadosUsuarios={onMergeDadosUsuarios}
+        />
       </div>
 
       {renderSection(LOCAL_SALGADO, gruposTreino.salgado)}

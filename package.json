@@ -19,6 +19,8 @@
     "axios": "^1.10.0",
     "bootstrap": "^5.3.3",
     "date-fns": "^4.1.0",
+    "jspdf": "^4.1.0",
+    "jspdf-autotable": "^5.0.7",
     "jwt-decode": "^4.0.0",
     "pica": "^9.0.1",
     "react": "^19.0.0",
@@ -31,6 +33,7 @@
     "react-router": "^6.17.0",
     "react-router-dom": "^6.17.0",
     "tailwindcss": "^4.1.4",
+    "xlsx": "^0.18.5",
     "yet-another-react-lightbox": "^3.22.0"
   },
   "devDependencies": {

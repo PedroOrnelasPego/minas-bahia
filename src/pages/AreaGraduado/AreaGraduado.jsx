@@ -57,6 +57,20 @@ function getNivelLabel(nivel) {
   return NIVEL_LABELS[key] || "";
 }
 
+const NIVEIS = [
+  "visitante",
+  "aluno",
+  "graduado",
+  "monitor",
+  "instrutor",
+  "professor",
+  "contramestre",
+];
+const rankNivel = (n) => {
+  const i = NIVEIS.indexOf((n || "").toLowerCase());
+  return i < 0 ? -1 : i;
+};
+
 /** Campos obrigatórios do seu cadastro inicial */
 const REQUIRED_FIELDS = [
   "nome",
@@ -128,6 +142,13 @@ const AreaGraduado = () => {
   const [chamadaLista, setChamadaLista] = useState([]); // [{ id, nome }]
   const [chamadaDias, setChamadaDias] = useState([]); // [{ dateISO, label, weekday }]
   const [chamadaPresencas, setChamadaPresencas] = useState({}); // { [dateISO]: { [id]: true } }
+  const [chamadaProfessores, setChamadaProfessores] = useState({}); // { [dateISO]: teacherId }
+
+  const LOCAL_SALGADO = "Centro Cultural Salgado Filho";
+  const LOCAL_EFIGENIA = "E. M. Professora Efigênia Vidigal";
+
+  const [filtroLocal, setFiltroLocal] = useState(LOCAL_EFIGENIA);
+  const [filtroHorario, setFiltroHorario] = useState("");
 
   const [cep, setCep] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
@@ -414,85 +435,102 @@ const AreaGraduado = () => {
     return dias;
   };
 
-  const carregarChamada = async (monthISO = chamadaMonthISO) => {
+  const carregarChamada = async (monthISO = chamadaMonthISO, local = filtroLocal, horario = filtroHorario) => {
     setChamadaLoading(true);
+    let normalized = [];
     try {
-      // busca lista mínima (nome + id pseudônimo) no backend
+      // 1) busca lista de pessoas no backend
       const { data } = await http.get(`${API_URL}/chamada/pessoas`);
-      const list = Array.isArray(data?.items) ? data.items : [];
-      const normalized = (Array.isArray(list) ? list : [])
+      const rawList = Array.isArray(data) ? data : (data?.items || []);
+      normalized = rawList
         .map((u) => ({
           id: u.id || "",
           nome: (u.nome || "").trim(),
+          apelido: (u.apelido || "").trim(),
+          localTreino: u.localTreino || "",
+          horarioTreino: u.horarioTreino || "",
+          daAula: !!u.daAula,
+          nivelAcesso: u.nivelAcesso || "",
         }))
         .filter((u) => !!u.id)
         .sort((a, b) => (a.nome || a.id).localeCompare(b.nome || b.id));
 
       setChamadaLista(normalized);
-
-      const dias = getDiasDeAulaNoMes(monthISO);
-      setChamadaDias(dias);
-
-      // tenta carregar do backend (Azure Blob). Se não existir/der erro, cai no localStorage.
-      let entries = {};
-      try {
-        const res = await http.get(`${API_URL}/chamada`, {
-          params: { month: monthISO },
-        });
-        const serverData = res?.data?.data;
-        if (serverData?.entries && typeof serverData.entries === "object") {
-          entries = serverData.entries;
-        }
-      } catch {
-        // fallback local (compatibilidade)
-        try {
-          const raw = localStorage.getItem(getChamadaKey(monthISO));
-          const saved = raw ? JSON.parse(raw) : null;
-          if (saved?.entries && typeof saved.entries === "object") {
-            entries = saved.entries;
-          }
-        } catch {
-          entries = {};
-        }
-      }
-
-      const base = {};
-      for (const d of dias) {
-        const presentesNoDia = new Set(
-          Array.isArray(entries?.[d.dateISO]) ? entries[d.dateISO] : [],
-        );
-        base[d.dateISO] = {};
-        for (const u of normalized) {
-          base[d.dateISO][u.id] = presentesNoDia.has(u.id);
-        }
-      }
-
-      setChamadaPresencas(base);
     } catch (e) {
-      console.error(e);
-      showError("Não foi possível carregar a lista para chamada.");
-      setChamadaLista([]);
-      setChamadaDias([]);
-      setChamadaPresencas({});
-    } finally {
+      console.error("Erro ao carregar pessoas para chamada:", e);
+      showError("Não foi possível carregar a lista de alunos.");
       setChamadaLoading(false);
+      return;
     }
+
+    const dias = getDiasDeAulaNoMes(monthISO);
+    setChamadaDias(dias);
+
+    // 2) Tenta carregar dados do mês (entries + professores)
+    let entries = {};
+    let professores = {};
+
+    try {
+      const res = await http.get(`${API_URL}/chamada`, {
+        params: { month: monthISO, local, horario },
+      });
+      const serverData = res?.data?.data;
+      if (serverData?.entries) entries = serverData.entries;
+      if (serverData?.professores) professores = serverData.professores;
+    } catch (e) {
+      // Se deu 404, apenas não tem nada salvo ainda. Se for outro erro, logamos.
+      if (e?.status !== 404) {
+        console.warn("Erro ao carregar dados do mês no servidor:", e);
+      }
+      // Tenta fallback local
+      try {
+        const key = `${getChamadaKey(monthISO)}_${local}_${horario}`;
+        const raw = localStorage.getItem(key) || localStorage.getItem(getChamadaKey(monthISO));
+        const saved = raw ? JSON.parse(raw) : null;
+        if (saved?.entries) entries = saved.entries;
+        if (saved?.professores) professores = saved.professores;
+      } catch (localErr) {
+        console.error("Erro no fallback local:", localErr);
+      }
+    }
+
+    setChamadaProfessores(professores || {});
+
+    // 3) Monta o estado de presenças (mapa [data][id])
+    const base = {};
+    for (const d of dias) {
+      const presentesNoDia = new Set(
+        Array.isArray(entries?.[d.dateISO]) ? entries[d.dateISO] : [],
+      );
+      base[d.dateISO] = {};
+      for (const u of normalized) {
+        base[d.dateISO][u.id] = presentesNoDia.has(u.id);
+      }
+    }
+    setChamadaPresencas(base);
+    setChamadaLoading(false);
   };
 
-  const abrirChamada = async () => {
+  const abrirChamada = async (local) => {
     const monthISO = new Date().toISOString().slice(0, 7);
+    const defaultHorario = local === LOCAL_SALGADO ? "20:00-21:30" : "";
+    setFiltroLocal(local);
+    setFiltroHorario(defaultHorario);
     setChamadaMonthISO(monthISO);
     setChamadaView("chamada");
     setShowChamada(true);
-    await carregarChamada(monthISO);
+    await carregarChamada(monthISO, local, defaultHorario);
   };
 
   const salvarChamada = () => {
     const preenchidoPorNome = (perfil?.nome || userData.nome || "").trim();
     const payload = {
       monthISO: chamadaMonthISO,
+      local: filtroLocal,
+      horario: filtroHorario,
       preenchidoPorNome,
       entries: {},
+      professores: chamadaProfessores || {},
       totalPessoas: chamadaLista.length,
       updatedAt: new Date().toISOString(),
     };
@@ -506,18 +544,16 @@ const AreaGraduado = () => {
 
     try {
       // 1) salva local (backup / compatibilidade)
-      localStorage.setItem(
-        getChamadaKey(chamadaMonthISO),
-        JSON.stringify(payload),
-      );
+      const key = `${getChamadaKey(chamadaMonthISO)}_${filtroLocal}_${filtroHorario}`;
+      localStorage.setItem(key, JSON.stringify(payload));
     } catch {
-      // não bloqueia: ainda tentaremos salvar no servidor
+      // não bloqueia
     }
 
     // 2) salva no servidor (Azure Blob)
     http
       .put(`${API_URL}/chamada`, payload, {
-        params: { month: chamadaMonthISO },
+        params: { month: chamadaMonthISO, local: filtroLocal, horario: filtroHorario },
       })
       .then(() => {
         showSuccess("Chamada salva.");
@@ -1316,11 +1352,20 @@ const AreaGraduado = () => {
                 <button
                   type="button"
                   className="btn btn-outline-primary btn-sm d-inline-flex flex-row align-items-center gap-1 text-nowrap"
-                  onClick={abrirChamada}
-                  title="Abrir lista de chamada"
+                  onClick={() => abrirChamada(LOCAL_EFIGENIA)}
+                  title="Abrir chamada para Efigênio Vidigal"
                 >
                   <span aria-hidden="true">📋</span>
-                  <span>Chamada (em teste)</span>
+                  <span>Chamada Efigênia Vidigal</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm d-inline-flex flex-row align-items-center gap-1 text-nowrap"
+                  onClick={() => abrirChamada(LOCAL_SALGADO)}
+                  title="Abrir chamada para Centro Cultural"
+                >
+                  <span aria-hidden="true">📋</span>
+                  <span>Chamada Centro Cultural</span>
                 </button>
               </div>
 
@@ -1499,23 +1544,45 @@ const AreaGraduado = () => {
           <Modal.Title>Chamada</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div className="d-flex align-items-end justify-content-between gap-2 flex-wrap mb-2">
-            <div className="text-muted">
-              Hoje: {new Date().toLocaleDateString("pt-BR")}
+          <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3 p-3 bg-light rounded border">
+            <div>
+              <div className="fw-bold text-primary">{filtroLocal}</div>
+              <div className="small text-muted">Mês: {new Date(chamadaMonthISO + "-01").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</div>
             </div>
-            <label className="d-flex flex-column" style={{ minWidth: 180 }}>
-              <span className="small text-muted">Mês</span>
-              <input
-                type="month"
-                className="form-control form-control-sm"
-                value={chamadaMonthISO}
-                onChange={async (e) => {
-                  const next = e.target.value;
-                  setChamadaMonthISO(next);
-                  await carregarChamada(next);
-                }}
-              />
-            </label>
+
+            <div className="d-flex gap-3 align-items-end">
+              {filtroLocal === LOCAL_SALGADO && (
+                <label className="d-flex flex-column" style={{ minWidth: 150 }}>
+                  <span className="small text-muted">Horário</span>
+                  <select
+                    className="form-select form-select-sm"
+                    value={filtroHorario}
+                    onChange={async (e) => {
+                      const nextH = e.target.value;
+                      setFiltroHorario(nextH);
+                      await carregarChamada(chamadaMonthISO, filtroLocal, nextH);
+                    }}
+                  >
+                    <option value="18:30-20:00">18:30 às 20:00</option>
+                    <option value="20:00-21:30">20:00 às 21:30</option>
+                  </select>
+                </label>
+              )}
+
+              <label className="d-flex flex-column" style={{ minWidth: 150 }}>
+                <span className="small text-muted">Trocar Mês</span>
+                <input
+                  type="month"
+                  className="form-control form-control-sm"
+                  value={chamadaMonthISO}
+                  onChange={async (e) => {
+                    const next = e.target.value;
+                    setChamadaMonthISO(next);
+                    await carregarChamada(next);
+                  }}
+                />
+              </label>
+            </div>
           </div>
 
           <div className="d-flex justify-content-end mb-2">
@@ -1625,8 +1692,56 @@ const AreaGraduado = () => {
                     (a.nome || a.email).localeCompare(b.nome || b.email),
                 );
 
+              const teacherCounts = {};
+              Object.values(chamadaProfessores || {}).forEach((id) => {
+                if (id) teacherCounts[id] = (teacherCounts[id] || 0) + 1;
+              });
+              const teachersRows = Object.entries(teacherCounts)
+                .map(([id, count]) => {
+                  const t = chamadaLista.find((u) => u.id === id);
+                  let nomeDisplay = t?.apelido || "";
+                  if (!nomeDisplay && t?.nome) {
+                    const parts = t.nome.trim().split(/\s+/);
+                    nomeDisplay = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0];
+                  }
+                  if (!nomeDisplay) nomeDisplay = "Professor(a) não identificado";
+                  return { id, count, nome: nomeDisplay };
+                })
+                .sort((a, b) => b.count - a.count);
+
               return (
                 <>
+                  <div className="mb-4">
+                    <h6 className="fw-bold mb-2">Aulas dadas por Professor(a)</h6>
+                    <div className="border rounded table-responsive" style={{ maxWidth: 400 }}>
+                      <table className="table table-sm mb-0">
+                        <thead className="bg-light">
+                          <tr>
+                            <th>Nome</th>
+                            <th className="text-center">Aulas</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {teachersRows.length === 0 ? (
+                            <tr>
+                              <td colSpan={2} className="text-center text-muted py-2">
+                                Nenhum professor registrado.
+                              </td>
+                            </tr>
+                          ) : (
+                            teachersRows.map((tr) => (
+                              <tr key={tr.id}>
+                                <td>{tr.nome}</td>
+                                <td className="text-center">{tr.count}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <h6 className="fw-bold mb-2">Frequência dos Alunos</h6>
                   <div className="small text-muted mb-2">
                     Total de aulas no mês: <strong>{totalAulas}</strong>
                   </div>
@@ -1672,7 +1787,12 @@ const AreaGraduado = () => {
                                 className="text-truncate"
                                 title={u.nome || u.id}
                               >
-                                {u.nome ? u.nome : "-"}
+                                {(() => {
+                                  if (!u.nome) return "-";
+                                  const parts = u.nome.trim().split(/\s+/);
+                                  const firstLast = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0];
+                                  return u.apelido ? `${firstLast} - (${u.apelido})` : firstLast;
+                                })()}
                               </div>
                             </td>
                             <td className="text-center">{u.presencas}</td>
@@ -1694,49 +1814,127 @@ const AreaGraduado = () => {
               style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}
             >
               <table className="table table-sm mb-0 align-middle">
-                <thead>
-                  <tr>
-                    <th style={{ minWidth: 220 }}>Nome</th>
-                    {chamadaDias.map((d) => (
-                      <th
-                        key={d.dateISO}
-                        className="text-center"
-                        style={{ minWidth: 90 }}
-                      >
-                        <div className="small">{d.weekday}</div>
-                        <div>{d.label}</div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {chamadaLista.map((u) => (
-                    <tr key={u.id}>
-                      <td style={{ maxWidth: 260 }}>
-                        <div className="text-truncate" title={u.nome || u.id}>
-                          {u.nome ? u.nome : "-"}
-                        </div>
-                      </td>
-                      {chamadaDias.map((d) => (
-                        <td key={d.dateISO} className="text-center">
-                          <input
-                            type="checkbox"
-                            checked={!!chamadaPresencas?.[d.dateISO]?.[u.id]}
-                            onChange={(e) =>
-                              setChamadaPresencas((prev) => ({
-                                ...(prev || {}),
-                                [d.dateISO]: {
-                                  ...((prev || {})[d.dateISO] || {}),
-                                  [u.id]: e.target.checked,
-                                },
-                              }))
-                            }
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
+                {(() => {
+                  const listaFiltrada = chamadaLista.filter((u) => {
+                    if (u.localTreino && u.localTreino !== filtroLocal) return false;
+                    
+                    if (filtroLocal === LOCAL_SALGADO && filtroHorario !== "") {
+                      const getHour = (s) => {
+                        const m = (s || "").match(/(\d{1,2})/);
+                        return m ? parseInt(m[1], 10) : null;
+                      };
+                      const hUser = getHour(u.horarioTreino);
+                      const hFiltro = getHour(filtroHorario);
+
+                      if (hUser !== null && hFiltro !== null) {
+                        if (hFiltro === 18 && (hUser === 18 || hUser === 19)) {
+                           // ok
+                        } else if (hUser !== hFiltro) {
+                          return false;
+                        }
+                      } else if (hFiltro !== null) {
+                         return false;
+                      }
+                    }
+                    return true;
+                  });
+
+                  if (listaFiltrada.length === 0) {
+                    return (
+                      <tbody>
+                        <tr>
+                          <td className="py-5 text-center text-muted fw-bold">
+                             Ainda não há alunos cadastrados neste horário/local.
+                          </td>
+                        </tr>
+                      </tbody>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <thead>
+                        <tr>
+                          <th style={{ minWidth: 220 }}>Nome</th>
+                          {chamadaDias.map((d) => (
+                            <th key={d.dateISO} className="text-center" style={{ minWidth: 120 }}>
+                              <div className="small font-weight-bold">{d.weekday}</div>
+                              <div className="fw-bold">{d.label}</div>
+                              <div className="mt-2">
+                                <select
+                                  className="form-select form-select-sm"
+                                  style={{ 
+                                    fontSize: "0.75rem",
+                                    border: chamadaProfessores[d.dateISO] ? "2px solid #198754" : "1px solid #ced4da",
+                                    backgroundColor: chamadaProfessores[d.dateISO] ? "#e7f3ff" : "white"
+                                  }}
+                                  value={chamadaProfessores[d.dateISO] || ""}
+                                  onChange={(e) =>
+                                    setChamadaProfessores((prev) => ({
+                                      ...prev,
+                                      [d.dateISO]: e.target.value,
+                                    }))
+                                  }
+                                >
+                                  <option value="">Quem deu aula?</option>
+                                  {chamadaLista
+                                    .filter((p) => !!p.daAula)
+                                    .map((p) => {
+                                      if (p.apelido) return (
+                                        <option key={p.id} value={p.id}>
+                                          {p.apelido}
+                                        </option>
+                                      );
+                                      const parts = (p.nome || "").trim().split(/\s+/);
+                                      const display = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0];
+                                      return (
+                                        <option key={p.id} value={p.id}>
+                                          {display || p.id}
+                                        </option>
+                                      );
+                                    })}
+                                </select>
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {listaFiltrada.map((u) => (
+                          <tr key={u.id}>
+                            <td style={{ maxWidth: 260 }}>
+                              <div className="text-truncate" title={u.nome || u.id}>
+                                {(() => {
+                                  if (!u.nome) return "-";
+                                  const parts = u.nome.trim().split(/\s+/);
+                                  const firstLast = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0];
+                                  return u.apelido ? `${firstLast} - (${u.apelido})` : firstLast;
+                                })()}
+                              </div>
+                            </td>
+                            {chamadaDias.map((d) => (
+                              <td key={d.dateISO} className="text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={!!chamadaPresencas?.[d.dateISO]?.[u.id]}
+                                  onChange={(e) =>
+                                    setChamadaPresencas((prev) => ({
+                                      ...(prev || {}),
+                                      [d.dateISO]: {
+                                        ...((prev || {})[d.dateISO] || {}),
+                                        [u.id]: e.target.checked,
+                                      },
+                                    }))
+                                  }
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </>
+                  );
+                })()}
               </table>
             </div>
           )}

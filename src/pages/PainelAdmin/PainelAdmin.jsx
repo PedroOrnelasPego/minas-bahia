@@ -218,6 +218,21 @@ const PainelAdmin = () => {
     }
   };
 
+  const atualizarDaAula = async (email, valor) => {
+    try {
+      await http.put(`${API_URL}/perfil/${email}`, {
+        daAula: !!valor,
+      });
+      setDadosUsuarios((prev) => ({
+        ...prev,
+        [email]: { ...prev[email], daAula: !!valor },
+      }));
+      alert("Configuração de aula atualizada.");
+    } catch {
+      alert("Erro ao atualizar configuração de aula.");
+    }
+  };
+
   // ================== Bootstrap ==================
 
   useEffect(() => {
@@ -572,6 +587,7 @@ const PainelAdmin = () => {
             )}
           </div>
 
+
           <p className="mt-2">
             <strong>Quando iniciou no grupo: </strong>
             {perfilSel.inicioNoGrupo
@@ -842,83 +858,104 @@ const PainelAdmin = () => {
           </div>
         </Col>
 
-        {/* Controles de Nível e Permissões */}
         <Col xs={12}>
-          <div className="pt-3 mt-2 border-top d-flex flex-wrap align-items-center gap-3">
-            <div>
-              <strong>Nível de Acesso: </strong>
-              {user.email === mestreEmail ? (
-                <span className="badge bg-dark ms-2">Mestre</span>
-              ) : (
+          <div className="pt-3 mt-2 border-top">
+            <h6 className="mb-3 text-muted">Controles Administrativos</h6>
+            <div className="row g-3">
+              <div className="col-md-3">
+                <strong>Nível de Acesso </strong>
+                {user.email === mestreEmail ? (
+                  <div className="mt-1"><span className="badge bg-dark">Mestre</span></div>
+                ) : (
+                  <select
+                    className="form-select form-select-sm mt-1"
+                    value={nivel}
+                    onChange={(e) => atualizarNivel(user.email, e.target.value)}
+                  >
+                    {NIVEIS.map((n) => (
+                      <option key={n} value={n}>
+                        {n[0].toUpperCase() + n.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="col-md-3">
+                <strong>Permissão nos eventos </strong>
                 <select
-                  className="form-select d-inline w-auto ms-2"
-                  value={nivel}
-                  onChange={(e) => atualizarNivel(user.email, e.target.value)}
+                  className="form-select form-select-sm mt-1"
+                  value={permissaoEventos}
+                  onChange={(e) =>
+                    atualizarPermissaoEventos(user.email, e.target.value)
+                  }
+                  disabled={!podeEditarPerm}
+                  title={
+                    podeEditarPerm
+                      ? "Defina se é leitor ou editor dos álbuns"
+                      : "Disponível apenas para nível 'Graduado' ou acima"
+                  }
                 >
-                  {NIVEIS.map((n) => (
-                    <option key={n} value={n}>
-                      {n[0].toUpperCase() + n.slice(1)}
-                    </option>
-                  ))}
+                  <option value="leitor">Leitor</option>
+                  <option value="editor">Editor</option>
                 </select>
-              )}
-            </div>
+                {!podeEditarPerm && (
+                  <small className="text-muted d-block mt-1">
+                    (requer nível ≥ Graduado)
+                  </small>
+                )}
+              </div>
 
-            <div>
-              <strong>Permissão nos eventos: </strong>
-              <select
-                className="form-select d-inline w-auto ms-2"
-                value={permissaoEventos}
-                onChange={(e) =>
-                  atualizarPermissaoEventos(user.email, e.target.value)
-                }
-                disabled={!podeEditarPerm}
-                title={
-                  podeEditarPerm
-                    ? "Defina se é leitor ou editor dos álbuns"
-                    : "Disponível apenas para nível 'Graduado' ou acima"
-                }
-              >
-                <option value="leitor">Leitor</option>
-                <option value="editor">Editor</option>
-              </select>
-              {!podeEditarPerm && (
-                <small className="text-muted ms-2">
-                  (bloqueado: requer nível ≥ Graduado)
-                </small>
-              )}
-            </div>
+              <div className="col-md-3">
+                <strong>Edição do Questionário </strong>
+                <select
+                  className="form-select form-select-sm mt-1"
+                  value={
+                    dadosUsuarios[user.email]?.podeEditarQuestionario
+                      ? "true"
+                      : "false"
+                  }
+                  onChange={(e) =>
+                    atualizarPermissaoQuestionario(
+                      user.email,
+                      e.target.value === "true",
+                    )
+                  }
+                  disabled={!podeEditarQuest}
+                  title={
+                    podeEditarQuest
+                      ? "Controla se o aluno pode reabrir e editar o próprio questionário"
+                      : "Disponível apenas para nível 'Aluno' ou acima"
+                  }
+                >
+                  <option value="false">Desativado</option>
+                  <option value="true">Ativado</option>
+                </select>
+                {!podeEditarQuest && (
+                  <small className="text-muted d-block mt-1">
+                    (requer nível ≥ Aluno)
+                  </small>
+                )}
+              </div>
 
-            <div>
-              <strong>Permitir edição do Questionário: </strong>
-              <select
-                className="form-select d-inline w-auto ms-2"
-                value={
-                  dadosUsuarios[user.email]?.podeEditarQuestionario
-                    ? "true"
-                    : "false"
-                }
-                onChange={(e) =>
-                  atualizarPermissaoQuestionario(
-                    user.email,
-                    e.target.value === "true",
-                  )
-                }
-                disabled={!podeEditarQuest}
-                title={
-                  podeEditarQuest
-                    ? "Controla se o aluno pode reabrir e editar o próprio questionário"
-                    : "Disponível apenas para nível 'Aluno' ou acima"
-                }
-              >
-                <option value="false">Desativado</option>
-                <option value="true">Ativado</option>
-              </select>
-              {!podeEditarQuest && (
-                <small className="text-muted ms-2">
-                  (bloqueado: requer nível ≥ Aluno)
-                </small>
-              )}
+              <div className="col-md-3">
+                <strong>Dá aula? </strong>
+                <select
+                  className="form-select form-select-sm mt-1"
+                  value={perfilSel?.daAula ? "sim" : "nao"}
+                  onChange={(e) =>
+                    atualizarDaAula(user.email, e.target.value === "sim")
+                  }
+                  style={{ 
+                    backgroundColor: perfilSel?.daAula ? "#198754" : "inherit",
+                    color: perfilSel?.daAula ? "white" : "inherit",
+                    fontWeight: perfilSel?.daAula ? "bold" : "normal"
+                  }}
+                >
+                  <option value="nao">Não</option>
+                  <option value="sim">Sim</option>
+                </select>
+              </div>
             </div>
           </div>
         </Col>

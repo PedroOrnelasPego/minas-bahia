@@ -64,7 +64,7 @@ const CalendarioAniversarios = () => {
     return (aniversarios || [])
       .map((x) => {
         const dt = parseDateLoose(x.dataNascimento);
-        return dt ? { nome: x.nome || "", date: dt } : null;
+        return dt ? { nome: x.nome || "", apelido: x.apelido || "", date: dt } : null;
       })
       .filter(Boolean);
   }, [aniversarios]);
@@ -116,6 +116,11 @@ const CalendarioAniversarios = () => {
               return (
                 <li key={`${a.nome}-${idx}`} className="mb-2">
                   <strong>{a.nome || "Sem nome"}</strong>
+                  {a.apelido && (
+                    <div className="small font-italic text-secondary">
+                      {a.apelido}
+                    </div>
+                  )}
                   {idade !== null && (
                     <div className="text-muted small">
                       Irá completar {idade} anos

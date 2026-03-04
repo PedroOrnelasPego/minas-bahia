@@ -33,6 +33,7 @@ const NIVEIS = [
   "instrutor",
   "professor",
   "contramestre",
+  "mestre",
 ];
 const rankNivel = (n) => {
   const i = NIVEIS.indexOf((n || "").toLowerCase());
@@ -40,12 +41,13 @@ const rankNivel = (n) => {
 };
 
 // helpers para URLs de avatar
+const CACHE_BUST = Date.now();
 const avatarUrl1x = (email) =>
-  `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil@1x.jpg?${Date.now()}`;
+  `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil@1x.jpg?v=${CACHE_BUST}`;
 const avatarUrl2x = (email) =>
-  `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil@2x.jpg?${Date.now()}`;
+  `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil@2x.jpg?v=${CACHE_BUST}`;
 const avatarUrlLegacy = (email) =>
-  `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil.jpg?${Date.now()}`;
+  `https://certificadoscapoeira.blob.core.windows.net/certificados/${email}/foto-perfil.jpg?v=${CACHE_BUST}`;
 
 // === bolinha de status (verde / âmbar) ===
 const StatusDot = ({ verificada }) => {
@@ -865,7 +867,7 @@ const PainelAdmin = () => {
               <div className="col-md-3">
                 <strong>Nível de Acesso </strong>
                 {user.email === mestreEmail ? (
-                  <div className="mt-1"><span className="badge bg-dark">Mestre</span></div>
+                  <div className="mt-1"><span className="badge bg-dark">Administrador</span></div>
                 ) : (
                   <select
                     className="form-select form-select-sm mt-1"
@@ -1085,20 +1087,61 @@ const PainelAdmin = () => {
     );
   };
 
-  const renderSection = (title, users) => (
-    <section className="mb-4">
-      <h4 className="mb-3">{title}</h4>
-      {users.length === 0 ? (
-        <p className="text-muted">Nenhum aluno neste local.</p>
-      ) : viewMode === "list" ? (
-        ordenarUsuarios(users).map((user) => renderUserListItem(user))
-      ) : (
-        <Row className="g-3">
-          {ordenarUsuarios(users).map((user) => renderUserCard(user))}
-        </Row>
-      )}
-    </section>
-  );
+  const renderUserListGroup = (users) => {
+    if (users.length === 0) {
+      return <p className="text-muted small">Nenhum aluno neste horário.</p>;
+    }
+    return viewMode === "list" ? (
+      ordenarUsuarios(users).map((user) => renderUserListItem(user))
+    ) : (
+      <Row className="g-3">
+        {ordenarUsuarios(users).map((user) => renderUserCard(user))}
+      </Row>
+    );
+  };
+
+  const renderSection = (title, users) => {
+    const isSalgado = title === LOCAL_SALGADO;
+
+    return (
+      <section className="mb-4">
+        <h4 className="mb-3">{title}</h4>
+        {users.length === 0 ? (
+          <p className="text-muted">Nenhum aluno neste local.</p>
+        ) : isSalgado ? (
+          <>
+            {/* Adultos - 20h às 21:30h */}
+            <div className="mb-4 ps-2">
+              <h6 className="mb-3">Adultos (20h às 21:30h)</h6>
+              {renderUserListGroup(
+                users.filter(
+                  (u) =>
+                    (dadosUsuarios[u.email]?.horarioTreino ||
+                      u.horarioTreino) === "20-21h30-adultos",
+                ),
+              )}
+            </div>
+
+            {/* Crianças - 19h às 20h */}
+            <div className="mb-4 ps-2">
+              <h6 className="mb-3">Infantil (19h às 20h)</h6>
+              {renderUserListGroup(
+                users.filter(
+                  (u) =>
+                    (dadosUsuarios[u.email]?.horarioTreino ||
+                      u.horarioTreino) === "19-20-criancas",
+                ),
+              )}
+            </div>
+
+            
+          </>
+        ) : (
+          renderUserListGroup(users)
+        )}
+      </section>
+    );
+  };
 
   const modalUser = modalUserEmail
     ? usuarios.find((u) => u.email === modalUserEmail)

@@ -1414,6 +1414,16 @@ const AreaGraduado = () => {
         </Row>
       )}
 
+      {canAccess(7) && (
+        <Row className="mt-4">
+          <Col md={12} className="border p-3 text-center">
+            <h5>Arquivos para Mestre</h5>
+            <p>Área para documentos de download público</p>
+            <FileSection pasta="mestre" canUpload={isMestre} />
+          </Col>
+        </Row>
+      )}
+
       <ModalEditarPerfil
         show={showEditModal}
         onHide={() => {

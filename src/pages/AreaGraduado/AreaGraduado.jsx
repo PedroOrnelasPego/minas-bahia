@@ -1771,7 +1771,7 @@ const AreaGraduado = () => {
                     <table className="table table-sm mb-0 align-middle">
                       <thead>
                         <tr>
-                          <th style={{ minWidth: 220 }}>Nome</th>
+                          <th style={{ minWidth: 220, position: "sticky", left: 0, background: "#f8f9fa", zIndex: 10 }}>Nome</th>
                           <th className="text-center" style={{ minWidth: 90 }}>
                             Presenças (mês)
                           </th>
@@ -1792,7 +1792,7 @@ const AreaGraduado = () => {
                       <tbody>
                         {rows.map((u) => (
                           <tr key={u.id}>
-                            <td style={{ maxWidth: 260 }}>
+                            <td style={{ maxWidth: 260, position: "sticky", left: 0, background: "white", zIndex: 5 }}>
                               <div
                                 className="text-truncate"
                                 title={u.nome || u.id}
@@ -1865,7 +1865,7 @@ const AreaGraduado = () => {
                     <>
                       <thead>
                         <tr>
-                          <th style={{ minWidth: 220 }}>Nome</th>
+                          <th style={{ minWidth: 220, position: "sticky", left: 0, background: "#f8f9fa", zIndex: 10 }}>Nome</th>
                           {chamadaDias.map((d) => (
                             <th key={d.dateISO} className="text-center" style={{ minWidth: 120 }}>
                               <div className="small font-weight-bold">{d.weekday}</div>
@@ -1912,7 +1912,7 @@ const AreaGraduado = () => {
                       <tbody>
                         {listaFiltrada.map((u) => (
                           <tr key={u.id}>
-                            <td style={{ maxWidth: 260 }}>
+                            <td style={{ maxWidth: 260, position: "sticky", left: 0, background: "white", zIndex: 5 }}>
                               <div className="text-truncate" title={u.nome || u.id}>
                                 {(() => {
                                   if (!u.nome) return "-";

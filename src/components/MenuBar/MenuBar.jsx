@@ -71,7 +71,8 @@ const MenuBar = () => {
           </Nav.Link>
         ))}
 
-        {isAuthenticated() && isAlunoOrHigher && (
+        {/* {isAuthenticated() && isAlunoOrHigher && ( */}
+        {isAuthenticated() && isMestre && (
           podeGerirAcervo ? (
             <NavDropdown title="Acervo" id="nav-dropdown-acervo" className="custom-dropdown">
               <NavDropdown.Item as={NavLink} to="/acervo" onClick={handleClose} className="fw-bold text-dark">Explorar Acervo</NavDropdown.Item>

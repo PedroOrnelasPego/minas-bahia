@@ -13,9 +13,11 @@ export const getPerfilCache = (email) => {
 export const setPerfilCache = (email, perfil) => {
   if (!email) return;
   localStorage.setItem(keyFor(email), JSON.stringify(perfil || {}));
+  window.dispatchEvent(new CustomEvent("profileUpdated"));
 };
 
 export const clearPerfilCache = (email) => {
   if (!email) return;
   localStorage.removeItem(keyFor(email));
+  window.dispatchEvent(new CustomEvent("profileUpdated"));
 };

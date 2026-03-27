@@ -10,6 +10,9 @@ const Eventos = lazy(() => import("../pages/Eventos/Eventos"));
 const AlbumGroup = lazy(() => import("../pages/Eventos/AlbumGroup"));
 const AlbumPage = lazy(() => import("../pages/Eventos/AlbumPage"));
 const Trajetorias = lazy(() => import("../pages/Trajetorias"));
+const Acervo = lazy(() => import("../pages/Acervo/Acervo"));
+const AcervoItem = lazy(() => import("../pages/Acervo/AcervoItem"));
+const PainelAcervo = lazy(() => import("../pages/PainelAcervo/PainelAcervo"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 
 const AreaGraduado = lazy(() => import("../pages/AreaGraduado/AreaGraduado"));
@@ -43,7 +46,31 @@ export function AppRoutes() {
         <Route path="/uai-minas-bahia" element={<UAI />} />
         <Route path="/projetos" element={<Trajetorias />} />
 
-        {/* Portal do Graduado */}
+        {/* Portal do Graduado e Acervo */}
+        <Route
+          path="/acervo"
+          element={
+            <ProtectedRoute>
+              <Acervo />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/acervo/:type/:id"
+          element={
+            <ProtectedRoute>
+              <AcervoItem />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/gestao-acervo"
+          element={
+            <ProtectedRoute>
+              <PainelAcervo />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/acesso-interno/login" element={<Login />} />
         <Route
           path="/acesso-interno"

@@ -11,6 +11,7 @@ import { formatarData } from "../../utils/formatarData";
 import calcularIdade from "../../utils/calcularIdade";
 import { getHorarioLabel } from "../../helpers/agendaTreino";
 import ExportadorDeDados from "../../components/ExportadorDeDados";
+import { setPerfilCache } from "../../utils/profileCache";
 
 // === cordas ===
 import {
@@ -182,6 +183,26 @@ const PainelAdmin = () => {
       if (!silent) alert("Permissão para editar questionário atualizada.");
     } catch {
       if (!silent) alert("Erro ao atualizar a permissão do questionário.");
+    }
+  };
+
+  const atualizarPermissaoAcervo = async (email, nivel, categorias = []) => {
+    try {
+      await http.put(`${API_URL}/perfil/${email}`, {
+        permissaoAcervo: nivel,
+        categoriasAcervo: categorias,
+      });
+      const perfilAtual = dadosUsuarios[email] || {};
+      const updatedRecord = { ...perfilAtual, permissaoAcervo: nivel, categoriasAcervo: categorias };
+
+      setDadosUsuarios((prev) => ({
+        ...prev,
+        [email]: updatedRecord,
+      }));
+      setPerfilCache(email, updatedRecord);
+      alert("Permissão no acervo atualizada com sucesso.");
+    } catch {
+      alert("Erro ao atualizar permissão no acervo.");
     }
   };
 
@@ -594,8 +615,8 @@ const PainelAdmin = () => {
             <strong>Quando iniciou no grupo: </strong>
             {perfilSel.inicioNoGrupo
               ? `${formatarData(perfilSel.inicioNoGrupo)} | ${formatarTempoDeGrupo(
-                  perfilSel.inicioNoGrupo,
-                )}`
+                perfilSel.inicioNoGrupo,
+              )}`
               : "-"}
           </p>
 
@@ -660,11 +681,10 @@ const PainelAdmin = () => {
                     const isPdf = (item.fileName || "")
                       .toLowerCase()
                       .endsWith(".pdf");
-                    const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${
-                      user.email
-                    }/certificados/${encodeURIComponent(item.data)}/${encodeURIComponent(
-                      item.fileName,
-                    )}`;
+                    const fullUrl = `https://certificadoscapoeira.blob.core.windows.net/certificados/${user.email
+                      }/certificados/${encodeURIComponent(item.data)}/${encodeURIComponent(
+                        item.fileName,
+                      )}`;
 
                     const aprovado = item.status === "approved";
                     const rejeitado = item.status === "rejected";
@@ -694,13 +714,12 @@ const PainelAdmin = () => {
                             <small className="text-muted">
                               Data: {formatarData(item.data)} •{" "}
                               <span
-                                className={`badge ${
-                                  aprovado
+                                className={`badge ${aprovado
                                     ? "bg-success"
                                     : rejeitado
                                       ? "bg-danger"
                                       : "bg-warning text-dark"
-                                }`}
+                                  }`}
                               >
                                 {aprovado
                                   ? "Confirmada"
@@ -948,7 +967,7 @@ const PainelAdmin = () => {
                   onChange={(e) =>
                     atualizarDaAula(user.email, e.target.value === "sim")
                   }
-                  style={{ 
+                  style={{
                     backgroundColor: perfilSel?.daAula ? "#198754" : "inherit",
                     color: perfilSel?.daAula ? "white" : "inherit",
                     fontWeight: perfilSel?.daAula ? "bold" : "normal"
@@ -957,6 +976,57 @@ const PainelAdmin = () => {
                   <option value="nao">Não</option>
                   <option value="sim">Sim</option>
                 </select>
+              </div>
+
+              {/* CONTROLES Acervo */}
+              <div className="col-12 mt-4 pt-3 border-top">
+                <h6 className="text-muted mb-3"><span className="fw-bold">Controles do Acervo</span></h6>
+                <div className="row g-3">
+                  <div className="col-md-3">
+                    <strong>Nível de Permissão</strong>
+                    <select
+                      className="form-select form-select-sm mt-1"
+                      value={perfilSel?.permissaoAcervo || "leitor"}
+                      onChange={(e) => {
+                        const novoNivel = e.target.value;
+                        const categoriasAtuais = perfilSel?.categoriasAcervo || [];
+                        atualizarPermissaoAcervo(user.email, novoNivel, categoriasAtuais);
+                      }}
+                    >
+                      <option value="leitor">Leitor (Padrão)</option>
+                      <option value="curador">Curador (Apenas Adiciona)</option>
+                      <option value="editor">Editor (Adiciona e Edita)</option>
+                    </select>
+                  </div>
+
+                  {perfilSel?.permissaoAcervo === "curador" && (
+                    <div className="col-md-6">
+                      <strong>Categorias que pode adicionar (Curador)</strong>
+                      <div className="d-flex flex-wrap gap-3 mt-1 align-items-center">
+                        {["vinil", "cd", "livro", "documento"].map(cat => {
+                          const cats = perfilSel?.categoriasAcervo || [];
+                          const hasCat = cats.includes(cat);
+                          return (
+                            <label key={cat} className="form-check cursor-pointer m-0" style={{ fontSize: "0.85rem" }}>
+                              <input
+                                type="checkbox"
+                                className="form-check-input me-1"
+                                checked={hasCat}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  let newCats = [...cats];
+                                  if (checked && !newCats.includes(cat)) newCats.push(cat);
+                                  else if (!checked) newCats = newCats.filter(c => c !== cat);
+                                  atualizarPermissaoAcervo(user.email, "curador", newCats);
+                                }}
+                              /> {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1134,7 +1204,7 @@ const PainelAdmin = () => {
               )}
             </div>
 
-            
+
           </>
         ) : (
           renderUserListGroup(users)
@@ -1153,18 +1223,16 @@ const PainelAdmin = () => {
       <div className="d-flex flex-wrap justify-content-center gap-2 mb-4">
         <button
           type="button"
-          className={`btn btn-sm ${
-            viewMode === "list" ? "btn-primary" : "btn-outline-primary"
-          }`}
+          className={`btn btn-sm ${viewMode === "list" ? "btn-primary" : "btn-outline-primary"
+            }`}
           onClick={() => setViewMode("list")}
         >
           Lista
         </button>
         <button
           type="button"
-          className={`btn btn-sm ${
-            viewMode === "cards" ? "btn-primary" : "btn-outline-primary"
-          }`}
+          className={`btn btn-sm ${viewMode === "cards" ? "btn-primary" : "btn-outline-primary"
+            }`}
           onClick={() => setViewMode("cards")}
         >
           Blocos

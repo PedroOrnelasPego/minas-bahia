@@ -28,7 +28,10 @@ export default function Acervo() {
   useEffect(() => {
     async function fetchAcervo() {
       try {
-        const baseUrl = import.meta.env.VITE_ACERVO_API_URL || "http://localhost:3334";
+        const baseUrl = import.meta.env.VITE_ACERVO_API_URL || 
+                (window.location.hostname.includes("icmbc.com.br") 
+                  ? "https://portal-arquivo-cultural-backend-gydeeshhg4azcqcp.brazilsouth-01.azurewebsites.net" 
+                  : "http://localhost:3334");
         const res = await fetch(`${baseUrl}/api/acervo`);
         if (!res.ok) throw new Error("Erro ao carregar o Acervo a partir do backend.");
         const data = await res.json();

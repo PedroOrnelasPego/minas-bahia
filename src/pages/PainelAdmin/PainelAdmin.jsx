@@ -411,10 +411,31 @@ const PainelAdmin = () => {
   };
 
   function formatarTempoDeGrupo(data) {
-    const anos = calcularIdade(data); // inteiro
-    if (anos < 1) return "menos de 1 ano";
-    if (anos === 1) return "1 ano";
-    return `${anos} anos`;
+    if (!data) return "-";
+    const start = new Date(data);
+    const now = new Date();
+    if (isNaN(start.getTime())) return "-";
+
+    let diffMonths =
+      (now.getFullYear() - start.getFullYear()) * 12 +
+      (now.getMonth() - start.getMonth());
+    if (now.getDate() < start.getDate()) {
+      diffMonths--;
+    }
+
+    if (diffMonths <= 0) return "menos de 1 mês";
+
+    const anos = Math.floor(diffMonths / 12);
+    const meses = diffMonths % 12;
+
+    if (anos >= 1) {
+      const anosStr = anos === 1 ? "1 ano" : `${anos} anos`;
+      const mesesStr =
+        meses === 0 ? "" : meses === 1 ? " e 1 mês" : ` e ${meses} meses`;
+      return `${anosStr}${mesesStr}`;
+    }
+
+    return meses === 1 ? "1 mês" : `${meses} meses`;
   }
 
   // helper do questionário (booleans)
@@ -516,8 +537,7 @@ const PainelAdmin = () => {
         >
           <div style={{ width: 150, marginInline: "auto" }}>
             <img
-              src={url1x}
-              srcSet={jaSemAvatar ? undefined : `${url1x} 1x, ${url2x} 2x`}
+              src={user.foto || fotoPadrao}
               alt="Foto de perfil"
               className="rounded"
               style={{
@@ -529,18 +549,11 @@ const PainelAdmin = () => {
                 cursor: "zoom-in",
               }}
               onClick={() => {
-                setAvatarModalUrl(jaSemAvatar ? fotoPadrao : url2x);
+                setAvatarModalUrl(user.foto || fotoPadrao);
                 setShowAvatarModal(true);
               }}
               onError={(e) => {
-                setSemAvatar((prev) => ({
-                  ...prev,
-                  [user.email]: true,
-                }));
-                const img = e.currentTarget;
-                img.onerror = null;
-                img.removeAttribute("srcset");
-                img.src = fotoPadrao;
+                e.target.src = fotoPadrao;
               }}
             />
           </div>
@@ -1089,9 +1102,9 @@ const PainelAdmin = () => {
 
   const renderUserCard = (user) => {
     const perfilSel = dadosUsuarios[user.email] || {};
-    const jaSemAvatar = !!semAvatar[user.email];
-    const url1x = jaSemAvatar ? fotoPadrao : avatarUrl1x(user.email);
-    const url2x = jaSemAvatar ? "" : avatarUrl2x(user.email);
+    
+    // Usamos o campo 'foto' (null ou URL completa) enviado pelo backend
+    const url1x = user.foto || fotoPadrao;
 
     const cordaVerificada =
       perfilSel.cordaVerificada ??
@@ -1125,19 +1138,11 @@ const PainelAdmin = () => {
           <div className="d-flex align-items-center gap-3">
             <img
               src={url1x}
-              srcSet={jaSemAvatar ? undefined : `${url1x} 1x, ${url2x} 2x`}
               alt="Foto de perfil"
               className="rounded-circle flex-shrink-0"
               style={{ width: 64, height: 64, objectFit: "cover" }}
               onError={(e) => {
-                setSemAvatar((prev) => ({
-                  ...prev,
-                  [user.email]: true,
-                }));
-                const img = e.currentTarget;
-                img.onerror = null;
-                img.removeAttribute("srcset");
-                img.src = fotoPadrao;
+                e.target.src = fotoPadrao;
               }}
             />
             <div className="flex-grow-1" style={{ minWidth: 0 }}>

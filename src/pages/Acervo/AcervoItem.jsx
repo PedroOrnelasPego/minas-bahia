@@ -22,7 +22,10 @@ export default function AcervoItem() {
   useEffect(() => {
     async function fetchRecord() {
       try {
-        const baseUrl = import.meta.env.VITE_ACERVO_API_URL || "http://localhost:3334";
+        const baseUrl = import.meta.env.VITE_ACERVO_API_URL || 
+                (window.location.hostname.includes("icmbc.com.br") 
+                  ? "https://portal-arquivo-cultural-backend-gydeeshhg4azcqcp.brazilsouth-01.azurewebsites.net" 
+                  : "http://localhost:3334");
         const response = await fetch(`${baseUrl}/api/acervo`);
         if (response.ok) {
           const data = await response.json();

@@ -7,7 +7,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 import { getAuthEmail } from "../../auth/session";
-import { getPerfilCache } from "../../utils/profileCache";
+import { getPerfilCache, setPerfilCache } from "../../utils/profileCache";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=150";
 
@@ -329,7 +329,7 @@ export default function PainelAcervo() {
     if (!url) return;
     setIsSubmitting(true);
     try {
-      const baseUrl = import.meta.env.VITE_ACERVO_API_URL || "http://localhost:3334";
+      const baseUrl = import.meta.env.VITE_ACERVO_API_URL || (window.location.hostname.includes("icmbc.com.br") ? "https://portal-arquivo-cultural-backend-gydeeshhg4azcqcp.brazilsouth-01.azurewebsites.net" : "http://localhost:3334");
       const delRes = await fetch(`${baseUrl}/api/uploads`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -617,29 +617,44 @@ export default function PainelAcervo() {
                 </div>
               ) : (
                 <div className="bg-white rounded-5 p-4 shadow-sm border border-light">
-                  <div className="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-3">
-                    <div className="d-flex align-items-center gap-3">
-                      <div className="d-flex align-items-center justify-content-center rounded-3 bg-light" style={{ width: '48px', height: '48px' }}>
-                        <LayoutDashboard color="#8b0000" />
-                      </div>
-                      <div>
-                        <h4 className="fw-bold mb-0 text-dark">Itens Catalogados</h4>
-                        <div className="text-muted" style={{ fontSize: "0.85rem" }}>Visão geral do acervo completo cadastrado.</div>
-                      </div>
+                  <div className="d-flex flex-column align-items-center mb-5 gap-4">
+                    <div className="text-center">
+                      <h4 className="fw-bold mb-1 text-dark">Itens Catalogados</h4>
+                      <div className="text-muted" style={{ fontSize: "0.9rem" }}>Visão geral do acervo completo cadastrado.</div>
                     </div>
-                    <div className="d-flex flex-wrap gap-2 flex-grow-1 justify-content-lg-end mt-3 mt-lg-0">
-                      <InputGroup style={{ maxWidth: '250px' }}>
-                        <InputGroup.Text className="bg-white text-muted border-end-0 rounded-start-pill ps-3"><Search size={16} /></InputGroup.Text>
-                        <Form.Control placeholder="Buscar item..." className="border-start-0 rounded-end-pill shadow-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ fontSize: "0.9rem" }} />
+
+                    <div className="w-100" style={{ maxWidth: '600px' }}>
+                      <InputGroup className="shadow-sm rounded-pill overflow-hidden border-0" style={{ border: '1px solid #e2e8f0 !important' }}>
+                        <InputGroup.Text className="bg-white text-muted border-0 ps-4"><Search size={20} /></InputGroup.Text>
+                        <Form.Control 
+                          placeholder="Buscar por título, autor ou gravadora..." 
+                          className="border-0 py-3 shadow-none" 
+                          value={searchTerm} 
+                          onChange={(e) => setSearchTerm(e.target.value)} 
+                          style={{ fontSize: "1rem", fontWeight: "500" }} 
+                        />
                       </InputGroup>
-                      <Form.Select className="rounded-pill shadow-sm border-light text-muted fw-bold" style={{ maxWidth: '200px', fontSize: '0.85rem', cursor: 'pointer' }} value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                    </div>
+
+                    <div className="d-flex flex-wrap justify-content-center gap-3 w-100">
+                      <Form.Select 
+                        className="rounded-pill shadow-sm border-light text-muted fw-bold py-2 px-4" 
+                        style={{ width: 'auto', minWidth: '220px', fontSize: '0.85rem', cursor: 'pointer' }} 
+                        value={filterCategory} 
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                      >
                         <option value="Todas as Categorias">Filtro: Todas as Categorias</option>
                         <option value="Discos de Vinil">Discos de Vinil</option>
                         <option value="Livros">Livros</option>
                         <option value="Áudios / CDs">Áudios / CDs</option>
                         <option value="Documentos">Documentos</option>
                       </Form.Select>
-                      <Form.Select className="rounded-pill shadow-sm border-light text-muted fw-bold" style={{ maxWidth: '180px', fontSize: '0.85rem', cursor: 'pointer' }} value={filterSort} onChange={(e) => setFilterSort(e.target.value)}>
+                      <Form.Select 
+                        className="rounded-pill shadow-sm border-light text-muted fw-bold py-2 px-4" 
+                        style={{ width: 'auto', minWidth: '200px', fontSize: '0.85rem', cursor: 'pointer' }} 
+                        value={filterSort} 
+                        onChange={(e) => setFilterSort(e.target.value)}
+                      >
                         <option value="recentes">Data: Mais Recentes</option>
                         <option value="antigos">Data: Mais Antigos</option>
                         <option value="az">Ordem: A - Z</option>

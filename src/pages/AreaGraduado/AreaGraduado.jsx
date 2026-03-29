@@ -57,6 +57,193 @@ function getNivelLabel(nivel) {
   return NIVEL_LABELS[key] || "";
 }
 
+/** Componente de Hierarquia de Integrantes */
+function HierarquiaIntegrantes() {
+  const [integrantes, setIntegrantes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    async function fetchDiretorio() {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/perfil/diretorio`);
+        if (res.ok) setIntegrantes(await res.json());
+      } catch (err) {
+        console.error("Erro ao carregar diretório:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDiretorio();
+  }, []);
+
+  if (loading) return <div className="text-center p-4"><Loading /></div>;
+  if (!integrantes.length) return null;
+
+  // Agrupamento por corda
+  const grupos = integrantes.reduce((acc, current) => {
+    const corda = current.corda || "Sem Corda";
+    if (!acc[corda]) acc[corda] = [];
+    acc[corda] = [...acc[corda], current];
+    return acc;
+  }, {});
+
+  // Ordem sugerida (Mestre -> Aluno)
+  const cordaOrder = [
+    "vermelha-mestre", "marrom-adulto", "roxa-adulto", "verde-adulto", "azul-adulto",
+    "laranja-azul-adulto", "laranja-adulto", "amarela-laranja-adulto", "amarela-adulto",
+    "cru-amarela-adulto", "cru-adulto"
+  ];
+
+  const sortedGroups = Object.keys(grupos)
+    .sort((a, b) => {
+      const ia = cordaOrder.indexOf(a);
+      const ib = cordaOrder.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+
+  const thresholdIndex = cordaOrder.indexOf("azul-adulto");
+  const topGroups = sortedGroups.filter(c => {
+    const idx = cordaOrder.indexOf(c);
+    return idx >= 0 && idx <= thresholdIndex;
+  });
+  const restGroups = sortedGroups.filter(c => {
+    const idx = cordaOrder.indexOf(c);
+    return idx > thresholdIndex || idx === -1;
+  });
+
+  const renderGroup = (cordaSvg) => (
+    <div key={cordaSvg} className="mb-5">
+      <div className="text-center mb-4">
+        <h5
+          className="fw-bold text-uppercase border-bottom d-inline-block pb-1 px-4"
+          style={{ color: '#000000ff', letterSpacing: '1px', fontSize: '1rem' }}
+        >
+          {getCordaNome(cordaSvg)}
+        </h5>
+      </div>
+
+      <div className="d-flex flex-wrap justify-content-center gap-3">
+        {grupos[cordaSvg].map((u, i) => (
+          <div
+            key={i}
+            className="integrante-card text-center p-3 border rounded shadow-sm bg-white"
+            style={{ width: '150px', transition: 'transform 0.2s', cursor: 'pointer' }}
+            onClick={() => setSelected(u)}
+            title={`Ver detalhes de ${u.nome}`}
+          >
+            <div className="position-relative d-inline-block mb-2">
+              <img
+                src={u.foto || fotoPadrao}
+                alt={u.nome}
+                className="rounded-circle border border-2 shadow-sm"
+                style={{ width: '80px', height: '80px', objectFit: 'cover' }}
+                onError={(e) => { e.target.src = fotoPadrao; }}
+              />
+            </div>
+            <div className="small fw-bold text-dark text-truncate px-1 mb-0" style={{ lineHeight: '1.2' }}>{u.nome}</div>
+            {u.apelido && <div className="small text-muted fst-italic text-truncate mb-0" style={{ fontSize: '0.75rem' }}>{u.apelido}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="hierarquia-container mt-2">
+      <h4 className="text-center mb-5 fw-bold text-dark">Hierarquia do Grupo</h4>
+
+      {topGroups.map(renderGroup)}
+
+      {restGroups.length > 0 && (
+        <div className="mt-4">
+          <button
+            type="button"
+            className="btn btn-outline-dark btn-sm rounded-pill px-4 mb-4 d-inline-flex align-items-center gap-2"
+            onClick={() => setShowAll(!showAll)}
+          >
+            {showAll ? 'Ver menos' : 'Ver mais integrantes'}
+            <i className={`bi bi-chevron-${showAll ? 'up' : 'down'}`}></i>
+          </button>
+
+          <div className={`overflow-hidden transition-all ${showAll ? 'opacity-100' : 'opacity-0'}`} style={{ maxHeight: showAll ? '5000px' : '0', transition: 'all 0.5s ease-in-out' }}>
+            {restGroups.map(renderGroup)}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalhes do Integrante */}
+      <Modal show={!!selected} onHide={() => setSelected(null)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold w-100 text-center">{selected?.nome}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center pt-2 pb-4 px-4">
+          <div className="d-flex justify-content-center mb-3">
+            <img
+              src={selected?.foto || fotoPadrao}
+              alt={selected?.nome}
+              className="rounded-circle border border-4 shadow"
+              style={{ width: '150px', height: '150px', objectFit: 'cover' }}
+              onError={(e) => { e.target.src = fotoPadrao; }}
+            />
+          </div>
+
+          {selected?.apelido && (
+            <h5 className="text-dark fw-bold mb-4">{selected.apelido}</h5>
+          )}
+
+          <div className="text-start mx-auto" style={{ maxWidth: '350px' }}>
+            <p className="mb-2"><strong>Corda:</strong> {getCordaNome(selected?.corda)}</p>
+            <p className="mb-2"><strong>Local:</strong> {selected?.localTreino || "-"}</p>
+            <p className="mb-2">
+              <strong>Horário:</strong> {(() => {
+                if (!selected?.localTreino || !selected?.horarioTreino) return "-";
+                const label = getHorarioLabel(selected.localTreino, selected.horarioTreino);
+                // Transforma "20h às 21:30h - Adolescentes e adultos." em "20h às 21:30h | Adultos"
+                return label
+                  .replace(" - ", " | ")
+                  .replace("Adolescentes e adultos.", "Adultos")
+                  .replace("Crianças de 6 a 12 anos.", "Crianças")
+                  .replace(/\.$/, "");
+              })()}
+            </p>
+            <p className="mb-2">
+              <strong>Tempo de Grupo:</strong> {formatarTempoDeGrupo(selected?.inicioNoGrupo)}
+            </p>
+
+            {selected?.whatsapp && (
+              <div className="mt-4 text-center">
+                <a
+                  href={`https://wa.me/55${selected.whatsapp.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-success rounded-pill px-5 fw-bold"
+                >
+                  <i className="bi bi-whatsapp me-2"></i> WhatsApp
+                </a>
+              </div>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      <style>
+        {`
+          .integrante-card:hover {
+            transform: translateY(-5px);
+            border-color: #8b0000 !important;
+            box-shadow: 0 4px 12px rgba(139,0,0,0.1) !important;
+          }
+        `}
+      </style>
+    </div>
+  );
+}
+
 /** Campos obrigatórios do seu cadastro inicial */
 const REQUIRED_FIELDS = [
   "nome",
@@ -87,10 +274,31 @@ function isPerfilIncompleto(p) {
 }
 
 function formatarTempoDeGrupo(data) {
-  const anos = calcularIdade(data); // inteiro
-  if (anos < 1) return "menos de 1 ano";
-  if (anos === 1) return "1 ano";
-  return `${anos} anos`;
+  if (!data) return "-";
+  const start = new Date(data);
+  const now = new Date();
+  if (isNaN(start.getTime())) return "-";
+
+  let diffMonths =
+    (now.getFullYear() - start.getFullYear()) * 12 +
+    (now.getMonth() - start.getMonth());
+  if (now.getDate() < start.getDate()) {
+    diffMonths--;
+  }
+
+  if (diffMonths <= 0) return "menos de 1 mês";
+
+  const anos = Math.floor(diffMonths / 12);
+  const meses = diffMonths % 12;
+
+  if (anos >= 1) {
+    const anosStr = anos === 1 ? "1 ano" : `${anos} anos`;
+    const mesesStr =
+      meses === 0 ? "" : meses === 1 ? " e 1 mês" : ` e ${meses} meses`;
+    return `${anosStr}${mesesStr}`;
+  }
+
+  return meses === 1 ? "1 mês" : `${meses} meses`;
 }
 
 const AreaGraduado = () => {
@@ -645,13 +853,13 @@ const AreaGraduado = () => {
 
     const endereco = logradouro
       ? buildFullAddress({
-          logradouro,
-          numero,
-          bairro,
-          cidade,
-          uf,
-          complemento: complementoAtual,
-        })
+        logradouro,
+        numero,
+        bairro,
+        cidade,
+        uf,
+        complemento: complementoAtual,
+      })
       : "";
 
     setFormEdit((prev) => ({
@@ -886,9 +1094,9 @@ const AreaGraduado = () => {
                   srcSet={
                     isRemotePreview && fotoPreview.includes("@1x")
                       ? `${fotoPreview} 1x, ${fotoPreview.replace(
-                          "@1x",
-                          "@2x",
-                        )} 2x`
+                        "@1x",
+                        "@2x",
+                      )} 2x`
                       : undefined
                   }
                   alt="Foto de perfil"
@@ -961,8 +1169,8 @@ const AreaGraduado = () => {
                   <strong>Quando iniciou no grupo: </strong>
                   {perfil.inicioNoGrupo
                     ? `${formatarData(
-                        perfil.inicioNoGrupo,
-                      )} | ${formatarTempoDeGrupo(perfil.inicioNoGrupo)}`
+                      perfil.inicioNoGrupo,
+                    )} | ${formatarTempoDeGrupo(perfil.inicioNoGrupo)}`
                     : "-"}
                 </p>
 
@@ -976,8 +1184,8 @@ const AreaGraduado = () => {
                   <strong>Data de Nascimento e Idade: </strong>
                   {perfil.dataNascimento
                     ? `${formatarData(perfil.dataNascimento)} | ${calcularIdade(
-                        perfil.dataNascimento,
-                      )} anos`
+                      perfil.dataNascimento,
+                    )} anos`
                     : "-"}
                 </p>
                 <p>
@@ -1123,9 +1331,8 @@ const AreaGraduado = () => {
                   const primeiro = laudos[0];
                   const extras =
                     laudos.length > 1
-                      ? ` (+${laudos.length - 1} outro${
-                          laudos.length - 1 > 1 ? "s" : ""
-                        })`
+                      ? ` (+${laudos.length - 1} outro${laudos.length - 1 > 1 ? "s" : ""
+                      })`
                       : "";
 
                   return (
@@ -1223,13 +1430,12 @@ const AreaGraduado = () => {
                             <small className="text-muted">
                               Data: {dataFmt} •{" "}
                               <span
-                                className={`tl-badge badge ${
-                                  aprovado
-                                    ? "bg-success"
-                                    : rejeitado
-                                      ? "bg-danger"
-                                      : "bg-warning text-dark"
-                                }`}
+                                className={`tl-badge badge ${aprovado
+                                  ? "bg-success"
+                                  : rejeitado
+                                    ? "bg-danger"
+                                    : "bg-warning text-dark"
+                                  }`}
                               >
                                 {aprovado
                                   ? "Confirmada"
@@ -1286,7 +1492,11 @@ const AreaGraduado = () => {
               <FileSection pasta="aluno" canUpload={isMestre} />
             </div>
           </Col>
+          {/* <Col md={12} className="border p-3 text-center">
+            <HierarquiaIntegrantes />
+          </Col> */}
         </Row>
+
       )}
 
       {canAccess(2) && (
@@ -1467,7 +1677,7 @@ const AreaGraduado = () => {
         onSave={() => {
           listarTimelineCertificados(userData.email)
             .then((items) => setCertTimeline(items || []))
-            .catch(() => {});
+            .catch(() => { });
         }}
         email={userData.email}
       />

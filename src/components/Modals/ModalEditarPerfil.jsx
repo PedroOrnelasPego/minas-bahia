@@ -13,8 +13,8 @@ import {
   getProfessorLabel,
 } from "../../helpers/agendaTreino";
 import { maskPhoneBR } from "../../utils/phone";
-import { buildFullAddress } from "../../utils/address";
 import { validateRequiredFields } from "../../utils/validate";
+import { formatName } from "../../utils/name";
 
 const ModalEditarPerfil = ({
   show,
@@ -212,7 +212,7 @@ const ModalEditarPerfil = ({
 
     const atualizado = {
       ...formEdit,
-      nome: (formEdit?.nome || "").trim(),
+      nome: formatName(formEdit?.nome || "").trim(),
       apelido: (formEdit?.apelido || "").trim(),
       genero: (formEdit?.genero || "").trim(),
       racaCor: (formEdit?.racaCor || "").trim(),

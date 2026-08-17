@@ -16,8 +16,8 @@ import { isValidPhoneGlobal, formatToE164 } from "../../utils/phone";
 import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { validateRequiredFields } from "../../utils/validate";
-import http from "../../services/http";
 import { maskCPF, isValidCPF, onlyDigits } from "../../utils/cpf";
+import { formatName } from "../../utils/name";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -401,7 +401,7 @@ const CadastroInicial = ({ show, onSave }) => {
         Promise.resolve(
           onSave?.({
             ...form,
-            nome: form.nome.trim(),
+            nome: formatName(form.nome).trim(),
             apelido: form.apelido.trim(),
             cpf: rawCpf, // <-- envia normalizado
             genero: form.genero.trim(),

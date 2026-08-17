@@ -89,6 +89,32 @@ const PainelAdmin = () => {
   const [modalUserEmail, setModalUserEmail] = useState(null);
   const [sortMode, setSortMode] = useState("nome-asc");
   const [cordaFilter, setCordaFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [reorganizandoMatriculas, setReorganizandoMatriculas] = useState(false);
+
+  const handleReorganizarMatriculas = async () => {
+    const confirmacao = window.confirm(
+      "Deseja reorganizar e re-sequenciar as matrículas de todos os alunos ativos?\n\nIsso irá ordenar todos os alunos ativos por data de ingresso no grupo e re-atribuir matrículas de forma contínua (ex: 2002001, 2002002, 2003003, 2004004...)."
+    );
+    if (!confirmacao) return;
+
+    try {
+      setReorganizandoMatriculas(true);
+      const res = await http.post(`${API_URL}/perfil/reorganizar-matriculas`);
+      if (res.data?.ok) {
+        alert(`Matrículas reorganizadas com sucesso!\n\nAlunos processados: ${res.data.totalProcessados}\nMatrículas atualizadas: ${res.data.totalAtualizados}`);
+        setDadosUsuarios({});
+        fetchUsuarios();
+      } else {
+        alert("Erro ao reorganizar matrículas.");
+      }
+    } catch (err) {
+      console.error("Erro ao reorganizar matrículas:", err);
+      alert("Erro ao reorganizar matrículas: " + (err.response?.data?.erro || err.message));
+    } finally {
+      setReorganizandoMatriculas(false);
+    }
+  };
 
   // timeline (certificados) por usuário
   const [timelineUsuarios, setTimelineUsuarios] = useState({});
@@ -260,23 +286,24 @@ const PainelAdmin = () => {
 
   // ================== Bootstrap ==================
 
+  const fetchUsuarios = async () => {
+    try {
+      setLoadingUsuarios(true);
+      const res = await http.get(`${API_URL}/perfil`);
+      setUsuarios(res.data || []);
+    } catch {
+      alert("Erro ao buscar usuários.");
+    } finally {
+      setLoadingUsuarios(false);
+    }
+  };
+
   useEffect(() => {
     const user = accounts[0];
     if (!user || user.username !== mestreEmail) {
       navigate("/notfound");
       return;
     }
-    const fetchUsuarios = async () => {
-      try {
-        setLoadingUsuarios(true);
-        const res = await http.get(`${API_URL}/perfil`);
-        setUsuarios(res.data || []);
-      } catch {
-        alert("Erro ao buscar usuários.");
-      } finally {
-        setLoadingUsuarios(false);
-      }
-    };
     fetchUsuarios();
   }, [accounts, navigate]);
 
@@ -525,11 +552,50 @@ const PainelAdmin = () => {
     return base;
   };
 
+  const normalizeSearchText = (str = "") =>
+    String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+
   const usuariosFiltrados = usuarios.filter((user) => {
+    // Filtro de corda
     const corda = getCordaUser(user);
-    if (cordaFilter === "all") return true;
-    if (cordaFilter === "none") return !corda;
-    return corda === cordaFilter;
+    if (cordaFilter !== "all") {
+      if (cordaFilter === "none") {
+        if (corda) return false;
+      } else if (corda !== cordaFilter) {
+        return false;
+      }
+    }
+
+    // Filtro de busca (Case-insensitive & Accent-insensitive)
+    if (searchTerm.trim()) {
+      const term = normalizeSearchText(searchTerm);
+      const perfilSel = dadosUsuarios[user.email] || {};
+
+      const nome = normalizeSearchText(perfilSel.nome || user.nome);
+      const apelido = normalizeSearchText(perfilSel.apelido || user.apelido);
+      const email = normalizeSearchText(user.email || perfilSel.email);
+      const matricula = normalizeSearchText(perfilSel.matricula || user.matricula);
+      const cpf = normalizeSearchText(perfilSel.cpf || user.cpf);
+      const localTreino = normalizeSearchText(perfilSel.localTreino || user.localTreino);
+      const professor = normalizeSearchText(perfilSel.professorReferencia || user.professorReferencia);
+
+      const matches =
+        nome.includes(term) ||
+        apelido.includes(term) ||
+        email.includes(term) ||
+        matricula.includes(term) ||
+        cpf.includes(term) ||
+        localTreino.includes(term) ||
+        professor.includes(term);
+
+      if (!matches) return false;
+    }
+
+    return true;
   });
 
   const gruposTreino = usuariosFiltrados.reduce(
@@ -1289,6 +1355,39 @@ const PainelAdmin = () => {
   return (
     <Container className="py-4">
       <h2 className="mb-4 text-center">Painel Administrativo</h2>
+
+      {/* Campo de Busca Dinâmica (Case & Accent Insensitive) */}
+      <div className="row justify-content-center mb-3">
+        <div className="col-12 col-md-8 col-lg-6">
+          <div className="position-relative">
+            <input
+              type="text"
+              className="form-control form-control-md pe-5 rounded-pill shadow-sm"
+              placeholder="🔍 Buscar por nome, apelido, e-mail, matrícula..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Buscar aluno no painel administrativo"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                className="btn btn-sm text-muted position-absolute top-50 end-0 translate-middle-y me-2 border-0 bg-transparent"
+                onClick={() => setSearchTerm("")}
+                title="Limpar busca"
+                style={{ fontSize: "1rem", lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {searchTerm.trim() && (
+            <div className="text-center text-muted small mt-1">
+              Exibindo <strong>{usuariosFiltrados.length}</strong> {usuariosFiltrados.length === 1 ? "resultado" : "resultados"} para "{searchTerm}"
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="d-flex flex-wrap justify-content-center gap-2 mb-4">
         <button
           type="button"
@@ -1357,6 +1456,26 @@ const PainelAdmin = () => {
           fetchPerfilByEmail={fetchPerfilByEmail}
           onMergeDadosUsuarios={onMergeDadosUsuarios}
         />
+
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-1"
+          onClick={handleReorganizarMatriculas}
+          disabled={reorganizandoMatriculas}
+          title="Reorganizar e re-sequenciar matrículas mantendo a ordem sem lacunas numéricas"
+        >
+          {reorganizandoMatriculas ? (
+            <>
+              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span>Organizando...</span>
+            </>
+          ) : (
+            <>
+              <span>🔄</span>
+              <span>Reorganizar Matrículas</span>
+            </>
+          )}
+        </button>
       </div>
 
       {renderSection(LOCAL_SALGADO, gruposTreino.salgado)}

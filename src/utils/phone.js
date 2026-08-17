@@ -31,11 +31,10 @@ export const maskPhoneBR = (value) => {
  * USADA NO PAINEL ADMIN E PERFIL
  */
 export const formatPhoneDisplay = (value, defaultCountry = 'BR') => {
-  console.log("formatPhoneDisplay recebendo:", value); // DEBUG
   if (!value) return "-";
-  
+
   const str = String(value).trim();
-  
+
   // Se já tem +, tenta formatar direto
   if (str.startsWith('+')) {
     const phoneNumber = parsePhoneNumberFromString(str);
@@ -49,7 +48,7 @@ export const formatPhoneDisplay = (value, defaultCountry = 'BR') => {
       return phoneNumber.formatInternational();
     }
   }
-  
+
   // Fallback total: tenta forçar um + se tiver muitos dígitos ou retorna o que veio
   const digits = onlyDigits(str);
   if (digits.length >= 10) {
@@ -58,7 +57,7 @@ export const formatPhoneDisplay = (value, defaultCountry = 'BR') => {
     if (ph && ph.isValid()) return ph.formatInternational();
   }
 
-  return str; 
+  return str;
 };
 
 /**

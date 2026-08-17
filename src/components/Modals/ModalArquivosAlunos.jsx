@@ -46,6 +46,29 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
   const [horarioFilter, setHorarioFilter] = useState("todos");
   const [pesquisa, setPesquisa] = useState("");
 
+  // State de ordenação (padrão: matrícula de menor para maior)
+  const [sortConfig, setSortConfig] = useState({ key: "matricula", direction: "asc" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <span className="text-muted opacity-50 ms-1 small">↕</span>;
+    }
+    return sortConfig.direction === "asc" ? (
+      <span className="text-primary ms-1 fw-bold">▲</span>
+    ) : (
+      <span className="text-primary ms-1 fw-bold">▼</span>
+    );
+  };
+
   // Carrega lista completa de alunos/perfis diretamente do endpoint /perfil
   useEffect(() => {
     if (!show) return;
@@ -80,17 +103,7 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
               u.eVisitante === true;
             return !isVisitante;
           });
-
-          // Ordena por matrícula numérica, depois por nome
-          const ordenados = [...apenasAlunos].sort((a, b) => {
-            if (a.matricula && b.matricula) {
-              return String(a.matricula).localeCompare(String(b.matricula), undefined, { numeric: true });
-            }
-            if (a.matricula) return -1;
-            if (b.matricula) return 1;
-            return (a.nome || "").localeCompare(b.nome || "");
-          });
-          setIntegrantes(ordenados);
+          setIntegrantes(apenasAlunos);
         }
       } catch (err) {
         console.error("Erro ao buscar alunos para o relatório:", err);
@@ -147,9 +160,9 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
     );
   }, [localFilter]);
 
-  // Filtragem dos alunos
+  // Filtragem e Ordenação dinâmica dos alunos
   const alunosFiltrados = useMemo(() => {
-    return integrantes.filter((u) => {
+    const filtrados = integrantes.filter((u) => {
       // Filtro de Local de Treino
       if (localFilter !== "todos") {
         const loc = (u.localTreino || "").toLowerCase();
@@ -179,7 +192,43 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
 
       return true;
     });
-  }, [integrantes, localFilter, horarioFilter, pesquisa]);
+
+    const { key, direction } = sortConfig;
+    const factor = direction === "asc" ? 1 : -1;
+
+    return [...filtrados].sort((a, b) => {
+      if (key === "matricula") {
+        if (a.matricula && b.matricula) {
+          return String(a.matricula).localeCompare(String(b.matricula), undefined, { numeric: true }) * factor;
+        }
+        if (a.matricula) return -1;
+        if (b.matricula) return 1;
+        return (a.nome || "").localeCompare(b.nome || "") * factor;
+      }
+
+      if (key === "nome") {
+        return (a.nome || "").localeCompare(b.nome || "") * factor;
+      }
+
+      if (key === "apelido") {
+        return (a.apelido || "").localeCompare(b.apelido || "") * factor;
+      }
+
+      if (key === "localTreino") {
+        return (a.localTreino || "").localeCompare(b.localTreino || "") * factor;
+      }
+
+      if (key === "horarioTreino") {
+        return formatarHorario(a.horarioTreino).localeCompare(formatarHorario(b.horarioTreino)) * factor;
+      }
+
+      if (key === "corda") {
+        return (getCordaNomeComSubclasse(a.corda) || "").localeCompare(getCordaNomeComSubclasse(b.corda) || "") * factor;
+      }
+
+      return 0;
+    });
+  }, [integrantes, localFilter, horarioFilter, pesquisa, sortConfig]);
 
   // Exportar para PDF (Layout limpo e sem coluna de conferência)
   const baixarPDF = async () => {
@@ -225,7 +274,16 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
       doc.text(subInfo, 30, 64);
 
       const head = [
-        ["#", "Matrícula", "Nome do Aluno", "Apelido", "Horário de Treino", "Corda Atual", "Próxima Corda"],
+        [
+          "#",
+          "Matrícula",
+          "Nome do Aluno",
+          "Apelido",
+          "Local de Treino",
+          "Horário de Treino",
+          "Corda Atual",
+          "Próxima Corda",
+        ],
       ];
 
       const body = alunosFiltrados.map((u, i) => [
@@ -233,6 +291,7 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
         u.matricula || "-",
         u.nome || "-",
         u.apelido || "-",
+        u.localTreino || "-",
         formatarHorario(u.horarioTreino),
         getCordaNomeComSubclasse(u.corda),
         getProximaCordaNomeComSubclasse(u.corda),
@@ -256,13 +315,14 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
           fillColor: [250, 250, 250],
         },
         columnStyles: {
-          0: { cellWidth: 28, halign: "center" },
-          1: { cellWidth: 70, halign: "center", fontStyle: "bold" },
-          2: { cellWidth: 180 },
-          3: { cellWidth: 100, fontStyle: "italic" },
-          4: { cellWidth: 130 },
-          5: { cellWidth: 135 },
-          6: { cellWidth: 135 },
+          0: { cellWidth: 25, halign: "center" },
+          1: { cellWidth: 60, halign: "center", fontStyle: "bold" },
+          2: { cellWidth: 150 },
+          3: { cellWidth: 85, fontStyle: "italic" },
+          4: { cellWidth: 135 },
+          5: { cellWidth: 105 },
+          6: { cellWidth: 110 },
+          7: { cellWidth: 110 },
         },
         margin: { left: 30, right: 30, top: 75, bottom: 30 },
         didDrawPage: (data) => {
@@ -314,10 +374,11 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
       ws.getCell("A1").value = "Matrícula";
       ws.getCell("B1").value = "Nome do Aluno";
       ws.getCell("C1").value = "Apelido";
-      ws.getCell("D1").value = "Horário de Treino";
-      ws.getCell("E1").value = "Corda Atual";
-      ws.getCell("F1").value = "Próxima Corda";
-      ws.getCell("G1").value = "Seus dados estão corretos?";
+      ws.getCell("D1").value = "Local de Treino";
+      ws.getCell("E1").value = "Horário de Treino";
+      ws.getCell("F1").value = "Corda Atual";
+      ws.getCell("G1").value = "Próxima Corda";
+      ws.getCell("H1").value = "Seus dados estão corretos?";
 
       ws.mergeCells("A1:A2");
       ws.mergeCells("B1:B2");
@@ -326,8 +387,9 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
       ws.mergeCells("E1:E2");
       ws.mergeCells("F1:F2");
       ws.mergeCells("G1:G2");
+      ws.mergeCells("H1:H2");
 
-      const headerCols = ["A1", "B1", "C1", "D1", "E1", "F1", "G1"];
+      const headerCols = ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1"];
       headerCols.forEach((cellRef) => {
         const cell = ws.getCell(cellRef);
         cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11, name: "Calibri" };
@@ -353,14 +415,15 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
         row.getCell(1).value = u.matricula || "-";
         row.getCell(2).value = u.nome || "-";
         row.getCell(3).value = u.apelido || "-";
-        row.getCell(4).value = formatarHorario(u.horarioTreino);
-        row.getCell(5).value = getCordaNomeComSubclasse(u.corda);
-        row.getCell(6).value = getProximaCordaNomeComSubclasse(u.corda);
+        row.getCell(4).value = u.localTreino || "-";
+        row.getCell(5).value = formatarHorario(u.horarioTreino);
+        row.getCell(6).value = getCordaNomeComSubclasse(u.corda);
+        row.getCell(7).value = getProximaCordaNomeComSubclasse(u.corda);
 
-        // Coluna G: Lista suspensa com validação de dados ("Sim,Não")
-        const cellG = row.getCell(7);
-        cellG.value = "";
-        cellG.dataValidation = {
+        // Coluna H: Lista suspensa com validação de dados ("Sim,Não")
+        const cellH = row.getCell(8);
+        cellH.value = "";
+        cellH.dataValidation = {
           type: "list",
           allowBlank: true,
           formulae: ['"Sim,Não"'],
@@ -375,9 +438,10 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
         row.getCell(4).alignment = { horizontal: "left", vertical: "middle" };
         row.getCell(5).alignment = { horizontal: "left", vertical: "middle" };
         row.getCell(6).alignment = { horizontal: "left", vertical: "middle" };
-        row.getCell(7).alignment = { horizontal: "center", vertical: "middle" };
+        row.getCell(7).alignment = { horizontal: "left", vertical: "middle" };
+        row.getCell(8).alignment = { horizontal: "center", vertical: "middle" };
 
-        for (let c = 1; c <= 7; c++) {
+        for (let c = 1; c <= 8; c++) {
           row.getCell(c).border = {
             top: { style: "thin", color: { argb: "FFE0E0E0" } },
             bottom: { style: "thin", color: { argb: "FFE0E0E0" } },
@@ -395,18 +459,19 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
       ws.getColumn(1).width = 14;
       ws.getColumn(2).width = 34;
       ws.getColumn(3).width = 20;
-      ws.getColumn(4).width = 24;
-      ws.getColumn(5).width = 28;
+      ws.getColumn(4).width = 28;
+      ws.getColumn(5).width = 24;
       ws.getColumn(6).width = 28;
-      ws.getColumn(7).width = 24;
+      ws.getColumn(7).width = 28;
+      ws.getColumn(8).width = 24;
 
-      // Regras de Formatação Condicional para a LINHA COMPLETA (A3:G{lastRow})
+      // Regras de Formatação Condicional para a LINHA COMPLETA (A3:H{lastRow})
       ws.addConditionalFormatting({
-        ref: `A3:G${lastRow}`,
+        ref: `A3:H${lastRow}`,
         rules: [
           {
             type: "expression",
-            formulae: ['EXACT($G3,"Sim")'],
+            formulae: ['EXACT($H3,"Sim")'],
             style: {
               fill: {
                 type: "pattern",
@@ -422,7 +487,7 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
           },
           {
             type: "expression",
-            formulae: ['EXACT($G3,"Não")'],
+            formulae: ['EXACT($H3,"Não")'],
             style: {
               fill: {
                 type: "pattern",
@@ -595,13 +660,55 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
               <thead className="table-light border-bottom">
                 <tr>
                   <th style={{ width: "35px" }} className="text-center text-muted">#</th>
-                  <th style={{ width: "90px" }}>Matrícula</th>
-                  <th>Nome do Aluno</th>
-                  <th>Apelido</th>
-                  <th>Horário de Treino</th>
-                  <th>Corda Atual</th>
+                  <th
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleSort("matricula")}
+                    title="Clique para ordenar por Matrícula"
+                    className="user-select-none"
+                  >
+                    Matrícula {getSortIcon("matricula")}
+                  </th>
+                  <th
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleSort("nome")}
+                    title="Clique para ordenar por Nome"
+                    className="user-select-none"
+                  >
+                    Nome do Aluno {getSortIcon("nome")}
+                  </th>
+                  <th
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleSort("apelido")}
+                    title="Clique para ordenar por Apelido"
+                    className="user-select-none"
+                  >
+                    Apelido {getSortIcon("apelido")}
+                  </th>
+                  <th
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleSort("localTreino")}
+                    title="Clique para ordenar por Local de Treino"
+                    className="user-select-none"
+                  >
+                    Local de Treino {getSortIcon("localTreino")}
+                  </th>
+                  <th
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleSort("horarioTreino")}
+                    title="Clique para ordenar por Horário de Treino"
+                    className="user-select-none"
+                  >
+                    Horário de Treino {getSortIcon("horarioTreino")}
+                  </th>
+                  <th
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleSort("corda")}
+                    title="Clique para ordenar por Corda Atual"
+                    className="user-select-none"
+                  >
+                    Corda Atual {getSortIcon("corda")}
+                  </th>
                   <th>Próxima Corda</th>
-                  <th>Local</th>
                 </tr>
               </thead>
               <tbody>
@@ -618,6 +725,7 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
                       </td>
                       <td className="fw-medium text-dark">{u.nome || "-"}</td>
                       <td className="text-muted fst-italic">{u.apelido || "-"}</td>
+                      <td className="text-muted small">{u.localTreino || "-"}</td>
                       <td className="text-secondary small">
                         {formatarHorario(u.horarioTreino)}
                       </td>
@@ -627,7 +735,6 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
                       <td className="small text-secondary">
                         {getProximaCordaNomeComSubclasse(u.corda)}
                       </td>
-                      <td className="text-muted small">{u.localTreino || "-"}</td>
                     </tr>
                   );
                 })}

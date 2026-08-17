@@ -9,7 +9,7 @@ import {
 } from "../../services/backend";
 import { listarTimelineCertificados } from "../../services/certificados";
 import CadastroInicial from "../../components/CadastroInicial/CadastroInicial";
-import { getCordaNome } from "../../constants/nomesCordas";
+import { getCordaNome, getCordaNomeComSubclasse, cordaOrder } from "../../constants/nomesCordas";
 import calcularIdade from "../../utils/calcularIdade";
 import ModalEditarPerfil from "../../components/Modals/ModalEditarPerfil";
 import http from "../../services/http";
@@ -23,8 +23,10 @@ import { buildFullAddress } from "../../utils/address";
 import { formatarData } from "../../utils/formatarData";
 import { makeAvatarVariants } from "../../utils/imagePerfil";
 import { setPerfilCache } from "../../utils/profileCache";
+import { formatPhoneDisplay } from "../../utils/phone";
 import QuestionarioAluno from "../../components/QuestionarioAluno/QuestionarioAluno";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
+import { useAuth } from "../../auth/AuthProvider";
 import {
   getAuthEmail,
   getAuthProvider,
@@ -32,6 +34,7 @@ import {
 } from "../../auth/session";
 import Loading from "../../components/Loading/Loading";
 import ModalArquivosPessoais from "../../components/Modals/ModalArquivosPessoais";
+import ModalArquivosAlunos from "../../components/Modals/ModalArquivosAlunos";
 import "./AreaGraduado.scss";
 import CalendarioAniversarios from "../../components/CalendarioAniversarios";
 
@@ -89,12 +92,7 @@ function HierarquiaIntegrantes() {
     return acc;
   }, {});
 
-  // Ordem sugerida (Mestre -> Aluno)
-  const cordaOrder = [
-    "vermelha-mestre", "marrom-adulto", "roxa-adulto", "verde-adulto", "azul-adulto",
-    "laranja-azul-adulto", "laranja-adulto", "amarela-laranja-adulto", "amarela-adulto",
-    "cru-amarela-adulto", "cru-adulto"
-  ];
+  // Ordem importada de constantes (Mestre -> Mirim)
 
   const sortedGroups = Object.keys(grupos)
     .sort((a, b) => {
@@ -123,7 +121,7 @@ function HierarquiaIntegrantes() {
           className="fw-bold text-uppercase border-bottom d-inline-block pb-1 px-4"
           style={{ color: '#000000ff', letterSpacing: '1px', fontSize: '1rem' }}
         >
-          {getCordaNome(cordaSvg)}
+          {getCordaNomeComSubclasse(cordaSvg)}
         </h5>
       </div>
 
@@ -197,7 +195,7 @@ function HierarquiaIntegrantes() {
           )}
 
           <div className="text-start mx-auto" style={{ maxWidth: '350px' }}>
-            <p className="mb-2"><strong>Corda:</strong> {getCordaNome(selected?.corda)}</p>
+            <p className="mb-2"><strong>Corda:</strong> {getCordaNomeComSubclasse(selected?.corda)}</p>
             <p className="mb-2"><strong>Local:</strong> {selected?.localTreino || "-"}</p>
             <p className="mb-2">
               <strong>Horário:</strong> {(() => {
@@ -303,6 +301,7 @@ function formatarTempoDeGrupo(data) {
 
 const AreaGraduado = () => {
   const { instance } = useMsal();
+  const { email: authEmail, provider, logout } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({ nome: "", email: "" });
@@ -324,6 +323,7 @@ const AreaGraduado = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCadastroInicial, setShowCadastroInicial] = useState(false);
   const [showCalendario, setShowCalendario] = useState(false);
+  const [showModalAlunos, setShowModalAlunos] = useState(false);
   const [aniversarios, setAniversarios] = useState([]);
 
   // ===== Chamada (Monitor+) =====
@@ -470,13 +470,13 @@ const AreaGraduado = () => {
 
   // ===== Boot / carregamento principal =====
   useEffect(() => {
-    const email = getAuthEmail();
+    const email = authEmail || getAuthEmail();
     if (!email) return; // ProtectedRoute já barra
 
-    const provider = getAuthProvider();
+    const currentProvider = provider || getAuthProvider();
     const msalAcc = instance.getActiveAccount?.();
     setUserData({
-      nome: provider === "microsoft" ? msalAcc?.name || "" : "",
+      nome: currentProvider === "microsoft" ? msalAcc?.name || "" : "",
       email,
     });
 
@@ -575,7 +575,7 @@ const AreaGraduado = () => {
       if (timer) clearTimeout(timer);
       if (abortRef.current) abortRef.current.abort();
     };
-  }, [instance]);
+  }, [instance, authEmail, provider]);
 
   useEffect(() => {
     if (!showCalendario) return;
@@ -871,7 +871,7 @@ const AreaGraduado = () => {
 
   // ===== Sair (unificado) =====
   const handleSignOut = async () => {
-    await signOutUnified();
+    await logout();
   };
 
   // ===== Permissões =====
@@ -1148,6 +1148,12 @@ const AreaGraduado = () => {
 
             <Col xs={12} md={8} className="order-2 order-md-1">
               <div className="pe-md-3">
+                {perfil.matricula && (
+                  <p>
+                    <strong>Matrícula: </strong>
+                    <span className="badge bg-dark fs-6 ms-1">{perfil.matricula}</span>
+                  </p>
+                )}
                 <p>
                   <strong>Nome: </strong> {perfil.nome || "-"}
                 </p>
@@ -1189,11 +1195,11 @@ const AreaGraduado = () => {
                     : "-"}
                 </p>
                 <p>
-                  <strong>WhatsApp (pessoal):</strong> {perfil.whatsapp || "-"}
+                  <strong>WhatsApp (pessoal):</strong> {formatPhoneDisplay(perfil.whatsapp)}
                 </p>
                 <p>
                   <strong>Contato de emergência / responsável:</strong>{" "}
-                  {perfil.contatoEmergencia || "-"}
+                  {formatPhoneDisplay(perfil.contatoEmergencia)}
                 </p>
                 <p>
                   <strong>Endereço: </strong>
@@ -1492,9 +1498,9 @@ const AreaGraduado = () => {
               <FileSection pasta="aluno" canUpload={isMestre} />
             </div>
           </Col>
-          {/* <Col md={12} className="border p-3 text-center">
+          <Col md={12} className="border p-3 text-center">
             <HierarquiaIntegrantes />
-          </Col> */}
+          </Col>
         </Row>
 
       )}
@@ -1530,15 +1536,26 @@ const AreaGraduado = () => {
                   title="Abrir lista de chamada"
                 >
                   <span aria-hidden="true">📋</span>
-                  <span>Chamada (em teste)</span>
+                  <span>Chamada</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm d-inline-flex flex-row align-items-center gap-1 text-nowrap"
+                  onClick={() => setShowModalAlunos(true)}
+                  disabled={!isMestre}
+                  title="Gerar e conferir arquivos dos alunos"
+                >
+                  <span aria-hidden="true">📁</span>
+                  <span>Arquivo dos Alunos (Em teste)</span>
                 </button>
               </div>
 
               <div className="text-center">
                 <h5 className="mb-1">Arquivos para Monitores(as)</h5>
-                <p className="mb-0 text-muted">
-                  Área para documentos de download público
+                <p className="mb-2 text-muted">
+                  Área para documentos de download público e relatórios dos alunos
                 </p>
+
               </div>
             </div>
 
@@ -2037,6 +2054,12 @@ const AreaGraduado = () => {
           )}
         </Modal.Body>
       </Modal>
+
+      {/* Modal de Arquivos e Conferência dos Alunos */}
+      <ModalArquivosAlunos
+        show={showModalAlunos}
+        onHide={() => setShowModalAlunos(false)}
+      />
     </Container>
   );
 };

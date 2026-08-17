@@ -54,3 +54,42 @@ main > * {
 .grid-list-3 .list-group-item {
   margin-bottom: 0 !important;
 }
+/* Estilos para o React Phone Input */
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.PhoneInput--focus {
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.PhoneInput-Input {
+  border: none !important;
+  outline: none !important;
+  padding: 0.375rem 0;
+  flex: 1;
+  font-size: 1rem;
+}
+
+.PhoneInput-Country {
+  margin-right: 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.PhoneInput-CountrySelect {
+  cursor: pointer;
+}
+
+.is-invalid .PhoneInput {
+  border-color: #dc3545 !important;
+}

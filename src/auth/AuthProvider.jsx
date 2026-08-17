@@ -1,7 +1,24 @@
 // src/auth/AuthProvider.jsx
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { MsalProvider } from "@azure/msal-react";
 import { msalInstance } from "./msalInstance";
+import {
+  getAuthEmail,
+  getAuthProvider,
+  setGoogleSession,
+  clearHints,
+  signOutUnified,
+} from "./session";
+
+const AuthContext = createContext(null);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+  }
+  return context;
+};
 
 // rota padrão após login
 const DEFAULT_AFTER_LOGIN = "#/acesso-interno";
@@ -17,9 +34,22 @@ function isSafeHashRoute(v) {
 
 export const AuthProvider = ({ children }) => {
   const [msalReady, setMsalReady] = useState(false);
+  const [authEmail, setAuthEmail] = useState(() => getAuthEmail());
+  const [authProvider, setAuthProvider] = useState(() => getAuthProvider());
+
+  const refreshAuth = useCallback(() => {
+    setAuthEmail(getAuthEmail());
+    setAuthProvider(getAuthProvider());
+  }, []);
 
   useEffect(() => {
     let mounted = true;
+
+    // Escuta eventos customizados de mudança de autenticação (ex: login/logout do Google)
+    const handleAuthChanged = () => {
+      if (mounted) refreshAuth();
+    };
+    window.addEventListener("authChanged", handleAuthChanged);
 
     (async () => {
       try {
@@ -32,6 +62,7 @@ export const AuthProvider = ({ children }) => {
 
         if (response?.account) {
           msalInstance.setActiveAccount(response.account);
+          refreshAuth();
 
           // tenta respeitar o "returnTo" que enviamos no state:
           let target = DEFAULT_AFTER_LOGIN;
@@ -53,21 +84,60 @@ export const AuthProvider = ({ children }) => {
           if (window.location.hash !== target) {
             window.location.replace(target);
           }
+        } else if (!msalInstance.getActiveAccount()) {
+          const allAccounts = msalInstance.getAllAccounts?.() || [];
+          if (allAccounts.length > 0) {
+            msalInstance.setActiveAccount(allAccounts[0]);
+          }
         }
       } catch (err) {
         // não logar detalhes sensíveis em produção
         if (import.meta.env.DEV) console.error("Erro MSAL init:", err);
       } finally {
-        if (mounted) setMsalReady(true);
+        if (mounted) {
+          setMsalReady(true);
+          refreshAuth();
+        }
       }
     })();
 
     return () => {
       mounted = false;
+      window.removeEventListener("authChanged", handleAuthChanged);
     };
-  }, []);
+  }, [refreshAuth]);
 
-  if (!msalReady) return <p>Inicializando autenticação…</p>;
+  const loginGoogle = useCallback(
+    (email) => {
+      setGoogleSession(email);
+      refreshAuth();
+    },
+    [refreshAuth]
+  );
 
-  return <MsalProvider instance={msalInstance}>{children}</MsalProvider>;
+  const logout = useCallback(async () => {
+    clearHints();
+    refreshAuth();
+    await signOutUnified();
+  }, [refreshAuth]);
+
+  const value = {
+    email: authEmail,
+    provider: authProvider,
+    isAuthenticated: !!authEmail,
+    loading: !msalReady,
+    loginGoogle,
+    logout,
+    refreshAuth,
+  };
+
+  if (!msalReady) return <p className="text-center p-4">Inicializando autenticação…</p>;
+
+  return (
+    <MsalProvider instance={msalInstance}>
+      <AuthContext.Provider value={value}>
+        {children}
+      </AuthContext.Provider>
+    </MsalProvider>
+  );
 };

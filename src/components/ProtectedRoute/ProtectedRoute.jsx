@@ -1,18 +1,19 @@
 // src/components/ProtectedRoute/index.jsx
 import { Navigate } from "react-router-dom";
-import { useMsal } from "@azure/msal-react";
-import { isAuthenticated } from "../../auth/session";
+import { useAuth } from "../../auth/AuthProvider";
 
 export default function ProtectedRoute({ children }) {
-  const { inProgress } = useMsal(); // "none", "login", "acquireToken", etc.
+  const { isAuthenticated, loading } = useAuth();
 
-  // Enquanto o MSAL está iniciando/interagindo, ainda não decidimos nada.
-  if (inProgress && inProgress !== "none") {
-    return null; // ou um <div>Carregando...</div> se quiser
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center p-4">
+        <span className="text-muted">Carregando…</span>
+      </div>
+    );
   }
 
-  // Usa seu mecanismo atual de sessão (Google/MSAL via AuthProvider)
-  if (!isAuthenticated()) {
+  if (!isAuthenticated) {
     return <Navigate to="/acesso-interno/login" replace />;
   }
 

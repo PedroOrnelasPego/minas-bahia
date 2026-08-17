@@ -12,6 +12,7 @@ import calcularIdade from "../../utils/calcularIdade";
 import { getHorarioLabel } from "../../helpers/agendaTreino";
 import ExportadorDeDados from "../../components/ExportadorDeDados";
 import { setPerfilCache } from "../../utils/profileCache";
+import { formatPhoneDisplay } from "../../utils/phone";
 
 // === cordas ===
 import {
@@ -84,7 +85,7 @@ const PainelAdmin = () => {
   const [dadosUsuarios, setDadosUsuarios] = useState({});
   const [carregando, setCarregando] = useState(false);
   const [loadingUsuarios, setLoadingUsuarios] = useState(true);
-  const [viewMode, setViewMode] = useState("list");
+  const [viewMode, setViewMode] = useState("cards");
   const [modalUserEmail, setModalUserEmail] = useState(null);
   const [sortMode, setSortMode] = useState("nome-asc");
   const [cordaFilter, setCordaFilter] = useState("all");
@@ -115,12 +116,13 @@ const PainelAdmin = () => {
 
   const atualizarNivel = async (email, novoNivel) => {
     try {
-      await http.put(`${API_URL}/perfil/${email}`, { nivelAcesso: novoNivel });
+      const res = await http.put(`${API_URL}/perfil/${email}`, { nivelAcesso: novoNivel });
+      const perfilSalvo = res.data || {};
 
       // atualiza local
       setDadosUsuarios((prev) => ({
         ...prev,
-        [email]: { ...prev[email], nivelAcesso: novoNivel },
+        [email]: { ...prev[email], ...perfilSalvo, nivelAcesso: novoNivel },
       }));
 
       const now = (novoNivel || "").toLowerCase();
@@ -457,6 +459,31 @@ const PainelAdmin = () => {
     return Number.isFinite(idade) && idade >= 0 ? idade : null;
   };
 
+  const getInicioGrupoUser = (user) => {
+    const perfil = dadosUsuarios[user.email] || user || {};
+    const inicio = String(perfil.inicioNoGrupo || "").trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(inicio)) {
+      return inicio;
+    }
+
+    const matchBR = inicio.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (matchBR) {
+      return `${matchBR[3]}-${matchBR[2]}-${matchBR[1]}`;
+    }
+
+    const matchAno = inicio.match(/\b(19\d\d|20\d\d)\b/);
+    if (matchAno) {
+      return `${matchAno[1]}-01-01`;
+    }
+
+    if (perfil.createdAt) {
+      return perfil.createdAt.slice(0, 10);
+    }
+
+    return "9999-12-31";
+  };
+
   const ordenarUsuarios = (lista) => {
     const base = lista.slice();
     if (sortMode === "nome-asc" || sortMode === "nome-desc") {
@@ -481,6 +508,16 @@ const PainelAdmin = () => {
         if (idadeB === null) return -1;
         const cmp = idadeA - idadeB;
         return sortMode === "idade-asc" ? cmp : -cmp;
+      });
+      return base;
+    }
+
+    if (sortMode === "inicio-asc" || sortMode === "inicio-desc") {
+      base.sort((a, b) => {
+        const dateA = getInicioGrupoUser(a);
+        const dateB = getInicioGrupoUser(b);
+        const cmp = dateA.localeCompare(dateB);
+        return sortMode === "inicio-asc" ? cmp : -cmp;
       });
       return base;
     }
@@ -573,6 +610,12 @@ const PainelAdmin = () => {
 
         {/* DADOS */}
         <Col xs={12} md={9}>
+          {(perfilSel?.matricula || user.matricula) && (
+            <p>
+              <strong>Matrícula: </strong>
+              <span className="badge bg-dark fs-6 ms-1">{perfilSel?.matricula || user.matricula}</span>
+            </p>
+          )}
           <p>
             <strong>Nome: </strong>
             {perfilSel?.nome || "-"}
@@ -650,11 +693,11 @@ const PainelAdmin = () => {
           </p>
 
           <p>
-            <strong>WhatsApp (pessoal):</strong> {perfilSel?.whatsapp || "-"}
+            <strong>WhatsApp (pessoal):</strong> {formatPhoneDisplay(perfilSel?.whatsapp)}
           </p>
           <p>
             <strong>Contato de emergência / responsável:</strong>{" "}
-            {perfilSel?.contatoEmergencia || "-"}
+            {formatPhoneDisplay(perfilSel?.contatoEmergencia)}
           </p>
 
           <p>
@@ -1057,9 +1100,8 @@ const PainelAdmin = () => {
         ? user.cordaVerificada
         : false);
 
-    const aprovadoBadge = (
-      <span className="badge bg-success ms-2">Confirmada</span>
-    );
+    const isVisitante =
+      (perfilSel?.nivelAcesso || user.nivelAcesso || "visitante").toLowerCase() === "visitante";
 
     return (
       <div
@@ -1072,12 +1114,22 @@ const PainelAdmin = () => {
           onClick={() => toggleAccordion(user.email)}
           style={{ cursor: "pointer" }}
         >
-          <span className="text-truncate">
+          <span className="text-truncate flex-grow-1 me-2">
             <strong>{user.nome}</strong> ({user.email})
           </span>
 
-          {/* canto direito: bolinha + chevron */}
-          <span className="d-flex align-items-center gap-2">
+          {/* canto direito: matrícula + alerta visitante + bolinha + chevron */}
+          <span className="d-flex align-items-center gap-2 flex-shrink-0">
+            {(perfilSel?.matricula || user.matricula) && (
+              <span className="badge bg-dark">
+                Matrícula: {perfilSel?.matricula || user.matricula}
+              </span>
+            )}
+            {isVisitante && (
+              <span title="Visitante" style={{ fontSize: "1rem", lineHeight: 1 }}>
+                ⚠️
+              </span>
+            )}
             <StatusDot verificada={!!cordaVerificada} />
             <span>{usuarioExpandido === user.email ? "▲" : "▼"}</span>
           </span>
@@ -1116,6 +1168,8 @@ const PainelAdmin = () => {
     const cordaNome = getCordaNome(cordaSlug) || "-";
     const apelido = perfilSel?.apelido || user.apelido || "";
 
+    const isVisitante = (perfilSel?.nivelAcesso || user.nivelAcesso || "visitante").toLowerCase() === "visitante";
+
     return (
       <Col key={user.email} xs={12} sm={6} lg={4} className="mb-3">
         <div
@@ -1131,7 +1185,12 @@ const PainelAdmin = () => {
             }
           }}
         >
-          <div className="position-absolute top-0 end-0 m-2">
+          <div className="position-absolute top-0 end-0 m-2 d-flex align-items-center gap-1">
+            {isVisitante && (
+              <span title="Visitante" style={{ fontSize: "1rem", lineHeight: 1 }}>
+                ⚠️
+              </span>
+            )}
             <StatusDot verificada={!!cordaVerificada} />
           </div>
 
@@ -1147,6 +1206,11 @@ const PainelAdmin = () => {
             />
             <div className="flex-grow-1" style={{ minWidth: 0 }}>
               <div className="fw-semibold text-truncate">{user.nome}</div>
+              {(perfilSel?.matricula || user.matricula) ? (
+                <div className="text-muted small text-truncate fw-semibold">
+                  Matrícula: {perfilSel?.matricula || user.matricula}
+                </div>
+              ) : null}
               {apelido ? (
                 <div className="text-muted small text-truncate">
                   Apelido: {apelido}
@@ -1228,20 +1292,21 @@ const PainelAdmin = () => {
       <div className="d-flex flex-wrap justify-content-center gap-2 mb-4">
         <button
           type="button"
-          className={`btn btn-sm ${viewMode === "list" ? "btn-primary" : "btn-outline-primary"
-            }`}
-          onClick={() => setViewMode("list")}
-        >
-          Lista
-        </button>
-        <button
-          type="button"
           className={`btn btn-sm ${viewMode === "cards" ? "btn-primary" : "btn-outline-primary"
             }`}
           onClick={() => setViewMode("cards")}
         >
           Blocos
         </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${viewMode === "list" ? "btn-primary" : "btn-outline-primary"
+            }`}
+          onClick={() => setViewMode("list")}
+        >
+          Lista
+        </button>
+
 
         <select
           className="form-select form-select-sm w-auto"
@@ -1253,6 +1318,8 @@ const PainelAdmin = () => {
           <option value="nome-desc">Nome (Z-A)</option>
           <option value="idade-asc">Idade (crescente)</option>
           <option value="idade-desc">Idade (decrescente)</option>
+          <option value="inicio-asc">Entrada no grupo (Mais antigo)</option>
+          <option value="inicio-desc">Entrada no grupo (Mais recente)</option>
         </select>
 
         <select

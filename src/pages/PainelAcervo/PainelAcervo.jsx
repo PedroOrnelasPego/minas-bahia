@@ -5,8 +5,7 @@ import {
   Search, Edit2, Trash2, Eye, Info, Music, Image as ImageIcon, Upload, Disc, AlertTriangle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useMsal } from "@azure/msal-react";
-import { getAuthEmail } from "../../auth/session";
+import { useAuth } from "../../auth/AuthProvider";
 import { getPerfilCache, setPerfilCache } from "../../utils/profileCache";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=150";
@@ -26,10 +25,9 @@ export default function PainelAcervo() {
   const [existingImages, setExistingImages] = useState({ cover: null, back: null, insert: null, record: null });
 
   // ======== CONTROLE DE PERMISSÕES ======== //
-  const { accounts } = useMsal();
+  const { email } = useAuth();
   const mestreEmail = "contato@capoeiraminasbahia.com.br";
-  const email = getAuthEmail();
-  const isMestre = accounts[0]?.username === mestreEmail || email === mestreEmail;
+  const isMestre = email === mestreEmail;
 
   const [tracksA, setTracksA] = useState([{ id: String(Date.now()), side: "A", name: "", artists: "", duration: "", audioFile: null }]);
   const [tracksB, setTracksB] = useState([]);

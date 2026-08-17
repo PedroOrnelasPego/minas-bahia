@@ -42,6 +42,40 @@ export const gruposCordas = [
   { key: "mestre", label: "Mestre", match: (k) => k === "vermelha-mestre" },
 ];
 
+export const SUBCLASSES_CORDAS = {
+  mirim: "Mirim",
+  infantil: "Infantil",
+  adulto: "Adulto",
+  estagiario: "Estagiário",
+  mestre: "Mestre",
+};
+
+export const cordaOrder = [
+  "vermelha-mestre",
+  "cru-e-preta-estagiario",
+  "marrom-adulto",
+  "roxa-adulto",
+  "verde-adulto",
+  "azul-adulto",
+  "laranja-azul-adulto",
+  "laranja-adulto",
+  "amarela-laranja-adulto",
+  "amarela-adulto",
+  "cru-amarela-adulto",
+  "cru-adulto",
+  "cru-vermelha-infantil",
+  "cru-marrom-infantil",
+  "cru-roxa-infantil",
+  "cru-verde-infantil",
+  "cru-azul-infantil",
+  "cru-laranja-infantil",
+  "cru-amarela-infantil",
+  "cru-infantil",
+  "verde-mirim",
+  "azul-mirim",
+  "amarela-mirim",
+];
+
 export const listarCordasPorGrupo = (grupoKey) => {
   const g = gruposCordas.find((x) => x.key === grupoKey);
   if (!g) return [];
@@ -49,5 +83,64 @@ export const listarCordasPorGrupo = (grupoKey) => {
 };
 
 export const getCordaNome = (slug) => nomesCordas[slug] || slug || "-";
+
+export const getCordaSubclasse = (slug) => {
+  if (!slug) return "";
+  const g = gruposCordas.find((x) => x.match(slug));
+  if (!g) return "";
+  return SUBCLASSES_CORDAS[g.key] || g.key;
+};
+
+export const getCordaNomeComSubclasse = (slug) => {
+  if (!slug || slug === "Sem Corda") return slug || "-";
+  const nome = getCordaNome(slug);
+  const subclasse = getCordaSubclasse(slug);
+  if (!subclasse) return nome;
+  return `${nome} - ${subclasse}`;
+};
+
+export const PROXIMA_CORDA_MAP = {
+  // Mirim
+  "amarela-mirim": "azul-mirim",
+  "azul-mirim": "verde-mirim",
+  "verde-mirim": "cru-infantil",
+
+  // Infantil
+  "cru-infantil": "cru-amarela-infantil",
+  "cru-amarela-infantil": "cru-laranja-infantil",
+  "cru-laranja-infantil": "cru-azul-infantil",
+  "cru-azul-infantil": "cru-verde-infantil",
+  "cru-verde-infantil": "cru-roxa-infantil",
+  "cru-roxa-infantil": "cru-marrom-infantil",
+  "cru-marrom-infantil": "cru-vermelha-infantil",
+  "cru-vermelha-infantil": "cru-adulto",
+
+  // Adulto
+  "cru-adulto": "cru-amarela-adulto",
+  "cru-amarela-adulto": "amarela-adulto",
+  "amarela-adulto": "amarela-laranja-adulto",
+  "amarela-laranja-adulto": "laranja-adulto",
+  "laranja-adulto": "laranja-azul-adulto",
+  "laranja-azul-adulto": "azul-adulto",
+  "azul-adulto": "verde-adulto",
+  "verde-adulto": "roxa-adulto",
+  "roxa-adulto": "marrom-adulto",
+  "marrom-adulto": "cru-e-preta-estagiario",
+
+  // Estagiário
+  "cru-e-preta-estagiario": "vermelha-mestre",
+  "vermelha-mestre": null,
+};
+
+export const getProximaCorda = (slug) => {
+  if (!slug) return null;
+  return PROXIMA_CORDA_MAP[slug] || null;
+};
+
+export const getProximaCordaNomeComSubclasse = (slug) => {
+  const prox = getProximaCorda(slug);
+  if (!prox) return "-";
+  return getCordaNomeComSubclasse(prox);
+};
 
 export default nomesCordas;

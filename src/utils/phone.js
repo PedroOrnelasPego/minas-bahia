@@ -1,30 +1,91 @@
 // src/utils/phone.js
+import { AsYouType, parsePhoneNumberFromString } from 'libphonenumber-js';
 
 // mantém só dígitos
-export const onlyDigits = (s = "") => s.replace(/\D/g, "");
+export const onlyDigits = (s = "") => {
+  if (typeof s !== 'string') return "";
+  return s.replace(/\D/g, "");
+};
 
-// (DD) XXXX-XXXX  | (DD) 9XXXX-XXXX  (BR)
+/**
+ * Formata telefone em tempo real (As-You-Type) 
+ */
 export const maskPhoneBR = (value) => {
-  const digits = onlyDigits(value);
-  if (digits.length <= 10) {
-    // (DD) XXXX-XXXX
-    return digits.replace(
-      /^(\d{0,2})(\d{0,4})(\d{0,4}).*/,
-      (_, d1, d2, d3) =>
-        [d1 ? `(${d1}` : "", d1 && d1.length === 2 ? ") " : "", d2, d3 ? `-${d3}` : ""].join("")
-    );
+  if (!value) return "";
+  const str = String(value);
+  if (str.startsWith("+")) {
+    return new AsYouType().input(str);
   }
-  // (DD) 9XXXX-XXXX
-  return digits.slice(0, 11).replace(/^(\d{2})(\d{1})(\d{4})(\d{4}).*/, "($1) $2$3-$4");
+  const digits = onlyDigits(str);
+  if (digits.length <= 11) {
+    if (digits.length <= 2) return digits.length > 0 ? `(${digits}` : "";
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
+  }
+  return new AsYouType().input("+" + digits);
 };
 
-// valida minimamente celular/telefone BR (10 ou 11 dígitos, DDD válido simples)
-export const isValidPhoneBR = (value) => {
-  const d = onlyDigits(value);
-  if (!(d.length === 10 || d.length === 11)) return false;
-  const ddd = parseInt(d.slice(0, 2), 10);
-  return ddd >= 11 && ddd <= 99;
+/**
+ * Formata um telefone completo para exibição (formatado com bandeira/país)
+ * USADA NO PAINEL ADMIN E PERFIL
+ */
+export const formatPhoneDisplay = (value, defaultCountry = 'BR') => {
+  console.log("formatPhoneDisplay recebendo:", value); // DEBUG
+  if (!value) return "-";
+  
+  const str = String(value).trim();
+  
+  // Se já tem +, tenta formatar direto
+  if (str.startsWith('+')) {
+    const phoneNumber = parsePhoneNumberFromString(str);
+    if (phoneNumber && phoneNumber.isValid()) {
+      return phoneNumber.formatInternational();
+    }
+  } else {
+    // Se não tem +, tenta com BR default
+    const phoneNumber = parsePhoneNumberFromString(str, defaultCountry);
+    if (phoneNumber && phoneNumber.isValid()) {
+      return phoneNumber.formatInternational();
+    }
+  }
+  
+  // Fallback total: tenta forçar um + se tiver muitos dígitos ou retorna o que veio
+  const digits = onlyDigits(str);
+  if (digits.length >= 10) {
+    const forced = str.startsWith('+') ? str : '+' + digits;
+    const ph = parsePhoneNumberFromString(forced);
+    if (ph && ph.isValid()) return ph.formatInternational();
+  }
+
+  return str; 
 };
 
-// útil pra salvar no backend
+/**
+ * Valida telefone usando metadados globais
+ */
+export const isValidPhoneGlobal = (value, defaultCountry = 'BR') => {
+  if (!value) return false;
+  const str = String(value);
+  const phoneNumber = parsePhoneNumberFromString(str, defaultCountry);
+  return phoneNumber ? phoneNumber.isValid() : false;
+};
+
+export const isValidPhoneBR = (value) => isValidPhoneGlobal(value, 'BR');
+
+/**
+ * Normaliza para E.164 (ex: +5531989073087) para salvar no banco
+ */
+export const formatToE164 = (value, defaultCountry = 'BR') => {
+  if (!value) return "";
+  const str = String(value);
+  const phoneNumber = parsePhoneNumberFromString(str, defaultCountry);
+  if (phoneNumber && phoneNumber.isValid()) {
+    return phoneNumber.format('E.164');
+  }
+  const digits = onlyDigits(str);
+  if (digits.length === 11 || digits.length === 10) return "+55" + digits;
+  return str.startsWith("+") ? str : digits;
+};
+
 export const unmaskPhone = (value) => onlyDigits(value);

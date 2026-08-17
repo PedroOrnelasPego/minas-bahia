@@ -10,7 +10,9 @@ import {
   getHorariosDoLocal,
   getProfessorLabel,
 } from "../../helpers/agendaTreino";
-import { maskPhoneBR } from "../../utils/phone";
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import { isValidPhoneGlobal, formatToE164 } from "../../utils/phone";
 import { buscarCep } from "../../services/cep";
 import { buildFullAddress } from "../../utils/address";
 import { validateRequiredFields } from "../../utils/validate";
@@ -346,14 +348,22 @@ const CadastroInicial = ({ show, onSave }) => {
         setIsSubmitting(false);
         return;
       }
-    } catch {}
+    } catch { }
 
     // garante que nenhuma checagem pendente de CPF vai dar race condition
     try {
       if (pendingCpfCheck.current) pendingCpfCheck.current.abort();
-    } catch {}
+    } catch { }
 
     const newErrors = validateRequiredFields(form, OBRIGATORIOS);
+
+    // Validação global de telefones (Brasil por padrão, ou outros com "+")
+    if (!isValidPhoneGlobal(form.whatsapp)) {
+      newErrors.whatsapp = "Telefone inválido";
+    }
+    if (!isValidPhoneGlobal(form.contatoEmergencia)) {
+      newErrors.contatoEmergencia = "Telefone inválido";
+    }
 
     // validação específica do CPF
     const rawCpf = onlyDigits(form.cpf);
@@ -399,6 +409,8 @@ const CadastroInicial = ({ show, onSave }) => {
             endereco: form.endereco.trim(),
             numero: form.numero.trim(),
             complemento: form.complemento?.trim() || "",
+            whatsapp: formatToE164(form.whatsapp),
+            contatoEmergencia: formatToE164(form.contatoEmergencia),
             corda: form.corda,
             aceitouTermos: true,
             nivelAcesso: "visitante",
@@ -601,29 +613,29 @@ const CadastroInicial = ({ show, onSave }) => {
               <Row className="g-2">
                 <Col md={6}>
                   <small className="text-muted">WhatsApp (pessoal)</small>
-                  <input
-                    name="whatsapp"
-                    className={fc("whatsapp")}
-                    placeholder="(31) 9XXXX-XXXX"
-                    inputMode="numeric"
-                    value={form.whatsapp}
-                    onChange={handleChange}
-                    autoComplete="tel"
-                  />
+                  <div className={errors.whatsapp ? "is-invalid" : ""}>
+                    <PhoneInput
+                      defaultCountry="BR"
+                      placeholder="Número de WhatsApp"
+                      value={form.whatsapp}
+                      onChange={(val) => setForm(prev => ({ ...prev, whatsapp: val || "" }))}
+                      className="mb-2"
+                    />
+                  </div>
                 </Col>
                 <Col md={6}>
                   <small className="text-muted">
                     Contato de emergência / responsável
                   </small>
-                  <input
-                    name="contatoEmergencia"
-                    className={fc("contatoEmergencia")}
-                    placeholder="(31) 9XXX-XXXX"
-                    inputMode="numeric"
-                    value={form.contatoEmergencia}
-                    onChange={handleChange}
-                    autoComplete="tel-national"
-                  />
+                  <div className={errors.contatoEmergencia ? "is-invalid" : ""}>
+                    <PhoneInput
+                      defaultCountry="BR"
+                      placeholder="Telefone de Emergência"
+                      value={form.contatoEmergencia}
+                      onChange={(val) => setForm(prev => ({ ...prev, contatoEmergencia: val || "" }))}
+                      className="mb-2"
+                    />
+                  </div>
                 </Col>
               </Row>
             </Col>
@@ -678,9 +690,8 @@ const CadastroInicial = ({ show, onSave }) => {
               <div className="mb-2">
                 <small className="text-muted">Professor referência</small>
                 <div
-                  className={`form-control-plaintext ${
-                    submitted && !form.professorReferencia ? "text-danger" : ""
-                  }`}
+                  className={`form-control-plaintext ${submitted && !form.professorReferencia ? "text-danger" : ""
+                    }`}
                 >
                   {form.professorReferencia ||
                     (submitted ? "Obrigatório" : "-")}
@@ -710,9 +721,8 @@ const CadastroInicial = ({ show, onSave }) => {
               {/* Endereço derivados do CEP */}
               <input
                 type="text"
-                className={`form-control mb-2 ${
-                  errors.endereco ? "is-invalid" : ""
-                }`}
+                className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""
+                  }`}
                 placeholder="Rua (preenchida pelo CEP)"
                 value={logradouro}
                 disabled
@@ -720,9 +730,8 @@ const CadastroInicial = ({ show, onSave }) => {
               />
               <input
                 type="text"
-                className={`form-control mb-2 ${
-                  errors.endereco ? "is-invalid" : ""
-                }`}
+                className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""
+                  }`}
                 placeholder="Bairro (preenchido pelo CEP)"
                 value={bairro}
                 disabled
@@ -730,9 +739,8 @@ const CadastroInicial = ({ show, onSave }) => {
               />
               <input
                 type="text"
-                className={`form-control mb-2 ${
-                  errors.endereco ? "is-invalid" : ""
-                }`}
+                className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""
+                  }`}
                 placeholder="Cidade (preenchida pelo CEP)"
                 value={cidade}
                 disabled
@@ -740,9 +748,8 @@ const CadastroInicial = ({ show, onSave }) => {
               />
               <input
                 type="text"
-                className={`form-control mb-2 ${
-                  errors.endereco ? "is-invalid" : ""
-                }`}
+                className={`form-control mb-2 ${errors.endereco ? "is-invalid" : ""
+                  }`}
                 placeholder="UF (preenchida pelo CEP)"
                 value={uf}
                 disabled
@@ -776,9 +783,8 @@ const CadastroInicial = ({ show, onSave }) => {
 
               <div className="form-check mt-3">
                 <input
-                  className={`form-check-input ${
-                    submitted && !aceitouTermos ? "is-invalid" : ""
-                  }`}
+                  className={`form-check-input ${submitted && !aceitouTermos ? "is-invalid" : ""
+                    }`}
                   type="checkbox"
                   id="termos"
                   checked={aceitouTermos}
@@ -811,7 +817,7 @@ const CadastroInicial = ({ show, onSave }) => {
             onTouchEnd={handleSubmit}
             onPointerUp={handleSubmit}
           >
-            {isSubmitting ? "Salvando…" : "Salvar +"}
+            {isSubmitting ? "Salvando…" : "Salvar"}
           </Button>
         </Modal.Footer>
       </form>

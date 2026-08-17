@@ -2,8 +2,7 @@
 import { useState, useEffect } from "react";
 import { Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
-import { useMsal } from "@azure/msal-react";
-import { isAuthenticated, getAuthEmail } from "../../auth/session";
+import { useAuth } from "../../auth/AuthProvider";
 import { getPerfilCache } from "../../utils/profileCache";
 import { nivelMap } from "../../utils/roles";
 
@@ -23,10 +22,9 @@ const MenuBar = () => {
     return () => window.removeEventListener("profileUpdated", handleProfileUpdate);
   }, []);
 
-  const { accounts } = useMsal();
+  const { email, isAuthenticated } = useAuth();
   const mestreEmail = "contato@capoeiraminasbahia.com.br";
-  const email = getAuthEmail();
-  const isMestre = accounts[0]?.username === mestreEmail || email === mestreEmail;
+  const isMestre = email === mestreEmail;
 
   // Verifica o nível de acesso baseado no cache local do perfil salvo usando cacheVersion de dependência reativa
   const cachedProfile = getPerfilCache(email);
@@ -71,8 +69,9 @@ const MenuBar = () => {
           </Nav.Link>
         ))}
 
-        {/* {isAuthenticated() && isAlunoOrHigher && ( */}
-        {isAuthenticated() && isMestre && (
+        {/* Quando quiser voltar para todos {isAuthenticated && isAlunoOrHigher && ( */}
+
+        {isAuthenticated && isMestre && (
           podeGerirAcervo ? (
             <NavDropdown title="Acervo" id="nav-dropdown-acervo" className="custom-dropdown">
               <NavDropdown.Item as={NavLink} to="/acervo" onClick={handleClose} className="fw-bold text-dark">Explorar Acervo</NavDropdown.Item>
@@ -91,7 +90,7 @@ const MenuBar = () => {
             <NavDropdown.Item as={NavLink} to="/painel-admin" onClick={handleClose} className="fw-bold text-dark">Painel Admin</NavDropdown.Item>
           </NavDropdown>
         ) : (
-          <Nav.Link as={NavLink} to={isAuthenticated() ? "/acesso-interno" : "/acesso-interno/login"} onClick={handleClose} style={linkStyle} className="custom-link">
+          <Nav.Link as={NavLink} to={isAuthenticated ? "/acesso-interno" : "/acesso-interno/login"} onClick={handleClose} style={linkStyle} className="custom-link">
             Acesso Interno
           </Nav.Link>
         )}

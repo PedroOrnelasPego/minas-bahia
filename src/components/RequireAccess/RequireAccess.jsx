@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { getAuthEmail } from "../../auth/session";
+import { useAuth } from "../../auth/AuthProvider";
 import { getPerfilCache } from "../../utils/profileCache";
 
 const NIVEIS = [
@@ -29,7 +29,7 @@ const RequireAccess = ({
   requireEditor = false,
   children,
 }) => {
-  const email = getAuthEmail();
+  const { email } = useAuth();
   if (!email) return null;
 
   const perfil = getPerfilCache(email) || {};

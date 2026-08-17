@@ -8,9 +8,8 @@ import { AuthProvider } from "./auth/AuthProvider";
 import App from "./App";
 import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
-import pkg from "../package.json";
 
-console.log(`🚀 Minas Bahia v${pkg.version}`);
+console.log(`🚀 Minas Bahia v${__APP_VERSION__}`);
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 

@@ -74,14 +74,17 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
     if (!show) return;
 
     if (propIntegrantes && propIntegrantes.length > 0) {
-      // Filtra para remover visitantes
+      // Filtra para remover visitantes e administrador
       const apenasAlunos = propIntegrantes.filter((u) => {
-        const isVisitante =
+        const isVisitanteOuAdmin =
           u.horarioTreino === "visitante" ||
           (u.localTreino || "").toLowerCase().includes("visitante") ||
           (u.nivelAcesso || "").toLowerCase() === "visitante" ||
-          u.eVisitante === true;
-        return !isVisitante;
+          u.eVisitante === true ||
+          (u.email || "").toLowerCase().startsWith("contatominasbahia") ||
+          (u.email || "").toLowerCase() === "contato@capoeiraminasbahia.com.br" ||
+          (u.nome || "").toLowerCase().includes("administrador minas bahia");
+        return !isVisitanteOuAdmin;
       });
       setIntegrantes(apenasAlunos);
       return;
@@ -94,14 +97,17 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
         if (res.ok) {
           const data = await res.json();
 
-          // Exclui visitantes (apenas alunos)
+          // Exclui visitantes e administrador (apenas alunos)
           const apenasAlunos = (data || []).filter((u) => {
-            const isVisitante =
+            const isVisitanteOuAdmin =
               u.horarioTreino === "visitante" ||
               (u.localTreino || "").toLowerCase().includes("visitante") ||
               (u.nivelAcesso || "").toLowerCase() === "visitante" ||
-              u.eVisitante === true;
-            return !isVisitante;
+              u.eVisitante === true ||
+              (u.email || "").toLowerCase().startsWith("contatominasbahia") ||
+              (u.email || "").toLowerCase() === "contato@capoeiraminasbahia.com.br" ||
+              (u.nome || "").toLowerCase().includes("administrador minas bahia");
+            return !isVisitanteOuAdmin;
           });
           setIntegrantes(apenasAlunos);
         }

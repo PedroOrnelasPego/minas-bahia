@@ -652,7 +652,9 @@ const PainelAdmin = () => {
                 cursor: "zoom-in",
               }}
               onClick={() => {
-                setAvatarModalUrl(user.foto || fotoPadrao);
+                const jaSemAvatar = semAvatar[user.email];
+                const highResUrl = !jaSemAvatar ? avatarUrl2x(user.email) : (user.foto || fotoPadrao);
+                setAvatarModalUrl(highResUrl);
                 setShowAvatarModal(true);
               }}
               onError={(e) => {
@@ -1596,25 +1598,40 @@ const PainelAdmin = () => {
         </Modal.Body>
       </Modal>
 
-      {/* Modal do Avatar (2x) */}
+      {/* Modal do Avatar (Zoom / Preview Ampliado) */}
       <Modal
         show={showAvatarModal}
         onHide={() => setShowAvatarModal(false)}
-        size="lg"
         centered
       >
-        <Modal.Header closeButton>
-          <Modal.Title>Foto de perfil</Modal.Title>
+        <Modal.Header closeButton variant="white" className="bg-dark text-white border-0 py-2 px-3">
+          <Modal.Title className="fs-6 fw-semibold text-white">Foto de perfil</Modal.Title>
         </Modal.Header>
-        <Modal.Body className="text-center">
+        <Modal.Body className="p-3 bg-dark d-flex align-items-center justify-content-center" style={{ minHeight: 250, overflow: "hidden" }}>
           <img
-            src={avatarModalUrl}
-            alt="Foto de perfil @2x"
-            className="img-fluid"
-            style={{ maxHeight: "80vh" }}
+            src={avatarModalUrl || fotoPadrao}
+            alt="Foto de perfil ampliada"
+            className="rounded shadow-sm"
+            style={{
+              maxWidth: "360px",
+              maxHeight: "60vh",
+              width: "100%",
+              height: "auto",
+              objectFit: "contain",
+              display: "block",
+              margin: "0 auto",
+            }}
             onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = fotoPadrao;
+              const img = e.currentTarget;
+              const url = img.src || "";
+              if (url.includes("@2x")) {
+                img.src = url.replace("@2x", "@1x");
+              } else if (url.includes("@1x")) {
+                img.src = modalUser?.foto || fotoPadrao;
+              } else if (url !== fotoPadrao) {
+                img.onerror = null;
+                img.src = fotoPadrao;
+              }
             }}
           />
         </Modal.Body>

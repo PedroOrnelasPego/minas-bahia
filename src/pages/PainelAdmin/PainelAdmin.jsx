@@ -1,6 +1,6 @@
 // src/pages/PainelAdmin/PainelAdmin.jsx
 import { useEffect, useState } from "react";
-import { Container, Row, Col, Modal } from "react-bootstrap";
+import { Container, Row, Col, Modal, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import http from "../../services/http";
@@ -1157,6 +1157,69 @@ const PainelAdmin = () => {
     );
   };
 
+  const getPendingItems = (user, perfilSel = {}) => {
+    const pendencias = [];
+
+    // 1. Visitante
+    const nivel = (perfilSel.nivelAcesso || user.nivelAcesso || "visitante").toLowerCase();
+    if (nivel === "visitante") {
+      pendencias.push("É visitante");
+    }
+
+    // 2. Sem foto de perfil
+    const temFoto = Boolean(perfilSel.foto || user.foto) && !semAvatar[user.email];
+    if (!temFoto) {
+      pendencias.push("Sem foto de perfil");
+    }
+
+    // 3. Questionário não respondido
+    const qObj = perfilSel.questionarios || user.questionarios;
+    const temQuestionario = Boolean(
+      qObj && (qObj.aluno || qObj.visitante || (typeof qObj === "object" && Object.keys(qObj).length > 0))
+    );
+    if (!temQuestionario) {
+      pendencias.push("Questionário não respondido");
+    }
+
+    return pendencias;
+  };
+
+  const renderPendingWarning = (user, perfilSel = {}) => {
+    const pendencias = getPendingItems(user, perfilSel);
+    if (pendencias.length === 0) return null;
+
+    const tooltipText = `Pendências:\n${pendencias.map((p) => `• ${p}`).join("\n")}`;
+
+    const renderTooltip = (props) => (
+      <Tooltip id={`tooltip-pendencias-${(user.email || "").replace(/[^a-zA-Z0-9]/g, "-")}`} {...props}>
+        <div className="text-start">
+          <strong className="d-block mb-1">Pendências:</strong>
+          <ul className="mb-0 ps-3 text-start small" style={{ paddingLeft: "1.2rem" }}>
+            {pendencias.map((p, idx) => (
+              <li key={idx}>{p}</li>
+            ))}
+          </ul>
+        </div>
+      </Tooltip>
+    );
+
+    return (
+      <OverlayTrigger placement="top" overlay={renderTooltip}>
+        <span
+          style={{
+            fontSize: "1rem",
+            lineHeight: 1,
+            cursor: "help",
+            userSelect: "none",
+          }}
+          aria-label={`Pendências: ${pendencias.join(", ")}`}
+        >
+          ⚠️
+        </span>
+      </OverlayTrigger>
+    );
+  };
+
   const renderUserListItem = (user) => {
     const perfilSel = dadosUsuarios[user.email] || {};
 
@@ -1165,9 +1228,6 @@ const PainelAdmin = () => {
       (typeof user.cordaVerificada === "boolean"
         ? user.cordaVerificada
         : false);
-
-    const isVisitante =
-      (perfilSel?.nivelAcesso || user.nivelAcesso || "visitante").toLowerCase() === "visitante";
 
     return (
       <div
@@ -1184,18 +1244,14 @@ const PainelAdmin = () => {
             <strong>{user.nome}</strong> ({user.email})
           </span>
 
-          {/* canto direito: matrícula + alerta visitante + bolinha + chevron */}
+          {/* canto direito: matrícula + alerta de pendências + bolinha + chevron */}
           <span className="d-flex align-items-center gap-2 flex-shrink-0">
             {(perfilSel?.matricula || user.matricula) && (
               <span className="badge bg-dark">
                 Matrícula: {perfilSel?.matricula || user.matricula}
               </span>
             )}
-            {isVisitante && (
-              <span title="Visitante" style={{ fontSize: "1rem", lineHeight: 1 }}>
-                ⚠️
-              </span>
-            )}
+            {renderPendingWarning(user, perfilSel)}
             <StatusDot verificada={!!cordaVerificada} />
             <span>{usuarioExpandido === user.email ? "▲" : "▼"}</span>
           </span>
@@ -1234,8 +1290,6 @@ const PainelAdmin = () => {
     const cordaNome = getCordaNome(cordaSlug) || "-";
     const apelido = perfilSel?.apelido || user.apelido || "";
 
-    const isVisitante = (perfilSel?.nivelAcesso || user.nivelAcesso || "visitante").toLowerCase() === "visitante";
-
     return (
       <Col key={user.email} xs={12} sm={6} lg={4} className="mb-3">
         <div
@@ -1252,11 +1306,7 @@ const PainelAdmin = () => {
           }}
         >
           <div className="position-absolute top-0 end-0 m-2 d-flex align-items-center gap-1">
-            {isVisitante && (
-              <span title="Visitante" style={{ fontSize: "1rem", lineHeight: 1 }}>
-                ⚠️
-              </span>
-            )}
+            {renderPendingWarning(user, perfilSel)}
             <StatusDot verificada={!!cordaVerificada} />
           </div>
 
@@ -1271,7 +1321,9 @@ const PainelAdmin = () => {
               }}
             />
             <div className="flex-grow-1" style={{ minWidth: 0 }}>
-              <div className="fw-semibold text-truncate">{user.nome}</div>
+              <div className="fw-semibold text-truncate" style={{ paddingRight: "45px" }}>
+                {user.nome}
+              </div>
               {(perfilSel?.matricula || user.matricula) ? (
                 <div className="text-muted small text-truncate fw-semibold">
                   Matrícula: {perfilSel?.matricula || user.matricula}
@@ -1492,7 +1544,10 @@ const PainelAdmin = () => {
         scrollable
       >
         <Modal.Header closeButton>
-          <Modal.Title>{modalUser?.nome || "Detalhes do aluno"}</Modal.Title>
+          <Modal.Title className="d-flex align-items-center gap-2">
+            <span>{modalUser?.nome || "Detalhes do aluno"}</span>
+            {modalUser && renderPendingWarning(modalUser, dadosUsuarios[modalUser.email] || {})}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {modalUserEmail && carregando && !dadosUsuarios[modalUserEmail] ? (

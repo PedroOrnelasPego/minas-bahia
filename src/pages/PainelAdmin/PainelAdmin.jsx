@@ -1222,6 +1222,33 @@ const PainelAdmin = () => {
     );
   };
 
+  const renderVisitorExclamation = (user, perfilSel = {}) => {
+    const isVisitante = (perfilSel.nivelAcesso || user.nivelAcesso || "visitante").toLowerCase() === "visitante";
+    if (!isVisitante) return null;
+
+    const renderTooltip = (props) => (
+      <Tooltip id={`tooltip-visitor-${(user.email || "").replace(/[^a-zA-Z0-9]/g, "-")}`} {...props}>
+        Perfil visitante
+      </Tooltip>
+    );
+
+    return (
+      <OverlayTrigger placement="top" overlay={renderTooltip}>
+        <span
+          style={{
+            fontSize: "1rem",
+            lineHeight: 1,
+            cursor: "help",
+            userSelect: "none",
+          }}
+          aria-label="Perfil visitante"
+        >
+          ❗
+        </span>
+      </OverlayTrigger>
+    );
+  };
+
   const renderUserListItem = (user) => {
     const perfilSel = dadosUsuarios[user.email] || {};
 
@@ -1246,13 +1273,14 @@ const PainelAdmin = () => {
             <strong>{user.nome}</strong> ({user.email})
           </span>
 
-          {/* canto direito: matrícula + alerta de pendências + bolinha + chevron */}
+          {/* canto direito: matrícula + exclamação visitante + alerta de pendências + bolinha + chevron */}
           <span className="d-flex align-items-center gap-2 flex-shrink-0">
             {(perfilSel?.matricula || user.matricula) && (
               <span className="badge bg-dark">
                 Matrícula: {perfilSel?.matricula || user.matricula}
               </span>
             )}
+            {renderVisitorExclamation(user, perfilSel)}
             {renderPendingWarning(user, perfilSel)}
             <StatusDot verificada={!!cordaVerificada} />
             <span>{usuarioExpandido === user.email ? "▲" : "▼"}</span>
@@ -1308,6 +1336,7 @@ const PainelAdmin = () => {
           }}
         >
           <div className="position-absolute top-0 end-0 m-2 d-flex align-items-center gap-1">
+            {renderVisitorExclamation(user, perfilSel)}
             {renderPendingWarning(user, perfilSel)}
             <StatusDot verificada={!!cordaVerificada} />
           </div>
@@ -1548,6 +1577,7 @@ const PainelAdmin = () => {
         <Modal.Header closeButton>
           <Modal.Title className="d-flex align-items-center gap-2">
             <span>{modalUser?.nome || "Detalhes do aluno"}</span>
+            {modalUser && renderVisitorExclamation(modalUser, dadosUsuarios[modalUser.email] || {})}
             {modalUser && renderPendingWarning(modalUser, dadosUsuarios[modalUser.email] || {})}
           </Modal.Title>
         </Modal.Header>

@@ -22,4 +22,14 @@
     display: inline-block;
     margin-top: 4px;
   }
+
+  /* Cards da hierarquia de integrantes em 2 colunas organizadas no mobile */
+  .integrante-card {
+    width: calc(50% - 8px) !important;
+    padding: 0.5rem !important;
+  }
+  .integrante-card img {
+    width: 64px !important;
+    height: 64px !important;
+  }
 }

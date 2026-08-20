@@ -1,5 +1,6 @@
 // src/pages/AreaGraduado/AreaGraduado.jsx
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, Alert, Modal } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import {
@@ -300,6 +301,7 @@ function formatarTempoDeGrupo(data) {
 }
 
 const AreaGraduado = () => {
+  const navigate = useNavigate();
   const { instance } = useMsal();
   const { email: authEmail, provider, logout } = useAuth();
 
@@ -872,6 +874,12 @@ const AreaGraduado = () => {
   // ===== Sair (unificado) =====
   const handleSignOut = async () => {
     await logout();
+  };
+
+  const handleCancelCadastro = async () => {
+    setShowCadastroInicial(false);
+    await logout();
+    navigate("/acesso-interno/login", { replace: true });
   };
 
   // ===== Permissões =====
@@ -1634,6 +1642,7 @@ const AreaGraduado = () => {
             setShowCadastroInicial(false);
             showSuccess("Cadastro criado com sucesso!");
           }}
+          onCancel={handleCancelCadastro}
         />
       )}
 

@@ -45,7 +45,7 @@ const fcClass = (errors, name) =>
 
 /* ===================================================================================== */
 
-const CadastroInicial = ({ show, onSave }) => {
+const CadastroInicial = ({ show, onSave, onCancel }) => {
   const [form, setForm] = useState({
     nome: "",
     apelido: "",
@@ -808,7 +808,17 @@ const CadastroInicial = ({ show, onSave }) => {
           </Row>
         </Modal.Body>
 
-        <Modal.Footer style={{ position: "relative", zIndex: 1 }}>
+        <Modal.Footer className="d-flex justify-content-between align-items-center w-100" style={{ position: "relative", zIndex: 1 }}>
+          <Button
+            type="button"
+            variant="outline-secondary"
+            disabled={isSubmitting}
+            onClick={onCancel}
+            className="d-flex align-items-center gap-1"
+          >
+            <span>←</span>
+            <span>Cancelar e Voltar ao Login</span>
+          </Button>
           <Button
             type="submit"
             variant="primary"
@@ -817,7 +827,7 @@ const CadastroInicial = ({ show, onSave }) => {
             onTouchEnd={handleSubmit}
             onPointerUp={handleSubmit}
           >
-            {isSubmitting ? "Salvando…" : "Salvar"}
+            {isSubmitting ? "Salvando…" : "Salvar e Concluir"}
           </Button>
         </Modal.Footer>
       </form>

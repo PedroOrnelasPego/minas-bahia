@@ -3,12 +3,12 @@ import "./About.scss";
 
 const About = () => {
   return (
-    <Container className="mt-3">
+    <Container className="mt-3 about-container">
       <div className="p-2">
-        <h1 className="text-center mb-4">Bem-vindos ao ICMBC</h1>
+        <h1 className="text-center mb-4 about-title">Bem-vindos ao ICMBC</h1>
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
           <div className="flex-grow-1">
-            <p className="mb-3" style={{ textAlign: "justify" }}>
+            <p className="mb-3 about-text" style={{ textAlign: "justify" }}>
               O Instituto de Patrimônio Cultural, Esporte, Lazer e Educação
               Minas Bahia de Capoeira ou Instituto Cultural Minas Bahia de
               Capoeira – ICMBC, sendo este último, o nome fantasia pelo qual é
@@ -20,7 +20,7 @@ const About = () => {
               Cultura Afro-brasileira e o Patrimônio Cultural como foco
               principal de suas atividades.
             </p>
-            <p style={{ textAlign: "justify" }}>
+            <p className="about-text" style={{ textAlign: "justify" }}>
               Reconhecido como Ponto de Cultura pelo Ministério da Cultura, o
               ICMBC através do seu presidente e integrantes fazem parte: como
               Instituição Fundadora da Rede Integrada dos Bens Imateriais

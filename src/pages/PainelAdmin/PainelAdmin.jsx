@@ -615,7 +615,7 @@ const PainelAdmin = () => {
 
   const renderUserDetails = (user) => {
     const perfilSel = dadosUsuarios[user.email] || {};
-    const nivel = (perfilSel.nivelAcesso || "aluno").toLowerCase();
+    const nivel = (perfilSel.nivelAcesso || user.nivelAcesso || "visitante").toLowerCase();
     const permissaoEventos = perfilSel.permissaoEventos || "leitor";
     const podeEditarQuest = rankNivel(nivel) >= rankNivel("aluno");
     const podeEditarPerm = rankNivel(nivel) >= rankNivel("graduado");

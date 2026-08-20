@@ -85,12 +85,12 @@ const MenuBar = () => {
         )}
 
         {isMestre ? (
-          <NavDropdown title="Acessos" id="nav-dropdown-admin" className="custom-dropdown">
+          <NavDropdown title="Acessos" id="nav-dropdown-admin" className={`custom-dropdown ${expanded ? "acesso-interno-blink" : ""}`}>
             <NavDropdown.Item as={NavLink} to="/acesso-interno" onClick={handleClose} className="fw-bold text-dark">Acesso Interno</NavDropdown.Item>
             <NavDropdown.Item as={NavLink} to="/painel-admin" onClick={handleClose} className="fw-bold text-dark">Painel Admin</NavDropdown.Item>
           </NavDropdown>
         ) : (
-          <Nav.Link as={NavLink} to={isAuthenticated ? "/acesso-interno" : "/acesso-interno/login"} onClick={handleClose} style={linkStyle} className="custom-link">
+          <Nav.Link as={NavLink} to={isAuthenticated ? "/acesso-interno" : "/acesso-interno/login"} onClick={handleClose} style={linkStyle} className={`custom-link ${expanded ? "acesso-interno-blink" : ""}`}>
             Acesso Interno
           </Nav.Link>
         )}
@@ -117,7 +117,7 @@ const MenuBar = () => {
           <div className="w-100 d-flex justify-content-center">
             <div
               className="logo-slot"
-              style={{ width: 300, height: 110 }} // ~300px mantendo proporção
+              style={{ maxWidth: 300, width: "100%", height: 110 }} // ~300px mantendo proporção
             >
               <img
                 src={teste}
@@ -136,8 +136,32 @@ const MenuBar = () => {
             </div>
           </div>
 
-          {/* botão hamburguer à direita */}
-          <div className="d-flex justify-content-end mt-2">
+          {/* barra de ação mobile: botão Acesso Interno visível quando fechado + botão hambúrguer */}
+          <div className={`d-flex align-items-center mt-2 px-1 ${!expanded ? "justify-content-between" : "justify-content-end"}`}>
+            {!expanded && (
+              <NavLink
+                to={isAuthenticated ? "/acesso-interno" : "/acesso-interno/login"}
+                onClick={handleClose}
+                className="btn-acesso-aluno-mobile"
+                style={{
+                  color: "#ffffff",
+                  backgroundColor: "#8b0000",
+                  border: "2px solid #8b0000",
+                  borderRadius: "12px",
+                  padding: "6px 14px",
+                  fontWeight: 600,
+                  fontSize: "0.88rem",
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+                }}
+              >
+                <span>Acesso Interno</span>
+              </NavLink>
+            )}
+
             <Navbar.Toggle aria-controls="menu-principal" />
           </div>
 
@@ -192,6 +216,34 @@ const MenuBar = () => {
           .custom-link:hover {
             background-color: #a00000 !important;
             color: #ffffff !important;
+          }
+
+          .btn-acesso-aluno-mobile:hover,
+          .btn-acesso-aluno-mobile:focus {
+            background-color: #a00000 !important;
+            border-color: #a00000 !important;
+            color: #ffffff !important;
+          }
+
+          @keyframes subtleBlink {
+            0% {
+              transform: scale(1);
+              box-shadow: 0 0 0 0 rgba(139, 0, 0, 0.5);
+            }
+            50% {
+              transform: scale(1.04);
+              box-shadow: 0 0 0 8px rgba(139, 0, 0, 0.3);
+              background-color: #8b0000 !important;
+              color: #ffffff !important;
+            }
+            100% {
+              transform: scale(1);
+              box-shadow: 0 0 0 0 rgba(139, 0, 0, 0);
+            }
+          }
+
+          .acesso-interno-blink {
+            animation: subtleBlink 0.9s ease-in-out 2;
           }
 
           .custom-dropdown > .nav-link {

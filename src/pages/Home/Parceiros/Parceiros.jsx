@@ -1,9 +1,10 @@
 // src/components/Parceiros/Parceiros.jsx
+import { useState } from "react";
 import Carousel from "react-multi-carousel";
 import "react-multi-carousel/lib/styles.css";
 import "./Parceiros.scss";
 
-import { Card } from "react-bootstrap";
+import { Card, Modal } from "react-bootstrap";
 
 import teste1 from "../../../assets/parceiros/alanson.png";
 import teste2 from "../../../assets/parceiros/implantar.png";
@@ -38,13 +39,15 @@ const images = [
 ];
 
 const Parceiros = () => {
+  const [showCertificadoModal, setShowCertificadoModal] = useState(false);
+
   return (
     <div
       className="text-center parceiros-wrap"
       style={{ maxWidth: "90%", margin: "auto", padding: "20px" }}
     >
-      <div className="mb-8">
-        <h1>Parceiros</h1>
+      <div className="mb-4">
+        <h1 className="fw-bold">Parceiros</h1>
       </div>
 
       <Carousel
@@ -105,12 +108,68 @@ const Parceiros = () => {
           );
         })}
       </Carousel>
-      <div className="mt-16 flex flex-col items-center">
-        <div className="mb-8">
-          <h1>Certificados</h1>
+
+      <div className="mt-5 d-flex flex-column align-items-center">
+        <div className="mb-3">
+          <h2 className="fw-bold">Certificados</h2>
         </div>
-        <img src={ponto} className="w-210" alt="" />
+
+        {/* Container do Certificado com hover zoom e clique */}
+        <div
+          className="certificado-preview-container position-relative d-inline-block rounded shadow-sm overflow-hidden"
+          style={{ cursor: "zoom-in", maxWidth: "520px", width: "100%" }}
+          onClick={() => setShowCertificadoModal(true)}
+          title="Clique para ampliar e ler o certificado"
+        >
+          <img
+            src={ponto}
+            className="img-fluid rounded certificado-img"
+            alt="Certificado Ponto de Cultura"
+            style={{ width: "100%", height: "auto", transition: "transform 0.3s ease" }}
+          />
+        </div>
+
+        {/* Mensagem discreta avisando que a imagem pode ser ampliada */}
+        <small className="text-muted mt-2 d-flex align-items-center gap-1" style={{ fontSize: "0.82rem" }}>
+          <span>🔍</span>
+          <span>Clique na imagem para ampliar e ler o certificado</span>
+        </small>
       </div>
+
+      {/* Modal de Zoom do Certificado */}
+      <Modal
+        show={showCertificadoModal}
+        onHide={() => setShowCertificadoModal(false)}
+        size="xl"
+        centered
+        scrollable
+      >
+        <Modal.Header closeButton variant="white" className="bg-dark text-white border-0 py-2 px-3">
+          <Modal.Title className="fs-6 fw-semibold text-white">
+            Certificado Ponto de Cultura - ICMBC
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-2 p-sm-4 bg-dark d-flex align-items-center justify-content-center">
+          <img
+            src={ponto}
+            alt="Certificado Ponto de Cultura Ampliado"
+            className="img-fluid rounded shadow"
+            style={{ maxHeight: "85vh", width: "auto", objectFit: "contain" }}
+          />
+        </Modal.Body>
+      </Modal>
+
+      {/* CSS local para o hover do certificado */}
+      <style>
+        {`
+          .certificado-preview-container:hover .certificado-img {
+            transform: scale(1.02);
+          }
+          .certificado-preview-container:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.18) !important;
+          }
+        `}
+      </style>
     </div>
   );
 };

@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Container, Row, Col, Modal, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
+import { FiEdit2, FiPaperclip, FiRefreshCw, FiAlertTriangle } from "react-icons/fi";
+import { FaRegPenToSquare } from "react-icons/fa6";
 import http from "../../services/http";
 
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
@@ -137,6 +139,106 @@ const PainelAdmin = () => {
 
   // modal "Enviar certificados" (reaproveita o mesmo da Acesso Interno)
   const [envioModalOpenForEmail, setEnvioModalOpenForEmail] = useState(null);
+
+  // Modal de edição de campo único com confirmação ("Eu confirmo")
+  const [editFieldModal, setEditFieldModal] = useState({
+    show: false,
+    userEmail: "",
+    userName: "",
+    fieldKey: "",
+    fieldLabel: "",
+    fieldType: "text",
+    currentValue: "",
+    newValue: "",
+    confirmText: "",
+    saving: false,
+  });
+
+  const openEditFieldModal = (user, fieldKey, fieldLabel, fieldType, currentValue) => {
+    const perfilSel = dadosUsuarios[user.email] || {};
+    const uName = perfilSel?.nome || user?.nome || user?.email || "";
+    setEditFieldModal({
+      show: true,
+      userEmail: user.email,
+      userName: uName,
+      fieldKey,
+      fieldLabel,
+      fieldType,
+      currentValue: currentValue || "",
+      newValue: currentValue || "",
+      confirmText: "",
+      saving: false,
+    });
+  };
+
+  const handleSaveSingleField = async () => {
+    const { userEmail, fieldKey, newValue, confirmText, saving } = editFieldModal;
+    if (saving) return;
+
+    if (confirmText.trim().toLowerCase() !== "eu confirmo") {
+      alert('Digite exatamente "Eu confirmo" para salvar.');
+      return;
+    }
+
+    try {
+      setEditFieldModal((prev) => ({ ...prev, saving: true }));
+
+      let endpoint = `${API_URL}/perfil/${userEmail}`;
+      let body = { [fieldKey]: newValue };
+
+      if (fieldKey === "nome") {
+        endpoint = `${API_URL}/perfil/${userEmail}/nome`;
+        body = { nome: newValue };
+      } else if (fieldKey === "apelido") {
+        endpoint = `${API_URL}/perfil/${userEmail}/apelido`;
+        body = { apelido: newValue };
+      } else if (fieldKey === "dataNascimento") {
+        endpoint = `${API_URL}/perfil/${userEmail}/data-nascimento`;
+        body = { dataNascimento: newValue };
+      } else if (fieldKey === "inicioNoGrupo") {
+        endpoint = `${API_URL}/perfil/${userEmail}/inicio-no-grupo`;
+        body = { inicioNoGrupo: newValue };
+      }
+
+      const res = await http.put(endpoint, body);
+      const perfilSalvo = res.data || {};
+
+      setDadosUsuarios((prev) => ({
+        ...prev,
+        [userEmail]: {
+          ...(prev[userEmail] || {}),
+          ...perfilSalvo,
+          [fieldKey]: newValue,
+        },
+      }));
+
+      if (fieldKey === "nome" || fieldKey === "apelido") {
+        setUsuarios((prev) =>
+          prev.map((u) =>
+            u.email === userEmail ? { ...u, [fieldKey]: newValue } : u
+          )
+        );
+      }
+
+      alert(`Campo "${editFieldModal.fieldLabel}" atualizado com sucesso!`);
+      setEditFieldModal({
+        show: false,
+        userEmail: "",
+        userName: "",
+        fieldKey: "",
+        fieldLabel: "",
+        fieldType: "text",
+        currentValue: "",
+        newValue: "",
+        confirmText: "",
+        saving: false,
+      });
+    } catch (err) {
+      console.error("Erro ao atualizar campo:", err);
+      alert("Falha ao atualizar o campo: " + (err?.response?.data?.erro || err.message));
+      setEditFieldModal((prev) => ({ ...prev, saving: false }));
+    }
+  };
 
   // ================== Atualizações de Perfil ==================
 
@@ -667,11 +769,12 @@ const PainelAdmin = () => {
           <div className="mt-3 text-center">
             <button
               type="button"
-              className="btn btn-outline-primary btn-sm"
+              className="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
               onClick={() => setEnvioModalOpenForEmail(user.email)}
               title="Enviar certificado para este aluno"
             >
-              📎 Enviar certificado
+              <FiPaperclip size={14} />
+              <span>Enviar certificado</span>
             </button>
           </div>
         </Col>
@@ -684,13 +787,29 @@ const PainelAdmin = () => {
               <span className="badge bg-dark fs-6 ms-1">{perfilSel?.matricula || user.matricula}</span>
             </p>
           )}
-          <p>
+          <p className="mb-2">
             <strong>Nome: </strong>
-            {perfilSel?.nome || "-"}
+            <span>{perfilSel?.nome || "-"}</span>
+            <button
+              type="button"
+              className="btn btn-link btn-sm text-decoration-none p-0 ms-2"
+              onClick={() => openEditFieldModal(user, "nome", "Nome", "text", perfilSel?.nome || "")}
+              title="Editar Nome"
+            >
+              <FaRegPenToSquare size={14} className="text-primary" style={{ verticalAlign: "middle" }} />
+            </button>
           </p>
-          <p>
+          <p className="mb-2">
             <strong>Apelido: </strong>
-            {perfilSel?.apelido || "-"}
+            <span>{perfilSel?.apelido || "-"}</span>
+            <button
+              type="button"
+              className="btn btn-link btn-sm text-decoration-none p-0 ms-2"
+              onClick={() => openEditFieldModal(user, "apelido", "Apelido", "text", perfilSel?.apelido || "")}
+              title="Editar Apelido"
+            >
+              <FaRegPenToSquare size={14} className="text-primary" style={{ verticalAlign: "middle" }} />
+            </button>
           </p>
 
           {/* Corda + verificação */}
@@ -734,30 +853,49 @@ const PainelAdmin = () => {
             )}
           </div>
 
-
-          <p className="mt-2">
+          <p className="mt-2 mb-2">
             <strong>Quando iniciou no grupo: </strong>
-            {perfilSel.inicioNoGrupo
-              ? `${formatarData(perfilSel.inicioNoGrupo)} | ${formatarTempoDeGrupo(
-                perfilSel.inicioNoGrupo,
-              )}`
-              : "-"}
+            <span>
+              {perfilSel.inicioNoGrupo
+                ? `${formatarData(perfilSel.inicioNoGrupo)} | ${formatarTempoDeGrupo(
+                  perfilSel.inicioNoGrupo,
+                )}`
+                : "-"}
+            </span>
+            <button
+              type="button"
+              className="btn btn-link btn-sm text-decoration-none p-0 ms-2"
+              onClick={() => openEditFieldModal(user, "inicioNoGrupo", "Data de Início no Grupo", "date", perfilSel?.inicioNoGrupo || "")}
+              title="Editar Data de Início no Grupo"
+            >
+              <FaRegPenToSquare size={14} className="text-primary" style={{ verticalAlign: "middle" }} />
+            </button>
           </p>
 
-          <p>
+          <p className="mb-2">
             <strong>Gênero: </strong>
             {perfilSel?.genero || "-"}
           </p>
-          <p>
+          <p className="mb-2">
             <strong>Raça/Cor:</strong> {perfilSel?.racaCor || "-"}
           </p>
-          <p>
+          <p className="mb-2">
             <strong>Data de Nascimento e Idade: </strong>
-            {formatarData(perfilSel?.dataNascimento)}{" "}
-            {(() => {
-              const idade = calcularIdade(perfilSel?.dataNascimento);
-              return idade >= 0 ? `| ${idade} anos` : "";
-            })()}
+            <span>
+              {formatarData(perfilSel?.dataNascimento)}{" "}
+              {(() => {
+                const idade = calcularIdade(perfilSel?.dataNascimento);
+                return idade >= 0 ? `| ${idade} anos` : "";
+              })()}
+            </span>
+            <button
+              type="button"
+              className="btn btn-link btn-sm text-decoration-none p-0 ms-2"
+              onClick={() => openEditFieldModal(user, "dataNascimento", "Data de Nascimento", "date", perfilSel?.dataNascimento || "")}
+              title="Editar Data de Nascimento"
+            >
+              <FaRegPenToSquare size={14} className="text-primary" style={{ verticalAlign: "middle" }} />
+            </button>
           </p>
 
           <p>
@@ -1679,6 +1817,86 @@ const PainelAdmin = () => {
           email={envioModalOpenForEmail}
         />
       )}
+
+      {/* Modal de Edição de Campo Único com Confirmação estilo GitHub ("Eu confirmo") */}
+      <Modal
+        show={editFieldModal.show}
+        onHide={() => setEditFieldModal((prev) => ({ ...prev, show: false }))}
+        centered
+      >
+        <Modal.Header closeButton className="bg-light">
+          <Modal.Title className="fs-6 fw-bold text-dark d-flex align-items-center">
+            <FaRegPenToSquare className="me-2 text-primary" />
+            <span>Editar {editFieldModal.fieldLabel}</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <p className="small text-muted mb-3">
+            Aluno: <strong>{editFieldModal.userName}</strong> ({editFieldModal.userEmail})
+          </p>
+
+          <div className="mb-3">
+            <label className="form-label fw-semibold small">
+              Novo valor para {editFieldModal.fieldLabel}:
+            </label>
+            <input
+              type={editFieldModal.fieldType}
+              className="form-control"
+              value={editFieldModal.newValue}
+              onChange={(e) =>
+                setEditFieldModal((prev) => ({ ...prev, newValue: e.target.value }))
+              }
+              placeholder={`Digite o novo ${editFieldModal.fieldLabel.toLowerCase()}`}
+            />
+          </div>
+
+          <div className="alert alert-warning p-3 mb-3 small d-flex align-items-start gap-2">
+            <FiAlertTriangle className="text-warning flex-shrink-0 mt-1" size={18} />
+            <div>
+              <strong>Confirmação de Segurança:</strong>
+              <br />
+              Esta alteração atualiza os registros do aluno no sistema. Para autorizar, digite <code>Eu confirmo</code> no campo abaixo.
+            </div>
+          </div>
+
+          <div className="mb-2">
+            <label className="form-label fw-semibold small">
+              Digite <strong>Eu confirmo</strong> para habilitar o salvamento:
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              value={editFieldModal.confirmText}
+              onChange={(e) =>
+                setEditFieldModal((prev) => ({ ...prev, confirmText: e.target.value }))
+              }
+              placeholder='Digite "Eu confirmo"'
+              autoComplete="off"
+            />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={() => setEditFieldModal((prev) => ({ ...prev, show: false }))}
+            disabled={editFieldModal.saving}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={handleSaveSingleField}
+            disabled={
+              editFieldModal.saving ||
+              editFieldModal.confirmText.trim().toLowerCase() !== "eu confirmo"
+            }
+          >
+            {editFieldModal.saving ? "Salvando..." : "Confirmar Alteração"}
+          </button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

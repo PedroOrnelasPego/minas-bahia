@@ -3,6 +3,7 @@ import { useState } from "react";
 import Carousel from "react-multi-carousel";
 import "react-multi-carousel/lib/styles.css";
 import "./Parceiros.scss";
+import { FiZoomIn } from "react-icons/fi";
 
 import { Card, Modal } from "react-bootstrap";
 
@@ -131,7 +132,7 @@ const Parceiros = () => {
 
         {/* Mensagem discreta avisando que a imagem pode ser ampliada */}
         <small className="text-muted mt-2 d-flex align-items-center gap-1" style={{ fontSize: "0.82rem" }}>
-          <span>🔍</span>
+          <FiZoomIn size={14} className="text-muted" />
           <span>Clique na imagem para ampliar e ler o certificado</span>
         </small>
       </div>

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Modal, Button, Row, Col, Alert } from "react-bootstrap";
+import { FiArrowLeft } from "react-icons/fi";
 import nomesCordas, {
   gruposCordas,
   listarCordasPorGrupo,
@@ -816,7 +817,7 @@ const CadastroInicial = ({ show, onSave, onCancel }) => {
             onClick={onCancel}
             className="d-flex align-items-center gap-1"
           >
-            <span>←</span>
+            <FiArrowLeft size={16} />
             <span>Cancelar e Voltar ao Login</span>
           </Button>
           <Button

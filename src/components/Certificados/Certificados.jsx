@@ -267,7 +267,7 @@ const Certificados = ({ email }) => {
       <h5 className="text-center mb-3">Arquivos Pessoais (Antigo)</h5>
       <div className="d-flex justify-content-center mb-3">
         <Button variant="secondary" onClick={abrirModalUpload}>
-          📌 Enviar Arquivo
+          <i className="bi bi-pin-angle-fill me-2"></i>Enviar Arquivo
         </Button>
       </div>
 
@@ -305,7 +305,7 @@ const Certificados = ({ email }) => {
                     title={isPdf ? "Visualizar PDF" : "Visualizar imagem"}
                     onClick={() => openPreview(proxyUrl, isPdf)}
                   >
-                    {isPdf ? "📄" : "🔍"}
+                    {isPdf ? <i className="bi bi-file-earmark-pdf"></i> : <i className="bi bi-search"></i>}
                   </Button>
 
                   <Button
@@ -314,7 +314,7 @@ const Certificados = ({ email }) => {
                     title="Baixar"
                     onClick={() => baixar(proxyUrl, nomeVisivel)}
                   >
-                    ⬇️
+                    <i className="bi bi-download"></i>
                   </Button>
 
                   <Button
@@ -323,7 +323,7 @@ const Certificados = ({ email }) => {
                     title="Excluir"
                     onClick={() => remover(nomeArquivo)}
                   >
-                    🗑
+                    <i className="bi bi-trash"></i>
                   </Button>
                 </div>
               </li>

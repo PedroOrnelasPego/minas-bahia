@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { FiEdit2, FiPaperclip, FiRefreshCw, FiAlertTriangle } from "react-icons/fi";
 import { FaRegPenToSquare } from "react-icons/fa6";
 import http from "../../services/http";
+import toast from "react-hot-toast";
 
 import fotoPadrao from "../../assets/foto-perfil/foto-perfil-padrao.jpg";
 import Loading from "../../components/Loading/Loading";
@@ -104,15 +105,15 @@ const PainelAdmin = () => {
       setReorganizandoMatriculas(true);
       const res = await http.post(`${API_URL}/perfil/reorganizar-matriculas`);
       if (res.data?.ok) {
-        alert(`Matrículas reorganizadas com sucesso!\n\nAlunos processados: ${res.data.totalProcessados}\nMatrículas atualizadas: ${res.data.totalAtualizados}`);
+        toast.success(`Matrículas reorganizadas com sucesso!\nAlunos processados: ${res.data.totalProcessados}\nMatrículas atualizadas: ${res.data.totalAtualizados}`, { duration: 5000 });
         setDadosUsuarios({});
         fetchUsuarios();
       } else {
-        alert("Erro ao reorganizar matrículas.");
+        toast.error("Erro ao reorganizar matrículas.");
       }
     } catch (err) {
       console.error("Erro ao reorganizar matrículas:", err);
-      alert("Erro ao reorganizar matrículas: " + (err.response?.data?.erro || err.message));
+      toast.error("Erro ao reorganizar matrículas: " + (err.response?.data?.erro || err.message));
     } finally {
       setReorganizandoMatriculas(false);
     }
@@ -171,12 +172,64 @@ const PainelAdmin = () => {
     });
   };
 
+  // Modal de exclusão de conta
+  const [deleteAccountModal, setDeleteAccountModal] = useState({
+    show: false,
+    userEmail: "",
+    userName: "",
+    confirmText: "",
+    saving: false,
+  });
+
+  const openDeleteAccountModal = (user) => {
+    const perfilSel = dadosUsuarios[user.email] || {};
+    const uName = perfilSel?.nome || user?.nome || user?.email || "";
+    setDeleteAccountModal({
+      show: true,
+      userEmail: user.email,
+      userName: uName,
+      confirmText: "",
+      saving: false,
+    });
+  };
+
+  const handleDeleteAccount = async () => {
+    const { userEmail, confirmText, saving } = deleteAccountModal;
+    if (saving) return;
+
+    if (confirmText.trim() !== "Eu confirmo que quero excluir esta conta de forma permanente") {
+      toast.error('Digite a frase de confirmação exatamente como solicitado.');
+      return;
+    }
+
+    setDeleteAccountModal((prev) => ({ ...prev, saving: true }));
+    try {
+      await http.delete(`${API_URL}/perfil/${encodeURIComponent(userEmail)}`);
+
+      toast.success("Conta excluída com sucesso!");
+      setDeleteAccountModal({ show: false, userEmail: "", userName: "", confirmText: "", saving: false });
+      setModalUserEmail(null); // Fecha o card/modal de detalhes do aluno
+
+      setDadosUsuarios((prev) => {
+        const copy = { ...prev };
+        delete copy[userEmail];
+        return copy;
+      });
+      setUsuarios((prev) => prev.filter((u) => u.email !== userEmail));
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Erro ao excluir conta.");
+    } finally {
+      setDeleteAccountModal((prev) => ({ ...prev, saving: false }));
+    }
+  };
+
   const handleSaveSingleField = async () => {
     const { userEmail, fieldKey, newValue, confirmText, saving } = editFieldModal;
     if (saving) return;
 
     if (confirmText.trim().toLowerCase() !== "eu confirmo") {
-      alert('Digite exatamente "Eu confirmo" para salvar.');
+      toast.error('Digite exatamente "Eu confirmo" para salvar.');
       return;
     }
 
@@ -220,7 +273,7 @@ const PainelAdmin = () => {
         );
       }
 
-      alert(`Campo "${editFieldModal.fieldLabel}" atualizado com sucesso!`);
+      toast.success(`Campo "${editFieldModal.fieldLabel}" atualizado com sucesso!`);
       setEditFieldModal({
         show: false,
         userEmail: "",
@@ -235,7 +288,7 @@ const PainelAdmin = () => {
       });
     } catch (err) {
       console.error("Erro ao atualizar campo:", err);
-      alert("Falha ao atualizar o campo: " + (err?.response?.data?.erro || err.message));
+      toast.error("Falha ao atualizar o campo: " + (err?.response?.data?.erro || err.message));
       setEditFieldModal((prev) => ({ ...prev, saving: false }));
     }
   };
@@ -273,9 +326,9 @@ const PainelAdmin = () => {
         await atualizarPermissaoQuestionario(email, false, { silent: true });
       }
 
-      alert("Nível atualizado com sucesso.");
+      toast.success("Nível atualizado com sucesso.");
     } catch {
-      alert("Erro ao atualizar nível de acesso.");
+      toast.error("Erro ao atualizar nível de acesso.");
     }
   };
 
@@ -290,9 +343,9 @@ const PainelAdmin = () => {
         ...prev,
         [email]: { ...prev[email], permissaoEventos: permissao },
       }));
-      if (!silent) alert("Permissão nos eventos atualizada.");
+      if (!silent) toast.success("Permissão nos eventos atualizada.");
     } catch {
-      if (!silent) alert("Erro ao atualizar permissão nos eventos.");
+      if (!silent) toast.error("Erro ao atualizar permissão nos eventos.");
     }
   };
 
@@ -310,9 +363,9 @@ const PainelAdmin = () => {
         ...prev,
         [email]: { ...prev[email], podeEditarQuestionario: !!habilitado },
       }));
-      if (!silent) alert("Permissão para editar questionário atualizada.");
+      if (!silent) toast.success("Permissão para editar questionário atualizada.");
     } catch {
-      if (!silent) alert("Erro ao atualizar a permissão do questionário.");
+      if (!silent) toast.error("Erro ao atualizar a permissão do questionário.");
     }
   };
 
@@ -330,9 +383,9 @@ const PainelAdmin = () => {
         [email]: updatedRecord,
       }));
       setPerfilCache(email, updatedRecord);
-      alert("Permissão no acervo atualizada com sucesso.");
+      toast.success("Permissão no acervo atualizada com sucesso.");
     } catch {
-      alert("Erro ao atualizar permissão no acervo.");
+      toast.error("Erro ao atualizar permissão no acervo.");
     }
   };
 
@@ -347,9 +400,9 @@ const PainelAdmin = () => {
         ...prev,
         [email]: { ...prev[email], corda: novaCorda },
       }));
-      alert("Corda atualizada.");
+      toast.success("Corda atualizada.");
     } catch {
-      alert("Erro ao atualizar a corda.");
+      toast.error("Erro ao atualizar a corda.");
     }
   };
 
@@ -363,11 +416,11 @@ const PainelAdmin = () => {
         ...prev,
         [email]: { ...prev[email], cordaVerificada: !!novoValor },
       }));
-      alert(
+      toast.success(
         !!novoValor ? "Corda confirmada." : "Confirmação de corda revogada.",
       );
     } catch {
-      alert("Erro ao atualizar verificação da corda.");
+      toast.error("Erro ao atualizar verificação da corda.");
     }
   };
 
@@ -380,9 +433,9 @@ const PainelAdmin = () => {
         ...prev,
         [email]: { ...prev[email], daAula: !!valor },
       }));
-      alert("Configuração de aula atualizada.");
+      toast.success("Configuração de aula atualizada.");
     } catch {
-      alert("Erro ao atualizar configuração de aula.");
+      toast.error("Erro ao atualizar configuração de aula.");
     }
   };
 
@@ -394,7 +447,7 @@ const PainelAdmin = () => {
       const res = await http.get(`${API_URL}/perfil`);
       setUsuarios(res.data || []);
     } catch {
-      alert("Erro ao buscar usuários.");
+      toast.error("Erro ao buscar usuários.");
     } finally {
       setLoadingUsuarios(false);
     }
@@ -422,7 +475,7 @@ const PainelAdmin = () => {
         const res = await http.get(`${API_URL}/perfil/${email}`);
         setDadosUsuarios((prev) => ({ ...prev, [email]: res.data }));
       } catch {
-        alert("Erro ao buscar dados do usuário.");
+        toast.error("Erro ao buscar dados do usuário.");
       } finally {
         setCarregando(false);
       }
@@ -440,7 +493,7 @@ const PainelAdmin = () => {
         const res = await http.get(`${API_URL}/perfil/${email}`);
         setDadosUsuarios((prev) => ({ ...prev, [email]: res.data }));
       } catch {
-        alert("Erro ao buscar dados do usuário.");
+        toast.error("Erro ao buscar dados do usuário.");
       } finally {
         setCarregando(false);
       }
@@ -462,7 +515,7 @@ const PainelAdmin = () => {
         [email]: res.data.items || [],
       }));
     } catch {
-      alert(`Erro ao listar timeline de ${email}`);
+      toast.error(`Erro ao listar timeline de ${email}`);
     } finally {
       setTlLoading(null);
     }
@@ -478,13 +531,13 @@ const PainelAdmin = () => {
         status, // "approved" | "rejected"
       });
       await listarTimeline(email);
-      alert(
+      toast.success(
         status === "approved"
           ? "Certificado aprovado."
           : "Certificado reprovado.",
       );
     } catch {
-      alert("Falha ao atualizar o status do certificado.");
+      toast.error("Falha ao atualizar o status do certificado.");
     }
   };
 
@@ -501,7 +554,7 @@ const PainelAdmin = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(urlBlob);
     } catch {
-      alert("Erro ao baixar o arquivo.");
+      toast.error("Erro ao baixar o arquivo.");
     }
   };
 
@@ -898,19 +951,22 @@ const PainelAdmin = () => {
             </button>
           </p>
 
-          <p>
+          <p className="mb-2">
             <strong>WhatsApp (pessoal):</strong> {formatPhoneDisplay(perfilSel?.whatsapp)}
           </p>
-          <p>
+          <p className="mb-2">
+            <strong>Email:</strong> {perfilSel?.email || "-"}
+          </p>
+          <p className="mb-2">
             <strong>Contato de emergência / responsável:</strong>{" "}
             {formatPhoneDisplay(perfilSel?.contatoEmergencia)}
           </p>
 
-          <p>
+          <p className="mb-2">
             <strong>Endereço: </strong>
             {perfilSel?.endereco || "-"} / {perfilSel?.complemento}
           </p>
-          <p>
+          <p className="mb-2">
             <strong>Local e horário de treino: </strong>
             {perfilSel?.localTreino || "-"} |{" "}
             {getHorarioLabel(
@@ -918,7 +974,7 @@ const PainelAdmin = () => {
               perfilSel?.horarioTreino,
             ) || "-"}
           </p>
-          <p>
+          <p className="mb-2">
             <strong>Professor referência: </strong>
             {perfilSel?.professorReferencia || "-"}
           </p>
@@ -977,10 +1033,10 @@ const PainelAdmin = () => {
                               Data: {formatarData(item.data)} •{" "}
                               <span
                                 className={`badge ${aprovado
-                                    ? "bg-success"
-                                    : rejeitado
-                                      ? "bg-danger"
-                                      : "bg-warning text-dark"
+                                  ? "bg-success"
+                                  : rejeitado
+                                    ? "bg-danger"
+                                    : "bg-warning text-dark"
                                   }`}
                               >
                                 {aprovado
@@ -1002,13 +1058,23 @@ const PainelAdmin = () => {
                               setShowPreview(true);
                             }}
                           >
-                            {isPdf ? "📄 Visualizar" : "🔍 Visualizar"}
+                            {isPdf ? (
+                              <>
+                                <i className="bi bi-file-earmark-pdf me-1"></i>
+                                Visualizar
+                              </>
+                            ) : (
+                              <>
+                                <i className="bi bi-search me-1"></i>
+                                Visualizar
+                              </>
+                            )}
                           </button>
                           <button
                             className="btn btn-sm btn-outline-success"
                             onClick={() => handleDownload(fullUrl)}
                           >
-                            ⬇️ Download
+                            <i className="bi bi-download me-1"></i> Download
                           </button>
                           <button
                             className="btn btn-sm btn-outline-success"
@@ -1018,7 +1084,7 @@ const PainelAdmin = () => {
                             disabled={aprovado}
                             title="Confirmar certificado"
                           >
-                            ✅ Confirmar
+                            <i className="bi bi-check-circle me-1"></i> Confirmar
                           </button>
                           <button
                             className="btn btn-sm btn-outline-danger"
@@ -1028,7 +1094,7 @@ const PainelAdmin = () => {
                             disabled={rejeitado}
                             title="Reprovar certificado"
                           >
-                            ✖ Reprovar
+                            <i className="bi bi-x-circle me-1"></i> Reprovar
                           </button>
                         </div>
                       </li>
@@ -1290,6 +1356,20 @@ const PainelAdmin = () => {
                   )}
                 </div>
               </div>
+
+              {/* EXCLUIR CONTA */}
+              <div className="col-12 mt-4 pt-3 border-top">
+                <h6 className="text-danger mb-3"><span className="fw-bold">Exclusão de Conta</span></h6>
+                <div>
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm"
+                    onClick={() => openDeleteAccountModal(user)}
+                  >
+                    Excluir Conta Permanentemente
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </Col>
@@ -1354,7 +1434,7 @@ const PainelAdmin = () => {
           }}
           aria-label={`Pendências: ${pendencias.join(", ")}`}
         >
-          ⚠️
+          <i className="bi bi-exclamation-triangle-fill text-warning"></i>
         </span>
       </OverlayTrigger>
     );
@@ -1381,7 +1461,7 @@ const PainelAdmin = () => {
           }}
           aria-label="Perfil visitante"
         >
-          ❗
+          <i className="bi bi-exclamation-circle-fill text-danger"></i>
         </span>
       </OverlayTrigger>
     );
@@ -1444,7 +1524,7 @@ const PainelAdmin = () => {
 
   const renderUserCard = (user) => {
     const perfilSel = dadosUsuarios[user.email] || {};
-    
+
     // Usamos o campo 'foto' (null ou URL completa) enviado pelo backend
     const url1x = user.foto || fotoPadrao;
 
@@ -1581,10 +1661,11 @@ const PainelAdmin = () => {
       <div className="row justify-content-center mb-3">
         <div className="col-12 col-md-8 col-lg-6">
           <div className="position-relative">
+            <i className="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
             <input
               type="text"
-              className="form-control form-control-md pe-5 rounded-pill shadow-sm"
-              placeholder="🔍 Buscar por nome, apelido, e-mail, matrícula..."
+              className="form-control form-control-md ps-5 pe-5 rounded-pill shadow-sm"
+              placeholder="Buscar por nome, apelido, e-mail, matrícula..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               aria-label="Buscar aluno no painel administrativo"
@@ -1692,7 +1773,7 @@ const PainelAdmin = () => {
             </>
           ) : (
             <>
-              <span>🔄</span>
+              <i className="bi bi-arrow-clockwise me-1"></i>
               <span>Reorganizar Matrículas</span>
             </>
           )}
@@ -1894,6 +1975,73 @@ const PainelAdmin = () => {
             }
           >
             {editFieldModal.saving ? "Salvando..." : "Confirmar Alteração"}
+          </button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Exclusão de Conta estilo GitHub ("Eu confirmo que quero excluir esta conta de forma permanente") */}
+      <Modal
+        show={deleteAccountModal.show}
+        onHide={() => setDeleteAccountModal((prev) => ({ ...prev, show: false }))}
+        centered
+      >
+        <Modal.Header closeButton className="bg-danger text-white">
+          <Modal.Title className="fs-6 fw-bold d-flex align-items-center">
+            <FiAlertTriangle className="me-2" />
+            <span>Excluir Conta Permanentemente</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <p className="small text-muted mb-3">
+            Aluno: <strong>{deleteAccountModal.userName}</strong> ({deleteAccountModal.userEmail})
+          </p>
+
+          <div className="alert alert-danger p-3 mb-3 small d-flex align-items-start gap-2">
+            <FiAlertTriangle className="text-danger flex-shrink-0 mt-1" size={18} />
+            <div>
+              <strong>ATENÇÃO - EXCLUSÃO IRREVERSÍVEL:</strong>
+              <br />
+              Esta ação excluirá permanentemente a conta e o perfil do integrante do Minas Bahia. Todos os certificados enviados e histórico de chamadas serão invalidados.
+            </div>
+          </div>
+
+          <div className="mb-2">
+            <label className="form-label fw-semibold small text-danger">
+              Para autorizar, digite a frase exata:
+              <br />
+              <code>Eu confirmo que quero excluir esta conta de forma permanente</code>
+            </label>
+            <input
+              type="text"
+              className="form-control border-danger"
+              value={deleteAccountModal.confirmText}
+              onChange={(e) =>
+                setDeleteAccountModal((prev) => ({ ...prev, confirmText: e.target.value }))
+              }
+              placeholder="Digite a frase de confirmação"
+              autoComplete="off"
+            />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={() => setDeleteAccountModal((prev) => ({ ...prev, show: false }))}
+            disabled={deleteAccountModal.saving}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={handleDeleteAccount}
+            disabled={
+              deleteAccountModal.saving ||
+              deleteAccountModal.confirmText.trim() !== "Eu confirmo que quero excluir esta conta de forma permanente"
+            }
+          >
+            {deleteAccountModal.saving ? "Excluindo..." : "Excluir Conta"}
           </button>
         </Modal.Footer>
       </Modal>

@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useMemo, useState } from "react";
 import { Modal } from "react-bootstrap";
+import toast from "react-hot-toast";
 
 const chunk = (arr, size) => {
   const out = [];
@@ -155,12 +156,12 @@ export default function ExportadorDeDados({
 
   const baixarExcel = async () => {
     if (colunasSelecionadas.length === 0) {
-      alert("Selecione pelo menos 1 coluna para exportar.");
+      toast.error("Selecione pelo menos 1 coluna para exportar.");
       return;
     }
 
     if (usuariosParaExportar.length === 0) {
-      alert("Nenhum aluno encontrado para os locais selecionados.");
+      toast.error("Nenhum aluno encontrado para os locais selecionados.");
       return;
     }
 
@@ -175,8 +176,9 @@ export default function ExportadorDeDados({
       XLSX.utils.book_append_sheet(wb, ws, "Alunos");
 
       XLSX.writeFile(wb, `alunos_${getSuffix()}.xlsx`);
+      toast.success("Planilha Excel exportada com sucesso!");
     } catch {
-      alert("Erro ao exportar Excel.");
+      toast.error("Erro ao exportar Excel.");
     } finally {
       setExportando(false);
     }
@@ -184,12 +186,12 @@ export default function ExportadorDeDados({
 
   const baixarPDF = async () => {
     if (colunasSelecionadas.length === 0) {
-      alert("Selecione pelo menos 1 coluna para exportar.");
+      toast.error("Selecione pelo menos 1 coluna para exportar.");
       return;
     }
 
     if (usuariosParaExportar.length === 0) {
-      alert("Nenhum aluno encontrado para os locais selecionados.");
+      toast.error("Nenhum aluno encontrado para os locais selecionados.");
       return;
     }
 
@@ -220,8 +222,9 @@ export default function ExportadorDeDados({
       });
 
       doc.save(`alunos_${getSuffix()}.pdf`);
+      toast.success("Documento PDF exportado com sucesso!");
     } catch {
-      alert("Erro ao exportar PDF.");
+      toast.error("Erro ao exportar PDF.");
     } finally {
       setExportando(false);
     }
@@ -229,12 +232,12 @@ export default function ExportadorDeDados({
 
   const baixarJSON = async () => {
     if (colunasSelecionadas.length === 0) {
-      alert("Selecione pelo menos 1 coluna para exportar.");
+      toast.error("Selecione pelo menos 1 coluna para exportar.");
       return;
     }
 
     if (usuariosParaExportar.length === 0) {
-      alert("Nenhum aluno encontrado para os locais selecionados.");
+      toast.error("Nenhum aluno encontrado para os locais selecionados.");
       return;
     }
 
@@ -246,8 +249,9 @@ export default function ExportadorDeDados({
         type: "application/json;charset=utf-8",
       });
       downloadBlob(blob, `alunos_${getSuffix()}.json`);
+      toast.success("Arquivo JSON exportado com sucesso!");
     } catch {
-      alert("Erro ao exportar JSON.");
+      toast.error("Erro ao exportar JSON.");
     } finally {
       setExportando(false);
     }
@@ -255,12 +259,12 @@ export default function ExportadorDeDados({
 
   const baixarTexto = async () => {
     if (colunasSelecionadas.length === 0) {
-      alert("Selecione pelo menos 1 coluna para exportar.");
+      toast.error("Selecione pelo menos 1 coluna para exportar.");
       return;
     }
 
     if (usuariosParaExportar.length === 0) {
-      alert("Nenhum aluno encontrado para os locais selecionados.");
+      toast.error("Nenhum aluno encontrado para os locais selecionados.");
       return;
     }
 
@@ -281,8 +285,9 @@ export default function ExportadorDeDados({
       const content = `${header}\n${body}\n`;
       const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
       downloadBlob(blob, `alunos_${getSuffix()}.txt`);
+      toast.success("Arquivo de texto exportado com sucesso!");
     } catch {
-      alert("Erro ao exportar texto.");
+      toast.error("Erro ao exportar texto.");
     } finally {
       setExportando(false);
     }

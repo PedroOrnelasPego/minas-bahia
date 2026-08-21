@@ -494,7 +494,7 @@ const AlbumGroup = () => {
                         askDeleteAlbum(a);
                       }}
                     >
-                      🗑️
+                      <i className="bi bi-trash"></i>
                     </button>
                   </RequireAccess>
                   <RequireAccess nivelMinimo="graduado" requireEditor>
@@ -507,7 +507,7 @@ const AlbumGroup = () => {
                         askEditAlbum(a);
                       }}
                     >
-                      ✏️
+                      <i className="bi bi-pencil-fill"></i>
                     </button>
                   </RequireAccess>
                 </div>

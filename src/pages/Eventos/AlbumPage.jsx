@@ -11,6 +11,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { listPhotos, uploadPhotos, deletePhoto } from "../../services/eventos";
 import "./Eventos.scss";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
+import toast from "react-hot-toast";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -348,10 +349,11 @@ const AlbumPage = () => {
   const handleDeletePhoto = async (name) => {
     try {
       await deletePhoto(groupSlug, albumSlug, name);
+      toast.success("Foto deletada com sucesso!");
       await refresh();
     } catch (e) {
       console.error("Erro ao deletar foto (front):", e);
-      alert("Erro ao deletar foto.");
+      toast.error("Erro ao deletar foto.");
     }
   };
 
@@ -614,7 +616,7 @@ const AlbumPage = () => {
                         handleDeletePhoto(p.name);
                       }}
                     >
-                      🗑️
+                      <i className="bi bi-trash"></i>
                     </button>
                   </RequireAccess>
                 </div>

@@ -1391,7 +1391,7 @@ const AreaGraduado = () => {
                 title="Enviar certificados por corda"
                 disabled={envioBloqueado}
               >
-                📎 Enviar Arquivo
+                <i className="bi bi-paperclip me-2"></i>Enviar Arquivo
               </button>
               {envioBloqueado && (
                 <p className="small text-muted mt-2">
@@ -1468,7 +1468,17 @@ const AreaGraduado = () => {
                             onClick={() => openTimelinePreview(item)}
                             title="Visualizar certificado"
                           >
-                            {isPdf ? "📄 Abrir PDF" : "🔍 Visualizar"}
+                            {isPdf ? (
+                              <>
+                                <i className="bi bi-file-earmark-pdf me-1"></i>
+                                Abrir PDF
+                              </>
+                            ) : (
+                              <>
+                                <i className="bi bi-search me-1"></i>
+                                Visualizar
+                              </>
+                            )}
                           </button>
                           <button
                             type="button"
@@ -1483,7 +1493,8 @@ const AreaGraduado = () => {
                                   : "Excluir este arquivo"
                             }
                           >
-                            🗑 Excluir
+                            <i className="bi bi-trash me-1"></i>
+                            Excluir
                           </button>
                         </div>
                       </li>
@@ -1534,7 +1545,7 @@ const AreaGraduado = () => {
                   onClick={() => setShowCalendario(true)}
                   title="Abrir calendário de aniversários"
                 >
-                  <span aria-hidden="true">🎂</span>
+                  <i className="bi bi-cake2-fill text-danger"></i>
                   <span>Aniversários</span>
                 </button>
                 <button
@@ -1543,7 +1554,7 @@ const AreaGraduado = () => {
                   onClick={abrirChamada}
                   title="Abrir lista de chamada"
                 >
-                  <span aria-hidden="true">📋</span>
+                  <i className="bi bi-clipboard-check-fill text-primary"></i>
                   <span>Chamada</span>
                 </button>
                 <button
@@ -1553,7 +1564,7 @@ const AreaGraduado = () => {
                   disabled={!isMestre}
                   title="Gerar e conferir arquivos dos alunos"
                 >
-                  <span aria-hidden="true">📁</span>
+                  <i className="bi bi-folder-fill text-secondary"></i>
                   <span>Arquivo dos Alunos (Em teste)</span>
                 </button>
               </div>

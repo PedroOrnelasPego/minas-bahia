@@ -1,4 +1,5 @@
 import http from "../../services/http";
+import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import { Button, Modal, Form } from "react-bootstrap";
 
@@ -23,12 +24,15 @@ export default function FileSection({ pasta, canUpload }) {
       );
       setArquivos(res.data.arquivos || []);
     } catch {
-      alert("Erro ao listar arquivos.");
+      toast.error("Erro ao listar arquivos.");
     }
   };
 
   const enviar = async () => {
-    if (!file) return alert("Selecione um arquivo.");
+    if (!file) {
+      toast.error("Selecione um arquivo.");
+      return;
+    }
     const form = new FormData();
     form.append("arquivo", file);
 
@@ -39,9 +43,10 @@ export default function FileSection({ pasta, canUpload }) {
         form,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
+      toast.success("Arquivo enviado com sucesso!");
       await listar();
     } catch {
-      alert("Erro ao enviar.");
+      toast.error("Erro ao enviar.");
     } finally {
       setUploading(false);
       setShowModal(false);
@@ -56,9 +61,10 @@ export default function FileSection({ pasta, canUpload }) {
           pasta
         )}&arquivo=${encodeURIComponent(nome)}`
       );
+      toast.success("Arquivo removido com sucesso!");
       await listar();
     } catch {
-      alert("Erro ao remover.");
+      toast.error("Erro ao remover.");
     }
   };
 
@@ -112,7 +118,7 @@ export default function FileSection({ pasta, canUpload }) {
     <div>
       {canUpload && (
         <div className="mb-3">
-          <Button onClick={() => setShowModal(true)}>📌 Enviar Arquivo</Button>
+          <Button onClick={() => setShowModal(true)}><i className="bi bi-pin-angle-fill me-2"></i>Enviar Arquivo</Button>
         </div>
       )}
 
@@ -148,7 +154,7 @@ export default function FileSection({ pasta, canUpload }) {
                     title={isPdf ? "Visualizar PDF" : "Visualizar imagem"}
                     onClick={() => abrirPreview(url, isPdf)}
                   >
-                    {isPdf ? "📄" : "🔍"}
+                    {isPdf ? <i className="bi bi-file-earmark-pdf"></i> : <i className="bi bi-search"></i>}
                   </Button>
 
                   {/* Download */}
@@ -158,7 +164,7 @@ export default function FileSection({ pasta, canUpload }) {
                     title="Baixar"
                     onClick={() => baixar(url, nomeArquivo)}
                   >
-                    ⬇️
+                    <i className="bi bi-download"></i>
                   </Button>
 
                   {canUpload && (
@@ -168,7 +174,7 @@ export default function FileSection({ pasta, canUpload }) {
                       title="Excluir"
                       onClick={() => remover(nome)}
                     >
-                      🗑️
+                      <i className="bi bi-trash"></i>
                     </Button>
                   )}
                 </div>
@@ -223,7 +229,7 @@ export default function FileSection({ pasta, canUpload }) {
               alt="Preview"
               className="img-fluid"
               style={{ maxHeight: "70vh" }}
-              onError={() => alert("Não foi possível abrir a imagem.")}
+              onError={() => toast.error("Não foi possível abrir a imagem.")}
             />
           )}
         </Modal.Body>

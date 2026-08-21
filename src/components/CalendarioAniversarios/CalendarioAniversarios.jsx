@@ -76,7 +76,7 @@ const CalendarioAniversarios = () => {
 
   return (
     <div className="calendario-container text-center">
-      <h5 className="mb-3">🎂 Aniversários</h5>
+      <h5 className="mb-3"><i className="bi bi-cake2-fill text-danger me-2"></i>Aniversários</h5>
 
       <Calendar
         key={`${mesAtivo.getFullYear()}-${mesAtivo.getMonth()}-${calVersion}`}
@@ -103,7 +103,7 @@ const CalendarioAniversarios = () => {
       <div className="mt-3">
         <h6>
           {format(dataSelecionada, "dd/MM")}{" "}
-          {aniversariantesDoDia.length > 0 ? "🎉" : ""}
+          {aniversariantesDoDia.length > 0 ? <i className="bi bi-balloon-fill text-warning ms-1"></i> : ""}
         </h6>
 
         {aniversariantesDoDia.length > 0 ? (

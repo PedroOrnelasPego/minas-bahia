@@ -53,9 +53,12 @@ const Login = () => {
         throw new Error(j.erro || "Falha ao autenticar");
       }
 
-      const { email } = await r.json();
+      const { email, token } = await r.json();
+      if (token) {
+        localStorage.setItem("access_token", token);
+      }
       loginGoogle(email);
-
+ 
       // Redirecionamento reativo imediato via React Router
       navigate("/acesso-interno", { replace: true });
     } catch (e) {
@@ -146,7 +149,7 @@ const Login = () => {
                     {/* Nota Informativa para novos integrantes */}
                     <div className="mt-4 pt-3 border-top text-center">
                       <p className="mb-0 text-muted" style={{ fontSize: "0.82rem", lineHeight: "1.4" }}>
-                        💡 <strong>Novo por aqui?</strong> Faça login com sua conta do Google ou Microsoft para criar seu cadastro no grupo Minas Bahia.
+                        <i className="bi bi-lightbulb-fill text-warning me-1"></i> <strong>Novo por aqui?</strong> Faça login com sua conta do Google ou Microsoft para criar seu cadastro no grupo Minas Bahia.
                       </p>
                     </div>
                   </>

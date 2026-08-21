@@ -59,7 +59,7 @@ const AlbumCard = ({ group, onOpen, onEdit, onDelete }) => {
               onDelete && onDelete(group);
             }}
           >
-            🗑️
+            <i className="bi bi-trash"></i>
           </button>
         </RequireAccess>
 
@@ -74,7 +74,7 @@ const AlbumCard = ({ group, onOpen, onEdit, onDelete }) => {
               onEdit && onEdit(group);
             }}
           >
-            ✏️
+            <i className="bi bi-pencil-fill"></i>
           </button>
         </RequireAccess>
       </div>

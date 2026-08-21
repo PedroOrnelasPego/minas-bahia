@@ -8,6 +8,7 @@ import {
   setGoogleSession,
   clearHints,
   signOutUnified,
+  isAuthenticated,
 } from "./session";
 
 const AuthContext = createContext(null);
@@ -62,7 +63,6 @@ export const AuthProvider = ({ children }) => {
 
         if (response?.account) {
           msalInstance.setActiveAccount(response.account);
-          refreshAuth();
 
           // tenta respeitar o "returnTo" que enviamos no state:
           let target = DEFAULT_AFTER_LOGIN;
@@ -90,6 +90,42 @@ export const AuthProvider = ({ children }) => {
             msalInstance.setActiveAccount(allAccounts[0]);
           }
         }
+
+        // Sincronizar sessão do Microsoft com o Backend
+        const activeAccount = msalInstance.getActiveAccount();
+        if (activeAccount) {
+          let accessToken = response?.accessToken;
+          if (!accessToken) {
+            try {
+              const silent = await msalInstance.acquireTokenSilent({
+                scopes: ["User.Read"],
+                account: activeAccount,
+              });
+              accessToken = silent.accessToken;
+            } catch (e) {
+              /* ignore */
+            }
+          }
+          if (accessToken) {
+            try {
+              const apiRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/microsoft`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ accessToken }),
+              });
+              if (apiRes.ok) {
+                const data = await apiRes.json();
+                if (data?.token) {
+                  localStorage.setItem("access_token", data.token);
+                }
+              }
+            } catch (err) {
+              console.error("Erro ao sincronizar sessão Microsoft com backend:", err);
+            }
+          }
+        }
+
+        refreshAuth();
       } catch (err) {
         // não logar detalhes sensíveis em produção
         if (import.meta.env.DEV) console.error("Erro MSAL init:", err);
@@ -124,7 +160,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     email: authEmail,
     provider: authProvider,
-    isAuthenticated: !!authEmail,
+    isAuthenticated: isAuthenticated(),
     loading: !msalReady,
     loginGoogle,
     logout,

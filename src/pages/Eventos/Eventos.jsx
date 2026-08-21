@@ -3,6 +3,7 @@ import { Container, Button, Modal, Form, Placeholder } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import AlbumCard from "./AlbumCard";
 import EditGroupModal from "./EditGroupModal";
+import toast from "react-hot-toast";
 import RequireAccess from "../../components/RequireAccess/RequireAccess";
 import {
   listGroups,
@@ -202,9 +203,10 @@ const Eventos = () => {
 
       setShowEditGroup(false);
       setEditingGroup(null);
+      toast.success("Grupo salvo com sucesso!");
     } catch (e) {
       console.error(e);
-      alert("Erro ao salvar grupo.");
+      toast.error("Erro ao salvar grupo.");
     }
   };
 

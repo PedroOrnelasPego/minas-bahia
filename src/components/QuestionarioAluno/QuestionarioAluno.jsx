@@ -380,7 +380,17 @@ export default function QuestionarioAluno({
                                 onClick={() => openLaudoPreview(item)}
                                 title="Visualizar laudo"
                               >
-                                {isPdf ? "📄 Abrir PDF" : "🔍 Visualizar"}
+                                {isPdf ? (
+                                  <>
+                                    <i className="bi bi-file-earmark-pdf me-1"></i>
+                                    Abrir PDF
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className="bi bi-search me-1"></i>
+                                    Visualizar
+                                  </>
+                                )}
                               </button>
                               <button
                                 type="button"
@@ -388,7 +398,8 @@ export default function QuestionarioAluno({
                                 onClick={() => handleExcluirLaudo(item)}
                                 title="Excluir este laudo"
                               >
-                                🗑 Excluir
+                                <i className="bi bi-trash me-1"></i>
+                                Excluir
                               </button>
                             </div>
                           </li>

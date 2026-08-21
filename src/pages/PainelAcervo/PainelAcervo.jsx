@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
+import toast from "react-hot-toast";
 import { getPerfilCache, setPerfilCache } from "../../utils/profileCache";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=150";
@@ -275,9 +276,10 @@ export default function PainelAcervo() {
 
       setItems(prev => prev.filter(i => i.id !== item.id));
       setItemDeleteConfirm({ visible: false, item: null });
+      toast.success("Item excluído com sucesso!");
     } catch (err) {
       console.error(err);
-      alert('Erro ao excluir item: ' + err.message);
+      toast.error('Erro ao excluir item: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -376,9 +378,10 @@ export default function PainelAcervo() {
           setItems(prev => prev.map(i => i.id === editingId ? { ...i, ...dbPayload } : i));
         }
       }
+      toast.success("Mídia excluída com sucesso!");
     } catch (err) {
       console.error(err);
-      alert('Erro ao excluir mídia: ' + err.message);
+      toast.error('Erro ao excluir mídia: ' + err.message);
     } finally {
       setIsSubmitting(false);
       setImageDeleteConfirm({ visible: false, url: null, field: null });
@@ -480,7 +483,7 @@ export default function PainelAcervo() {
 
       if (!response.ok) throw new Error('Falha ao comunicar com o servidor.');
 
-      alert(`Sucesso! Item histórico ${editingId ? 'atualizado' : 'registrado'} no Acervo.`);
+      toast.success(`Sucesso! Item histórico ${editingId ? 'atualizado' : 'registrado'} no Acervo.`);
 
       setTitle(''); setAuthor(''); setYear(''); setQuantity(1); setRecordLabel('');
       setCoverImage(null); setBackImage(null); setInsertImage(null); setRecordImage(null);
@@ -489,11 +492,14 @@ export default function PainelAcervo() {
       setTracksB([]);
       setEditingId(null);
       setActiveTab('overview');
-      window.location.reload();
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
 
     } catch (error) {
       console.error(error);
-      alert('Erro ao registrar item: ' + error.message);
+      toast.error('Erro ao registrar item: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }

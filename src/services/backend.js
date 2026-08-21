@@ -15,8 +15,10 @@ async function fetchJson(
   const ac = new AbortController();
   const id = setTimeout(() => ac.abort(), timeoutMs);
 
+  const token = localStorage.getItem("access_token");
   const headers = {
     "Content-Type": "application/json",
+    ...(token && token !== "undefined" && token !== "null" ? { Authorization: `Bearer ${token}` } : {}),
     ...(opts.headers || {}),
   };
 
@@ -28,6 +30,13 @@ async function fetchJson(
     const data = text ? safeJson(text) : null;
 
     if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem("access_token");
+        try {
+          window.location.hash = "#/acesso-interno/login";
+          window.dispatchEvent(new CustomEvent("authChanged", { detail: { email: null, provider: null } }));
+        } catch (e) {}
+      }
       const msg =
         (data && (data.message || data.error || data.erro)) ||
         (res.status === 401

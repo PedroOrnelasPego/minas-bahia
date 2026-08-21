@@ -39,7 +39,7 @@ const MenuEvento = () => {
           aria-label="Abrir próximos eventos"
           title="Próximos eventos"
         >
-          📅
+          <i className="bi bi-calendar-event-fill"></i>
         </button>
       </div>
 

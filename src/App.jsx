@@ -4,6 +4,7 @@ import MenuBar from "./components/MenuBar";
 import TheFooter from "./components/TheFooter";
 import MenuEvento from "./components/MenuEvento";
 import WhatsAppButton from "./components/WhatsAppButton";
+import { Toaster } from "react-hot-toast";
 import "./App.css";
 
 //Em baixo do TheFooter
@@ -12,6 +13,7 @@ import "./App.css";
 function App() {
   return (
     <>
+      <Toaster position="top-right" reverseOrder={false} />
       <MenuBar />
       <main>
         <Container style={{ minHeight: "50vh" }} className="border shadow-lg p-4 bg-white my-5 d-flex flex-column justify-center">

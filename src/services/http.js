@@ -17,7 +17,9 @@ const http = axios.create({
 http.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (token && token !== "undefined" && token !== "null") {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     config.headers.Accept = "application/json";
     return config;
   },
@@ -34,6 +36,13 @@ http.interceptors.response.use(
       return Promise.reject(new Error("Timeout na requisição"));
     if (error.response) {
       const s = error.response.status;
+      if (s === 401) {
+        localStorage.removeItem("access_token");
+        try {
+          window.location.hash = "#/acesso-interno/login";
+          window.dispatchEvent(new CustomEvent("authChanged", { detail: { email: null, provider: null } }));
+        } catch (e) {}
+      }
       const msg =
         s === 401
           ? "Não autorizado"

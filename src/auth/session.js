@@ -26,7 +26,8 @@ export function getAuthEmail() {
 }
 
 export function isAuthenticated() {
-  return !!getAuthEmail();
+  const token = STORE.getItem("access_token");
+  return !!getAuthEmail() && !!token && token !== "undefined" && token !== "null";
 }
 
 export function getAuthProvider() {
@@ -50,6 +51,7 @@ export function setGoogleSession(email) {
 
 export function clearHints() {
   STORE.removeItem(GOOGLE_KEY);
+  STORE.removeItem("access_token");
 
   // Limpa conta ativa do MSAL
   try {

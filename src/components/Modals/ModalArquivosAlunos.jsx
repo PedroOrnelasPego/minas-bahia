@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Modal, Button, Form, Row, Col, Table, Badge, Spinner } from "react-bootstrap";
 import PropTypes from "prop-types";
+import toast from "react-hot-toast";
 import {
   getCordaNomeComSubclasse,
   getProximaCordaNomeComSubclasse,
@@ -36,6 +37,26 @@ export function formatarHorario(h) {
   return h;
 }
 
+export function getGroupWeight(u) {
+  const local = (u?.localTreino || "").toLowerCase();
+  const horario = (u?.horarioTreino || "").toLowerCase();
+
+  // 1) Centro Cultural Adultos
+  if (local.includes("salgado") && horario.includes("adultos")) {
+    return 1;
+  }
+  // 2) Centro Cultural Infantil
+  if (local.includes("salgado") && horario.includes("criancas")) {
+    return 2;
+  }
+  // 3) Escola (Efigênia Vidigal)
+  if (local.includes("figenia")) {
+    return 3;
+  }
+  // 4) Others
+  return 4;
+}
+
 export default function ModalArquivosAlunos({ show, onHide, integrantes: propIntegrantes }) {
   const [integrantes, setIntegrantes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -46,8 +67,8 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
   const [horarioFilter, setHorarioFilter] = useState("todos");
   const [pesquisa, setPesquisa] = useState("");
 
-  // State de ordenação (padrão: matrícula de menor para maior)
-  const [sortConfig, setSortConfig] = useState({ key: "matricula", direction: "asc" });
+  // State de ordenação (padrão: grupo e depois ordem alfabética)
+  const [sortConfig, setSortConfig] = useState({ key: "default-grupo", direction: "asc" });
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -203,6 +224,15 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
     const factor = direction === "asc" ? 1 : -1;
 
     return [...filtrados].sort((a, b) => {
+      if (key === "default-grupo") {
+        const weightA = getGroupWeight(a);
+        const weightB = getGroupWeight(b);
+        if (weightA !== weightB) {
+          return (weightA - weightB) * factor;
+        }
+        return (a.nome || "").localeCompare(b.nome || "") * factor;
+      }
+
       if (key === "matricula") {
         if (a.matricula && b.matricula) {
           return String(a.matricula).localeCompare(String(b.matricula), undefined, { numeric: true }) * factor;
@@ -239,7 +269,7 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
   // Exportar para PDF (Layout limpo e sem coluna de conferência)
   const baixarPDF = async () => {
     if (alunosFiltrados.length === 0) {
-      alert("Nenhum aluno encontrado para os filtros selecionados.");
+      toast.error("Nenhum aluno encontrado para os filtros selecionados.");
       return;
     }
 
@@ -349,9 +379,10 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
 
       const dataHoje = agora.toISOString().slice(0, 10);
       doc.save(`relatorio_alunos_${dataHoje}.pdf`);
+      toast.success("PDF exportado com sucesso!");
     } catch (err) {
       console.error("Erro ao gerar PDF:", err);
-      alert("Erro ao exportar PDF.");
+      toast.error("Erro ao exportar PDF.");
     } finally {
       setExportando(false);
     }
@@ -360,7 +391,7 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
   // Exportar para Planilha Excel (.xlsx via ExcelJS)
   const baixarPlanilhaExcel = async () => {
     if (alunosFiltrados.length === 0) {
-      alert("Nenhum aluno encontrado para os filtros selecionados.");
+      toast.error("Nenhum aluno encontrado para os filtros selecionados.");
       return;
     }
 
@@ -526,9 +557,10 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      toast.success("Planilha Excel exportada com sucesso!");
     } catch (err) {
       console.error("Erro ao gerar planilha Excel:", err);
-      alert("Erro ao exportar planilha.");
+      toast.error("Erro ao exportar planilha.");
     } finally {
       setExportando(false);
     }
@@ -538,7 +570,7 @@ export default function ModalArquivosAlunos({ show, onHide, integrantes: propInt
     <Modal show={show} onHide={onHide} size="xl" centered scrollable>
       <Modal.Header closeButton className="border-bottom bg-white px-4 py-3">
         <Modal.Title className="fw-bold fs-5 text-dark d-flex align-items-center gap-2">
-          <span>📁</span>
+          <i className="bi bi-folder-fill text-secondary"></i>
           <span>Arquivo dos Alunos</span>
         </Modal.Title>
       </Modal.Header>
